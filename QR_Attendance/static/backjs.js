@@ -212,7 +212,7 @@ async function startSession() {
             // Set QR (Already handled in createSessionCardHtml if we pass token)
 
             // Start Timers
-            startClassTimer(data.session_id, data.end_time, subject);
+            startClassTimer(data.session_id, data.end_timestamp, subject);
             startQRTimer(data.session_id, 120);
 
             // Reset and Close Form
@@ -264,14 +264,9 @@ function createSessionCardHtml(s) {
     `;
 }
 
-function startClassTimer(sessionId, endTimeStr, subjectName = "Session") {
-    const now = new Date();
-    const [hours, minutes, seconds] = endTimeStr.split(':').map(Number);
-    const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, seconds);
-
-    if (endDate < now) {
-        endDate.setDate(endDate.getDate() + 1);
-    }
+function startClassTimer(sessionId, endTimestamp, subjectName = "Session") {
+    // endTimestamp is Unix seconds from server
+    const endDate = new Date(endTimestamp * 1000);
 
     if (activeClassTimers[sessionId]) clearInterval(activeClassTimers[sessionId]);
 

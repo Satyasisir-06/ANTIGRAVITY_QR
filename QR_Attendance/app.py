@@ -488,7 +488,25 @@ def admin_dashboard():
     subjects = conn.execute('SELECT * FROM subjects ORDER BY name').fetchall()
     
     # Fetch Active Sessions
-    active_sessions = conn.execute("SELECT * FROM sessions WHERE is_finalized = ?", (False,)).fetchall()
+    active_sessions_raw = conn.execute("SELECT * FROM sessions WHERE is_finalized = ?", (False,)).fetchall()
+    
+    # Add absolute end_timestamp for accurate JS timers
+    active_sessions = []
+    for s in active_sessions_raw:
+        s_dict = dict(s)
+        try:
+            # Reconstruct datetime to get localized/absolute timestamp
+            start_dt_str = f"{s['date']} {s['start_time']}"
+            start_dt_obj = datetime.strptime(start_dt_str, "%Y-%m-%d %H:%M:%S")
+            s_dict['start_timestamp'] = start_dt_obj.timestamp()
+            
+            end_dt_str = f"{s['date']} {s['end_time']}"
+            end_dt_obj = datetime.strptime(end_dt_str, "%Y-%m-%d %H:%M:%S")
+            s_dict['end_timestamp'] = end_dt_obj.timestamp()
+        except Exception:
+            s_dict['start_timestamp'] = 0
+            s_dict['end_timestamp'] = 0
+        active_sessions.append(s_dict)
     
     conn.close()
     
@@ -815,6 +833,8 @@ def start_session():
         'qr_image': img_base64,
         'session_id': session_id,
         'end_time': end_time,
+        'start_timestamp': now.timestamp(),
+        'end_timestamp': end_dt.timestamp(),
         'token': token,
         'qr_url': qr_url,
         'server_now': datetime.now().timestamp()
