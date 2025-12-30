@@ -1,0 +1,22 @@
+{
+    "version": 2,
+    "builds": [
+        {
+            "src": "QR_Attendance/app.py",
+            "use": "@vercel/python"
+        }
+    ],
+    "routes": [
+        {
+            "src": "/static/(.*)",
+            "dest": "QR_Attendance/static/$1"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "QR_Attendance/app.py"
+        }
+    ],
+    "env": {
+        "PYTHONPATH": "QR_Attendance"
+    }
+}

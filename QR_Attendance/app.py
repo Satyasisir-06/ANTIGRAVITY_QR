@@ -1,6 +1,15 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, Response, jsonify, send_file
 from flask_socketio import SocketIO, emit
 import sqlite3
+try:
+    import psycopg2
+    from psycopg2 import IntegrityError as PostgresIntegrityError
+except ImportError:
+    PostgresIntegrityError = None
+
+# Common Integrity Error tuple for catching
+DB_INTEGRITY_ERRORS = (sqlite3.IntegrityError, PostgresIntegrityError) if PostgresIntegrityError else (sqlite3.IntegrityError,)
+
 import qrcode
 import io
 import base64
@@ -36,13 +45,83 @@ def haversine(lat1, lon1, lat2, lon2):
     d = R * c
     return d
 
+class PostgresRow(dict):
+    """Simple wrapper to allow row['col'] and row.col (some flask code likes .col)"""
+    def __getattr__(self, name):
+        try:
+            return self[name]
+        except KeyError:
+            raise AttributeError(name)
+
+class DBWrapper:
+    def __init__(self, conn, is_postgres):
+        self.conn = conn
+        self.is_postgres = is_postgres
+
+    def execute(self, query, args=()):
+        if self.is_postgres:
+            query = query.replace('?', '%s')
+            cur = self.conn.cursor()
+            cur.execute(query, args)
+            return cur
+        else:
+            return self.conn.execute(query, args)
+
+    def cursor(self):
+        if self.is_postgres:
+            return self.conn.cursor()
+        else:
+            return self.conn.cursor()
+
+    def executemany(self, query, args_list):
+        if self.is_postgres:
+            query = query.replace('?', '%s')
+            cur = self.conn.cursor()
+            cur.executemany(query, args_list)
+            return cur
+        else:
+            return self.conn.executemany(query, args_list)
+
+    def commit(self):
+        self.conn.commit()
+
+    def close(self):
+        self.conn.close()
+
+    def fetchone(self, cur=None):
+        # sqlite cursor has fetchone, postgres cur does too
+        return cur.fetchone()
+
 def get_db_connection():
-    conn = sqlite3.connect(DB_NAME)
-    conn.row_factory = sqlite3.Row
-    return conn
+    db_url = os.environ.get('DATABASE_URL')
+    if db_url:
+        import psycopg2
+        from psycopg2.extras import RealDictCursor
+        conn = psycopg2.connect(db_url, sslmode='require', cursor_factory=RealDictCursor)
+        return DBWrapper(conn, True)
+    else:
+        conn = sqlite3.connect(DB_NAME)
+        conn.row_factory = sqlite3.Row
+        return DBWrapper(conn, False)
 
 def init_db():
+    db_url = os.environ.get('DATABASE_URL')
     conn = get_db_connection()
+    
+    # If using Supabase, we assume the schema is already created via the SQL script
+    if db_url:
+        print("[DATABASE] Using Supabase/PostgreSQL. Skipping local migrations.")
+        # Ensure default admin
+        admin = conn.execute("SELECT * FROM users WHERE username = ?", ('admin',)).fetchone()
+        if not admin:
+            hashed_pw = generate_password_hash('admin123')
+            conn.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", 
+                      ('admin', hashed_pw, 'admin'))
+            conn.commit()
+        conn.close()
+        return
+
+    # LOCAL SQLITE LOGIC (Legacy)
     c = conn.cursor()
     
     # Users Table
@@ -276,7 +355,7 @@ def register():
             flash("Registration Successful! Please Login.", "success")
             conn.close()
             return redirect(url_for('login'))
-        except sqlite3.IntegrityError:
+        except DB_INTEGRITY_ERRORS:
             conn.close()
             flash("Username already exists", "danger")
             return redirect(url_for('register'))
