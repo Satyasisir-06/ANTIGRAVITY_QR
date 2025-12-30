@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | QR Attendance</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <div class="glass-container animate-pop">
+        <div style="text-align: center; margin-bottom: 1rem;">
+            <i class="fas fa-qrcode fa-2x"
+                style="color: white; margin-bottom: 8px; background: linear-gradient(135deg, #FF9A9E, #FECFEF); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+            <h1 style="font-size: 1.8rem; margin-bottom: 5px;">Welcome</h1>
+            <p style="margin-bottom: 1rem; font-size: 0.95rem;">Secure Attendance System</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div
+            style="padding: 10px; border-radius: 8px; margin-bottom: 1rem; background: rgba(255, 107, 107, 0.2); border: 1px solid rgba(255, 107, 107, 0.5); color: #c0392b; text-align: center;">
+            {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <form action="/login" method="POST">
+            <div class="form-group">
+                <label>Username</label>
+                <div style="position: relative;">
+                    <i class="fas fa-user" style="position: absolute; left: 15px; top: 15px; color: #a18cd1;"></i>
+                    <input type="text" name="username" placeholder="Enter username" style="padding-left: 40px;"
+                        required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Password</label>
+                <div style="position: relative;">
+                    <i class="fas fa-lock" style="position: absolute; left: 15px; top: 15px; color: #a18cd1;"></i>
+                    <input type="password" id="loginPass" name="password" placeholder="Enter password"
+                        style="padding-left: 40px; padding-right: 40px;" required>
+                    <i class="fas fa-eye" id="toggleLoginPass"
+                        style="position: absolute; right: 15px; top: 15px; color: #a18cd1; cursor: pointer;"
+                        onclick="togglePassword('loginPass', 'toggleLoginPass')"></i>
+                </div>
+            </div>
+
+            <button type="submit">Login <i class="fas fa-arrow-right"></i></button>
+        </form>
+
+        <div style="margin-top: 1rem; text-align: center; font-size: 0.9rem;">
+            <p style="margin-bottom: 0.5rem;">Don't have an account? <a href="/register"
+                    style="color: var(--primary-color); font-weight: bold;">Sign
+                    Up Here</a></p>
+        </div>
+
+        <div style="margin-top: 1rem; text-align: center; font-size: 0.8rem; opacity: 0.8;">
+            <p style="margin-bottom: 2px;">Default Admin: admin / admin123</p>
+            <p style="margin-bottom: 2px;">Default Student: student / student123</p>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='backjs.js') }}"></script>
+</body>
+
+</html>

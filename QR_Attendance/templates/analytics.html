@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics | QR Attendance</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <div class="glass-container container-wide animate-pop">
+        <nav class="navbar">
+            <div class="brand"><i class="fas fa-chart-line"></i> Analytics Dashboard</div>
+            <div class="nav-links">
+                <a href="/admin" data-tooltip="Dashboard"><i class="fas fa-arrow-left"></i></a>
+                <a href="/admin/corrections" data-tooltip="Corrections"><i class="fas fa-clipboard-check"></i></a>
+                <a href="/reports" data-tooltip="Reports"><i class="fas fa-file-invoice"></i></a>
+                <a href="/settings" data-tooltip="Settings"><i class="fas fa-cogs"></i></a>
+                <a href="/logout" style="color: var(--danger-color);" data-tooltip="Logout"><i
+                        class="fas fa-sign-out-alt"></i></a>
+            </div>
+        </nav>
+
+        <div style="margin-top: 2rem;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                <!-- Trend Chart -->
+                <div class="card" style="background: rgba(255,255,255,0.8); padding: 20px; border-radius: 15px;">
+                    <h3 style="text-align: center; margin-bottom: 20px;">Attendance Trends (Last 7 Days)</h3>
+                    <canvas id="trendChart"></canvas>
+                </div>
+
+                <!-- Branch Chart -->
+                <div class="card" style="background: rgba(255,255,255,0.8); padding: 20px; border-radius: 15px;">
+                    <h3 style="text-align: center; margin-bottom: 20px;">Branch Performance (%)</h3>
+                    <canvas id="branchChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const res = await fetch('/api/analytics');
+                const data = await res.json();
+
+                // Trend Chart
+                const ctx1 = document.getElementById('trendChart').getContext('2d');
+                new Chart(ctx1, {
+                    type: 'line',
+                    data: {
+                        labels: data.trends.labels,
+                        datasets: [
+                            {
+                                label: 'Present',
+                                data: data.trends.present,
+                                borderColor: '#2ecc71',
+                                backgroundColor: 'rgba(46, 204, 113, 0.2)',
+                                fill: true,
+                                tension: 0.4
+                            },
+                            {
+                                label: 'Absent',
+                                data: data.trends.absent,
+                                borderColor: '#e74c3c',
+                                backgroundColor: 'rgba(231, 76, 60, 0.2)',
+                                fill: true,
+                                tension: 0.4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { position: 'top' }
+                        }
+                    }
+                });
+
+                // Branch Chart
+                const ctx2 = document.getElementById('branchChart').getContext('2d');
+                new Chart(ctx2, {
+                    type: 'bar',
+                    data: {
+                        labels: data.branches.labels,
+                        datasets: [{
+                            label: 'Attendance %',
+                            data: data.branches.data,
+                            backgroundColor: [
+                                '#3498db', '#9b59b6', '#f1c40f', '#e67e22',
+                                '#e74c3c', '#2ecc71', '#1abc9c', '#34495e',
+                                '#16a085', '#27ae60'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: { beginAtZero: true, max: 100 }
+                        },
+                        plugins: {
+                            legend: { display: false }
+                        }
+                    }
+                });
+
+            } catch (e) {
+                console.error("Error loading analytics:", e);
+            }
+        });
+    </script>
+</body>
+
+</html>

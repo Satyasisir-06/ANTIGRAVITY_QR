@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mark Attendance | Smart Attendance</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <div class="glass-container animate-pop">
+        <h2 style="text-align: center; margin-bottom: 2rem;">
+            <i class="fas fa-qrcode"></i> Mark Attendance
+        </h2>
+
+        {% if error %}
+        <div class="alert danger">
+            <i class="fas fa-exclamation-circle"></i> {{ error }}
+        </div>
+        {% else %}
+        <div class="session-info" style="text-align: center; margin-bottom: 20px;">
+            <p><strong>Subject:</strong> {{ session_data.subject }}</p>
+            <p><strong>Branch:</strong> {{ session_data.branch }}</p>
+            <p><strong>Type:</strong> {{ session_data.class_type }}</p>
+        </div>
+
+        <form id="attendanceForm" style="display: flex; flex-direction: column; gap: 1rem;">
+            <input type="hidden" id="token" value="{{ token }}">
+
+            <input type="text" id="roll" placeholder="Enter Roll Number"
+                value="{% if session.get('role') == 'student' %}{{ session.get('username') }}{% endif %}" {% if
+                session.get('role')=='student' %}readonly style="background: rgba(0,0,0,0.05); color: #666;" {% endif %}
+                required>
+
+            <input type="text" id="name" placeholder="Enter Name" required>
+
+            <button type="submit" id="submitBtn">
+                <i class="fas fa-check-circle"></i> Mark Present
+            </button>
+        </form>
+        <div id="msg" style="margin-top: 15px; text-align: center;"></div>
+        {% endif %}
+    </div>
+
+    <script>
+        const GEO_ENABLED = {{ geo_enabled|default (0) | int }};
+        let userLat = null;
+        let userLng = null;
+
+        if (GEO_ENABLED) {
+            const btn = document.getElementById('submitBtn');
+            const msg = document.getElementById('msg');
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-satellite-dish fa-spin"></i> Locating...'; // Initial state
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        userLat = pos.coords.latitude;
+                        userLng = pos.coords.longitude;
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-check-circle"></i> Mark Present';
+                        msg.innerHTML = '<small style="color: #2ecc71"><i class="fas fa-map-marker-alt"></i> Location Verified</small>';
+                    },
+                    (err) => {
+                        console.error(err);
+                        msg.innerHTML = '<span style="color: #e74c3c"><i class="fas fa-times"></i> Location Access Denied. Required for attendance.</span>';
+                        btn.innerHTML = 'Location Denied';
+                    },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+            } else {
+                msg.innerHTML = '<span style="color: #e74c3c">Browser does not support Location.</span>';
+            }
+        }
+
+        document.getElementById('attendanceForm')?.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            btn.disabled = true;
+
+            const roll = document.getElementById('roll').value;
+            const name = document.getElementById('name').value;
+            const token = document.getElementById('token').value;
+
+            const payload = { roll, name, token };
+            if (GEO_ENABLED) {
+                payload.lat = userLat;
+                payload.lng = userLng;
+            }
+
+            try {
+                const res = await fetch('/mark_session_attendance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+
+                const msg = document.getElementById('msg');
+                if (data.success) {
+                    msg.innerHTML = `<span style="color: #2ecc71"><i class="fas fa-check"></i> ${data.message}</span>`;
+                    document.getElementById('attendanceForm').style.display = 'none';
+                } else {
+                    msg.innerHTML = `<span style="color: #e74c3c"><i class="fas fa-times"></i> ${data.message}</span>`;
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                console.error(err);
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                alert("Network Error");
+            }
+        });
+    </script>
+</body>
+
+</html>

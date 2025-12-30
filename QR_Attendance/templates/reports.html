@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weekly Reports | QR Attendance</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .report-item {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px 25px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: transform 0.2s;
+            border-left: 5px solid var(--primary-color);
+        }
+
+        .report-item:hover {
+            transform: translateX(5px);
+            background: #fff;
+        }
+
+        .report-info h3 {
+            margin: 0;
+            color: var(--text-color);
+            font-size: 1.1rem;
+        }
+
+        .report-info span {
+            color: #888;
+            font-size: 0.85rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container glass-container animate-pop">
+        <nav class="navbar">
+            <div class="brand"><i class="fas fa-file-invoice"></i> Weekly Reports</div>
+            <div class="nav-links">
+                <a href="/admin" data-tooltip="Dashboard"><i class="fas fa-arrow-left"></i></a>
+                <a href="/admin/corrections" data-tooltip="Corrections"><i class="fas fa-clipboard-check"></i></a>
+                <button onclick="generateNewReport()" class="primary" id="genBtn"
+                    style="width: auto; padding: 8px 15px;" data-tooltip="Generate Latest">
+                    <i class="fas fa-magic"></i>
+                </button>
+            </div>
+        </nav>
+
+        <div style="margin-top: 2rem;">
+            <p style="color: #666; margin-bottom: 20px;">
+                <i class="fas fa-info-circle"></i> Reports are automatically generated every Monday at 12:01 AM.
+                You can also manually generate one using the button above.
+            </p>
+
+            <div id="reports-list">
+                {% if reports %}
+                {% for r in reports %}
+                <div class="report-item card">
+                    <div class="report-info">
+                        <h3>{{ r }}</h3>
+                    </div>
+                    <a href="{{ url_for('static', filename='reports/' + r) }}" download class="secondary"
+                        style="width: auto; padding: 8px 20px; text-decoration: none;">
+                        <i class="fas fa-download"></i> Download CSV
+                    </a>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-folder-open fa-3x" style="margin-bottom: 15px; opacity: 0.3;"></i>
+                    <p>No reports generated yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function generateNewReport() {
+            const btn = document.getElementById('genBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+
+            try {
+                const res = await fetch('/api/generate_report');
+                const data = await res.json();
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert("Error: " + data.message);
+                }
+            } catch (e) {
+                alert("Request Failed");
+            }
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-magic"></i> Generate Latest';
+        }
+    </script>
+</body>
+
+</html>

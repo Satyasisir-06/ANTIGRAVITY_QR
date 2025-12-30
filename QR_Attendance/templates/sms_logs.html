@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMS Delivery Logs | QR Attendance</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container-wide glass-container animate-pop">
+        <nav class="navbar">
+            <div class="brand"><i class="fas fa-history"></i> SMS Logs</div>
+            <div class="nav-links">
+                <a href="/admin" data-tooltip="Dashboard"><i class="fas fa-arrow-left"></i></a>
+                <a href="/settings" data-tooltip="Settings"><i class="fas fa-cogs"></i></a>
+                <a href="/logout" style="color: var(--danger-color);" data-tooltip="Logout"><i
+                        class="fas fa-sign-out-alt"></i></a>
+            </div>
+        </nav>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Roll No</th>
+                        <th>Phone</th>
+                        <th>Message</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td>{{ log.timestamp }}</td>
+                        <td>{{ log.roll }}</td>
+                        <td>{{ log.phone }}</td>
+                        <td style="max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+                            title="{{ log.message }}">
+                            {{ log.message }}
+                        </td>
+                        <td>
+                            {% if log.status == 'SENT' %}
+                            <span class="status-present"><i class="fas fa-check-circle"></i> Sent</span>
+                            {% else %}
+                            <span class="status-absent" title="{{ log.error_message }}"><i
+                                    class="fas fa-times-circle"></i> {{ log.status }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" style="text-align: center;">No SMS logs found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='backjs.js') }}"></script>
+</body>
+
+</html>

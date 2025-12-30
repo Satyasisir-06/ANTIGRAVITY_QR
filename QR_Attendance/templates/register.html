@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Registration | QR Attendance</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <div class="glass-container animate-pop">
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+            <i class="fas fa-user-plus fa-3x"
+                style="color: white; margin-bottom: 10px; background: linear-gradient(135deg, #a18cd1, #fbc2eb); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+            <h1>Student Sign Up</h1>
+            <p>Create your account to view attendance</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div
+            style="padding: 10px; border-radius: 8px; margin-bottom: 1rem; background: rgba(255, 107, 107, 0.2); border: 1px solid rgba(255, 107, 107, 0.5); color: #c0392b; text-align: center;">
+            {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <form action="/register" method="POST">
+            <div class="form-group">
+                <label>Roll Number (Username)</label>
+                <div style="position: relative;">
+                    <i class="fas fa-id-card" style="position: absolute; left: 15px; top: 15px; color: #a18cd1;"></i>
+                    <input type="text" name="username" placeholder="e.g. 21A91A05H7" style="padding-left: 40px;"
+                        required>
+                </div>
+                <small style="display: block; margin-top: 5px; opacity: 0.7;">This must match the Roll No used for
+                    attendance.</small>
+            </div>
+
+            <div class="form-group">
+                <label>Password</label>
+                <div style="position: relative;">
+                    <i class="fas fa-lock" style="position: absolute; left: 15px; top: 15px; color: #a18cd1;"></i>
+                    <input type="password" id="regPass" name="password" placeholder="Create a password"
+                        style="padding-left: 40px; padding-right: 40px;" required>
+                    <i class="fas fa-eye" id="toggleRegPass"
+                        style="position: absolute; right: 15px; top: 15px; color: #a18cd1; cursor: pointer;"
+                        onclick="togglePassword('regPass', 'toggleRegPass')"></i>
+                </div>
+            </div>
+
+            <button type="submit">Register <i class="fas fa-check-circle"></i></button>
+        </form>
+
+        <div style="margin-top: 1.5rem; text-align: center;">
+            <p>Already have an account? <a href="/login" style="color: var(--primary-color); font-weight: bold;">Login
+                    Here</a></p>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='backjs.js') }}"></script>
+</body>
+
+</html>

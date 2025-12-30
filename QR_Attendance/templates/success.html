@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Success!</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <div class="glass-container animate-pop" style="text-align: center;">
+        <div class="checkmark"></div>
+        <h1 style="color: var(--success-color);">Success!</h1>
+        <p>Your attendance has been marked.</p>
+        <p style="font-size: 0.9rem;">You can close this tab now.</p>
+
+        <script>
+            // Confetti effect (simple version using CSS/JS)
+            // For brevity, we trust the CSS nice checkmark animation acts as the main visual
+            setTimeout(() => {
+                // Auto close logic if supported or just message
+            }, 3000);
+        </script>
+    </div>
+</body>
+
+</html>

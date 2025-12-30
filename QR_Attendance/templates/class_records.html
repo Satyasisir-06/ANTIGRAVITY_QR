@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class Records | QR Attendance</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .branch-btn {
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 12px;
+            text-decoration: none;
+            color: var(--text-color);
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .branch-btn:hover {
+            background: rgba(255, 255, 255, 0.82);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        body.dark-mode .branch-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        body.dark-mode .branch-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .branch-btn.active {
+            background: #a18cd1;
+            color: white;
+            border-color: #a18cd1;
+        }
+
+        .branch-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 15px;
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-wide glass-container animate-pop">
+        <nav class="navbar">
+            <div class="brand"><i class="fas fa-users-class"></i> Class Records</div>
+            <div class="nav-links">
+                <button onclick="toggleDarkMode()"
+                    style="width: auto; padding: 8px 12px; background: transparent; border: 1px solid var(--text-color); color: var(--text-color); border-radius: 50%; width: 40px; height: 40px; display: inline-flex; justify-content: center; align-items: center; cursor: pointer; margin-right: 10px;">
+                    <i id="theme-icon" class="fas fa-moon"></i>
+                </button>
+                <a href="/admin"><i class="fas fa-arrow-left"></i> Dashboard</a>
+                <a href="/logout" style="color: var(--danger-color);"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
+        </nav>
+
+        <h2 style="text-align: left; margin-bottom: 1rem;">
+            Select a Branch to View Records
+            {% if group %}
+            <span class="tag-pill" style="display: inline-flex; vertical-align: middle; margin-left: 10px;">
+                Filter: {{ group }} Group
+                <a href="/class_records" style="color: var(--danger-color); margin-left: 5px; text-decoration: none;"><i
+                        class="fas fa-times"></i></a>
+            </span>
+            {% endif %}
+        </h2>
+
+        <!-- Branch Selection Grid -->
+        <div class="branch-grid">
+            {% for b in branches %}
+            <a href="{{ url_for('class_records', branch=b, group=group) }}"
+                class="branch-btn {% if selected_branch == b %}active{% endif %}">
+                {{ b }}
+            </a>
+            {% endfor %}
+        </div>
+
+        <!-- Records Table -->
+        {% if selected_branch %}
+        <div class="animate-pop">
+
+            <!-- Daily Report Summary -->
+            <div class="glass-card"
+                style="margin-bottom: 2rem; display: flex; justify-content: space-around; flex-wrap: wrap; gap: 1rem;">
+                <div style="text-align: center;">
+                    <h4 style="margin: 0; color: var(--text-muted);">Total Strength</h4>
+                    <p style="font-size: 1.5rem; font-weight: bold; margin: 0;">{{ total_strength }}</p>
+                </div>
+                <div style="text-align: center;">
+                    <h4 style="margin: 0; color: var(--success-color);">Present Today</h4>
+                    <p style="font-size: 1.5rem; font-weight: bold; margin: 0; color: var(--success-color);">{{
+                        present_count }}</p>
+                </div>
+                <div style="text-align: center;">
+                    <h4 style="margin: 0; color: var(--danger-color);">Absent Today</h4>
+                    <p style="font-size: 1.5rem; font-weight: bold; margin: 0; color: var(--danger-color);">{{
+                        absent_count }}</p>
+                </div>
+            </div>
+
+            <!-- Absentees List (Collapsible) -->
+            {% if absentees %}
+            <details
+                style="margin-bottom: 2rem; background: rgba(255, 107, 107, 0.05); border-radius: 12px; padding: 10px; border: 1px solid rgba(255, 107, 107, 0.1);">
+                <summary
+                    style="cursor: pointer; font-weight: 600; color: var(--danger-color); display: flex; justify-content: space-between; align-items: center;">
+                    <span>View Absent Students List ({{ absentees|length }})</span>
+                    <button onclick="notifyAbsent('branch', '{{ selected_branch }}')" class="danger"
+                        style="width: auto; padding: 5px 15px; font-size: 0.9rem;">
+                        <i class="fas fa-bell"></i> Notify All Parents
+                    </button>
+                </summary>
+
+                <div style="overflow-x: auto; margin-top: 10px;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: rgba(0,0,0,0.05);">
+                                <th style="padding: 8px;">Roll No</th>
+                                <th style="padding: 8px;">Name</th>
+                                <th style="padding: 8px;">Parent Phone</th>
+                                <th style="padding: 8px;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for s in absentees %}
+                            <tr style="border-bottom: 1px solid rgba(0,0,0,0.05);">
+                                <td style="padding: 8px;">{{ s.roll }}</td>
+                                <td style="padding: 8px;">{{ s.name }}</td>
+                                <td style="padding: 8px;">
+                                    {% if s.parent_phone %}{{ s.parent_phone }}{% else %}<span
+                                        style="color: grey; font-style: italic;">Not Added</span>{% endif %}
+                                </td>
+                                <td style="padding: 8px;">
+                                    <button onclick="notifyAbsent('single', '{{ s.roll }}')"
+                                        style="width: auto; padding: 4px 10px; font-size: 0.8rem; background: var(--text-color); color: var(--glass-bg);">
+                                        Notify
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </details>
+            {% endif %}
+
+            <h3 style="margin-bottom: 1rem;">Attendance History: <span style="color: var(--primary-color);">{{
+                    selected_branch }}</span></h3>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 1rem; align-items: center;">
+                <h4 style="margin: 0;">Total Records: {{ records|length }}</h4>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Roll No</th>
+                            <th>Name</th>
+                            <th>Subject</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in records %}
+                        <tr>
+                            <td>{{ row.date }}</td>
+                            <td>{{ row.time }}</td>
+                            <td>{{ row.roll }}</td>
+                            <td>{{ row.name }}</td>
+                            <td>{{ row.subject }}</td>
+                            <td>
+                                {% if row.status == 'ABSENT' %}
+                                <span class="status-absent"><i class="fas fa-times-circle"></i> Absent</span>
+                                {% else %}
+                                <span class="status-present"><i class="fas fa-check-circle"></i> Present</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" style="text-align: center;">No records found for {{ selected_branch }}.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 3rem; border-radius: 12px;" class="glass-card">
+            <i class="fas fa-hand-pointer" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+            <p>Please select a branch from the list above to view its attendance records.</p>
+        </div>
+        {% endif %}
+
+    </div>
+    <script src="{{ url_for('static', filename='backjs.js') }}"></script>
+    <script>
+        async function notifyAbsent(type, value) {
+            if (!confirm(`Send absentee notification (${type === 'branch' ? 'ALL' : 'SINGLE'})?`)) return;
+
+            let payload = { target: type };
+            if (type === 'single') payload.roll = value;
+            if (type === 'branch') payload.branch = value;
+
+            try {
+                const res = await fetch('/notify_absent', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+
+                let msg = `Sent: ${data.sent} / ${data.total}`;
+                if (data.errors.length > 0) {
+                    msg += `\nErrors:\n${data.errors.join('\n')}`;
+                }
+                alert(msg);
+            } catch (e) {
+                alert('Error sending notifications');
+            }
+        }
+    </script>
+</body>
+
+</html>

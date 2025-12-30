@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Correction Requests | Admin Panel</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container-wide glass-container animate-pop">
+        <nav class="navbar">
+            <div class="brand"><i class="fas fa-clipboard-check"></i> Correction Portal</div>
+            <div class="nav-links">
+                <a href="/admin" data-tooltip="Dashboard"><i class="fas fa-home"></i></a>
+                <a href="/view_attendance" data-tooltip="View Records"><i class="fas fa-list"></i></a>
+                <a href="/analytics" data-tooltip="Analytics"><i class="fas fa-chart-line"></i></a>
+                <a href="/logout" style="color: var(--danger-color);" data-tooltip="Logout"><i
+                        class="fas fa-sign-out-alt"></i></a>
+            </div>
+        </nav>
+
+        <h2 style="margin-bottom: 2rem;">Pending Requests</h2>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Roll No</th>
+                        <th>Reason</th>
+                        <th>Proof</th>
+                        <th>Submitted</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in pending %}
+                    <tr>
+                        <td>{{ req.student_name if req.student_name else 'Unknown' }}</td>
+                        <td>{{ req.roll }}</td>
+                        <td>{{ req.reason }}</td>
+                        <td>
+                            {% if req.proof_img %}
+                            <a href="{{ url_for('static', filename='proofs/' + req.proof_img) }}" target="_blank"
+                                class="btn-small" style="background: var(--info-color);">
+                                <i class="fas fa-image"></i> View
+                            </a>
+                            {% else %}
+                            No Proof
+                            {% endif %}
+                        </td>
+                        <td>{{ req.timestamp }}</td>
+                        <td>
+                            <div style="display: flex; gap: 5px;">
+                                <button onclick="handleRequest('{{ req.id }}', 'APPROVE')" class="btn-small"
+                                    style="background: var(--success-color);">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button onclick="handleRequest('{{ req.id }}', 'REJECT')" class="btn-small"
+                                    style="background: var(--danger-color);">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" style="text-align: center;">No pending corrections.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <h2 style="margin-top: 3rem; margin-bottom: 2rem;">Action History</h2>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Roll No</th>
+                        <th>Reason</th>
+                        <th>Status</th>
+                        <th>Admin Comment</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in history %}
+                    <tr>
+                        <td>{{ req.roll }}</td>
+                        <td>{{ req.reason }}</td>
+                        <td>
+                            <span class="status-tag"
+                                style="background: {{ '#55efc4' if req.status=='APPROVED' else '#ff7675' }}; color: white;">
+                                {{ req.status }}
+                            </span>
+                        </td>
+                        <td>{{ req.admin_comment or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function handleRequest(id, action) {
+            const comment = prompt("Enter comment (optional):");
+            const formData = new FormData();
+            formData.append('id', id);
+            formData.append('action', action);
+            formData.append('comment', comment || '');
+
+            fetch('/api/handle_correction', {
+                method: 'POST',
+                body: formData
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert("Error: " + data.message);
+                    }
+                });
+        }
+    </script>
+</body>
+
+</html>
