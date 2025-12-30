@@ -10,10 +10,10 @@ except ImportError:
 # Common Integrity Error tuple for catching
 DB_INTEGRITY_ERRORS = (sqlite3.IntegrityError, PostgresIntegrityError) if PostgresIntegrityError else (sqlite3.IntegrityError,)
 
-import qrcode
 import io
 import base64
 import time
+import traceback
 from datetime import datetime, timedelta
 import os
 import csv
@@ -30,10 +30,22 @@ app.secret_key = os.environ.get('SECRET_KEY', 'super_secret_key_for_qr_attendanc
 # Vercel/Serverless configuration for SocketIO
 is_vercel = 'VERCEL' in os.environ
 if is_vercel:
-    print("[INIT] Running on Vercel mode. Forcing threading mode.")
-    socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+    print("[INIT] Running on Vercel mode. Forcing threading mode and disabling background tasks.")
+    socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading', manage_session=False)
 else:
     socketio = SocketIO(app, cors_allowed_origins="*")
+
+@app.errorhandler(500)
+def handle_500(e):
+    print(f"[CRITICAL] 500 Internal Server Error: {e}")
+    traceback.print_exc()
+    return f"Internal Server Error: {str(e)}", 500
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    print(f"[CRITICAL] Unhandled Exception: {e}")
+    traceback.print_exc()
+    return f"An error occurred: {str(e)}", 500
 
 # SMTP CONFIGURATION
 SMTP_SERVER = "smtp.gmail.com"
@@ -55,23 +67,25 @@ def haversine(lat1, lon1, lat2, lon2):
     return d
 
 class DBRow:
-    """A row object that allows access by index and name, like sqlite3.Row"""
+    """A row object that allows access by index and name (case-insensitive), like sqlite3.Row"""
     def __init__(self, data, description):
         self.data = data
         self.description = description
-        self._mapping = {d[0]: i for i, d in enumerate(description)}
+        # Map lowercase names to indices for case-insensitive lookup
+        self._mapping = {d[0].lower(): i for i, d in enumerate(description)}
 
     def __getitem__(self, key):
         if isinstance(key, int):
             return self.data[key]
-        return self.data[self._mapping[key]]
+        return self.data[self._mapping[key.lower()]]
 
     def keys(self):
         return [d[0] for d in self.description]
 
     def __getattr__(self, name):
-        if name in self._mapping:
-            return self.data[self._mapping[name]]
+        name_lower = name.lower()
+        if name_lower in self._mapping:
+            return self.data[self._mapping[name_lower]]
         raise AttributeError(name)
 
 class DBResult:
@@ -163,17 +177,29 @@ def init_db():
     db_url = os.environ.get('DATABASE_URL')
     conn = get_db_connection()
     
-    # If using Supabase, we assume the schema is already created via the SQL script
     if db_url:
-        print("[DATABASE] Using Supabase/PostgreSQL. Skipping local migrations.")
-        # Ensure default admin
-        admin = conn.execute("SELECT * FROM users WHERE username = ?", ('admin',)).fetchone()
-        if not admin:
-            hashed_pw = generate_password_hash('admin123')
-            conn.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", 
-                      ('admin', hashed_pw, 'admin'))
-            conn.commit()
-        conn.close()
+        print("[DATABASE] Using Supabase/PostgreSQL. Running light init.")
+        try:
+            # Ensure users table has at least one admin
+            admin = conn.execute("SELECT * FROM users WHERE username = ?", ('admin',)).fetchone()
+            if not admin:
+                hashed_pw = generate_password_hash('admin123')
+                conn.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", 
+                          ('admin', hashed_pw, 'admin'))
+                conn.commit()
+            
+            # Simple check for semester_config
+            config = conn.execute("SELECT COUNT(*) FROM semester_config").fetchone()[0]
+            if config == 0:
+                start = datetime.now().replace(month=1, day=1).strftime("%Y-%m-%d")
+                end = datetime.now().replace(month=12, day=31).strftime("%Y-%m-%d")
+                conn.execute("INSERT INTO semester_config (start_date, end_date, geo_enabled, geo_radius) VALUES (?, ?, 0, 200)", (start, end))
+                conn.commit()
+                
+        except Exception as e:
+            print(f"[DATABASE] Init Error (Postgres): {e}. This might be expected if script was already run.")
+        finally:
+            conn.close()
         return
 
     # LOCAL SQLITE LOGIC (Legacy)
