@@ -15,5 +15,8 @@
             "src": "/(.*)",
             "dest": "main.py"
         }
-    ]
+    ],
+    "env": {
+        "PYTHONPATH": ".:QR_Attendance"
+    }
 }
