@@ -1319,8 +1319,16 @@ def update_semester():
     # Geofencing Config
     # Explicitly cast to integer for PostgreSQL/SQLite compatibility
     geo_enabled = 1 if 'geo_enabled' in request.form else 0
-    college_lat = request.form.get('college_lat')
-    college_lng = request.form.get('college_lng')
+    import re
+    def clean_coord(val):
+        if not val: return 0.0
+        # Remove everything except numbers, dots, and minus signs
+        cleaned = re.sub(r'[^0-9\.-]', '', str(val))
+        try: return float(cleaned)
+        except: return 0.0
+
+    college_lat = clean_coord(request.form.get('college_lat'))
+    college_lng = clean_coord(request.form.get('college_lng'))
     geo_radius = request.form.get('geo_radius', 200)
     
     conn = get_db_connection()
