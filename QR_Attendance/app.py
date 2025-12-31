@@ -1309,21 +1309,41 @@ def settings():
     conn.close()
     return render_template('settings.html', config=config, holidays=grouped_holidays)
 
-@app.route('/update_semester', methods=['POST'])
-def update_semester():
+@app.route('/update_semester_dates', methods=['POST'])
+def update_semester_dates():
     if 'user_id' not in session or session.get('role') != 'admin':
         return redirect(url_for('login'))
         
     start_date = request.form['start_date']
     end_date = request.form['end_date']
     
-    # Geofencing Config
-    # Explicitly cast to integer for PostgreSQL/SQLite compatibility
+    conn = get_db_connection()
+    row = conn.execute("SELECT id FROM semester_config LIMIT 1").fetchone()
+    
+    if not row:
+         conn.execute('''INSERT INTO semester_config (start_date, end_date) 
+                         VALUES (?, ?)''', (start_date, end_date))
+    else:
+        cfg_id = row['id'] if hasattr(row, 'id') else row[0]
+        conn.execute('''UPDATE semester_config 
+                        SET start_date = ?, end_date = ?
+                        WHERE id = ?''', 
+                     (start_date, end_date, cfg_id))
+    conn.commit()
+    conn.close()
+    
+    flash("Semester dates updated!", "success")
+    return redirect(url_for('settings'))
+
+@app.route('/update_geofencing', methods=['POST'])
+def update_geofencing():
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return redirect(url_for('login'))
+
     geo_enabled = 1 if 'geo_enabled' in request.form else 0
     import re
     def clean_coord(val):
         if not val: return 0.0
-        # Remove everything except numbers, dots, and minus signs
         cleaned = re.sub(r'[^0-9\.-]', '', str(val))
         try: return float(cleaned)
         except: return 0.0
@@ -1333,25 +1353,22 @@ def update_semester():
     geo_radius = request.form.get('geo_radius', 200)
     
     conn = get_db_connection()
-    # Check if a row exists, if not insert (Edge case handling)
     row = conn.execute("SELECT id FROM semester_config LIMIT 1").fetchone()
+    
     if not row:
-         # Should not happen given init_db, but safe to handle
-         conn.execute('''INSERT INTO semester_config (start_date, end_date, geo_enabled, college_lat, college_lng, geo_radius) 
-                         VALUES (?, ?, ?, ?, ?, ?)''',
-                         (start_date, end_date, geo_enabled, college_lat, college_lng, geo_radius))
+         conn.execute('''INSERT INTO semester_config (geo_enabled, college_lat, college_lng, geo_radius) 
+                         VALUES (?, ?, ?, ?)''',
+                         (geo_enabled, college_lat, college_lng, geo_radius))
     else:
-        # Update the existing row (regardless of ID)
         cfg_id = row['id'] if hasattr(row, 'id') else row[0]
         conn.execute('''UPDATE semester_config 
-                        SET start_date = ?, end_date = ?, 
-                            geo_enabled = ?, college_lat = ?, college_lng = ?, geo_radius = ?
+                        SET geo_enabled = ?, college_lat = ?, college_lng = ?, geo_radius = ?
                         WHERE id = ?''', 
-                     (start_date, end_date, geo_enabled, college_lat, college_lng, geo_radius, cfg_id))
+                     (geo_enabled, college_lat, college_lng, geo_radius, cfg_id))
     conn.commit()
     conn.close()
     
-    flash("Semester dates updated!", "success")
+    flash("Geofencing settings updated!", "success")
     return redirect(url_for('settings'))
 
 @app.route('/update_sms_config', methods=['POST'])
