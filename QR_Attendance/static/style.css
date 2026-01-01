@@ -716,3 +716,61 @@ input:checked+.slider:before {
     cursor: pointer;
     flex: 1;
 }
+
+/* Segmented Control (Radio Buttons) */
+.segmented-control {
+    display: flex;
+    background: rgba(255, 255, 255, 0.5);
+    padding: 4px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    width: 100%;
+}
+
+.segmented-control label {
+    flex: 1;
+    text-align: center;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin: 0;
+    transition: all 0.3s;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.segmented-control input[type="radio"] {
+    display: none;
+}
+
+.segmented-control label:has(input:checked) {
+    background: white;
+    color: #a18cd1;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+body.dark-mode .segmented-control {
+    background: rgba(0, 0, 0, 0.2);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .segmented-control label:has(input:checked) {
+    background: var(--primary-gradient);
+    color: white;
+}
+
+/* Improve Toggle Wrapper for Mobile */
+@media (max-width: 480px) {
+    .toggle-wrapper {
+        align-items: flex-start;
+        /* Align top if text wraps */
+    }
+
+    .toggle-label {
+        font-size: 0.9rem;
+        line-height: 1.4;
+        padding-top: 4px;
+        /* Align with slider */
+    }
+}
