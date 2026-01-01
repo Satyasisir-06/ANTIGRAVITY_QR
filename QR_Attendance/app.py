@@ -610,21 +610,29 @@ def student_dashboard():
         return redirect(url_for('login'))
     
     username = session['username']
-    conn = get_db_connection()
+    # Fetch Semester Config first to filter attendance by date
+    config = conn.execute("SELECT * FROM semester_config").fetchone()
+    holidays = conn.execute("SELECT * FROM holidays").fetchall()
     
     total_present = 0
     records = []
     corrections = []
     
     if session['role'] == 'student':
-        # Match by Roll Number (which is the username)
-        query_res = conn.execute("SELECT COUNT(*) FROM attendance WHERE roll = ? AND status='PRESENT'", (username,)).fetchone()
+        # Filter by Current Semester Dates
+        start_date = config['start_date']
+        end_date = config['end_date']
+        
+        # Count Present only within semester range
+        query_res = conn.execute("SELECT COUNT(*) FROM attendance WHERE roll = ? AND status='PRESENT' AND date >= ? AND date <= ?", 
+                                 (username, start_date, end_date)).fetchone()
         if query_res:
             total_present = query_res[0]
         
-        records = conn.execute("SELECT * FROM attendance WHERE roll = ? ORDER BY date DESC, time DESC", (username,)).fetchall()
+        # Fetch records for current semester only (or all? usually semester specific dashboard)
+        records = conn.execute("SELECT * FROM attendance WHERE roll = ? AND date >= ? AND date <= ? ORDER BY date DESC, time DESC", 
+                               (username, start_date, end_date)).fetchall()
         
-        # Fetch pending/history of corrections
         # Fetch pending/history of corrections
         corrections = conn.execute("""
             SELECT cr.*, s.subject 
@@ -633,10 +641,6 @@ def student_dashboard():
             WHERE cr.roll = ? 
             ORDER BY cr.timestamp DESC
         """, (username,)).fetchall()
-    
-    # Calculate Percentage based on Semester Config
-    config = conn.execute("SELECT * FROM semester_config").fetchone()
-    holidays = conn.execute("SELECT * FROM holidays").fetchall()
     
     working_days = 0
     total_sem_days = 0
