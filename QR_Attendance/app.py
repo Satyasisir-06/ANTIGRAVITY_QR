@@ -1645,20 +1645,39 @@ def notify_absent():
             if s['roll'] not in present_rolls:
                 students_to_notify.append(s)
                 
+    # Fetch Gateway Config
+    config = conn.execute("SELECT * FROM semester_config").fetchone()
+    
+    if not config or not config['sms_enabled']:
+        conn.close()
+        return jsonify({'success': False, 'message': 'SMS Not Enabled in Settings', 'sent': 0, 'total': 0, 'errors': []})
+        
+    sms_handler = SMSHandler(config['sms_sid'], config['sms_auth_token'], config['sms_from_number'])
+    
     sent_count = 0
     errors = []
     
     for s in students_to_notify:
         phone = s['parent_phone']
         if phone:
-            msg = f"Absent Alert: {s['name']} ({s['roll']}) was absent today ({today_str}). Please contact college."
-            success, status = send_sms(phone, msg)
+            # We determine subject/threshold context if possible, otherwise generic
+            # For manual notification, stick to generic or require context
+            msg = f"[Absent Alert] {s['name']} ({s['roll']}) is marked ABSENT today ({today_str})."
+            
+            success, status = sms_handler.send_sms(phone, msg)
             if success:
                 sent_count += 1
+                # Log it
+                conn.execute("INSERT INTO sms_logs (roll, phone, message, status) VALUES (?, ?, ?, ?)", 
+                             (s['roll'], phone, msg, 'SENT'))
             else:
                 errors.append(f"{s['roll']}: {status}")
-        else:
-            errors.append(f"{s['roll']}: No parent phone")
+                conn.execute("INSERT INTO sms_logs (roll, phone, message, status, error_message) VALUES (?, ?, ?, ?, ?)", 
+                             (s['roll'], phone, msg, 'FAILED', status))
+
+            
+    conn.commit()
+
             
     conn.close()
     
