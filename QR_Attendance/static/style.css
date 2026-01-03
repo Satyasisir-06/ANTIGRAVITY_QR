@@ -73,6 +73,7 @@ body.dark-mode h2,
 body.dark-mode h3 {
     background: linear-gradient(to right, #fff, #a18cd1);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
@@ -94,6 +95,7 @@ body.dark-mode tr:hover {
 body.dark-mode .stat-num {
     background: linear-gradient(to right, #00f2fe, #4facfe);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     filter: drop-shadow(0 0 5px rgba(79, 172, 254, 0.5));
 }
@@ -317,12 +319,20 @@ button.outline:hover {
     font-weight: 700;
 }
 
+.nav-links {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
 .nav-links a {
     text-decoration: none;
     color: var(--text-color);
-    margin-left: 1rem;
     font-weight: 500;
     position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .nav-links a::after {
@@ -367,10 +377,7 @@ button.outline:hover {
 }
 
 /* Tooltip Arrow */
-[data-tooltip]::after {
-    /* Existing underline animation is handled below, 
-       but if we want an arrow we'd need another pseudo or use the underline safely */
-}
+
 
 [data-tooltip]:hover::before {
     opacity: 1;
@@ -793,4 +800,128 @@ body.dark-mode .segmented-control label:has(input:checked) {
         /* Limit QR size when stacked */
         margin: 0 auto;
     }
+}
+
+/* --- NEW RESPONSIVE UTILITIES --- */
+
+/* Responsive Grid: 2 columns on desktop, 1 on mobile */
+.responsive-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+/* Mobile Stack: Flex row on desktop, column on mobile */
+.mobile-stack {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+/* Flex Wrap Center: For stats/cards */
+.flex-wrap-center {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+/* Mobile Adjustments */
+@media (max-width: 768px) {
+    .responsive-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    .mobile-stack {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .mobile-stack>* {
+        width: 100%;
+        min-width: 0 !important;
+        /* Override min-width constraints */
+    }
+
+    .navbar {
+        flex-direction: column;
+        gap: 1rem;
+        padding-bottom: 0.5rem;
+    }
+
+    .nav-links {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 15px;
+        width: 100%;
+        margin-left: 0 !important;
+    }
+
+    .nav-links a {
+        margin: 0;
+        padding: 5px;
+        font-size: 1.2rem;
+        /* Make icons larger for touch */
+    }
+
+    .glass-container {
+        padding: 1.25rem;
+        width: 95%;
+        /* More width on mobile */
+        max-width: 95%;
+    }
+
+    .container-wide {
+        max-width: 100%;
+    }
+
+    h1 {
+        font-size: 1.5rem;
+    }
+
+    h2 {
+        font-size: 1.3rem;
+    }
+
+    /* Better button sizing for touch */
+    button,
+    input,
+    select {
+        padding: 12px;
+        font-size: 1rem;
+    }
+
+    /* Stats cards smaller padding */
+    .stat-card {
+        padding: 1rem;
+    }
+
+    .stat-num {
+        font-size: 1.6rem;
+    }
+}
+
+/* Theme Toggle Button */
+.theme-toggle-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: transparent;
+    border: 1px solid var(--text-color);
+    color: var(--text-color);
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    margin-right: 10px;
+    transition: all 0.3s ease;
+}
+
+.theme-toggle-btn:hover {
+    background: var(--text-color);
+    color: var(--card-bg);
+    transform: rotate(15deg) scale(1.1);
+    box-shadow: 0 0 10px var(--accent-glow);
 }

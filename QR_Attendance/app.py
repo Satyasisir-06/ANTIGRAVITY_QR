@@ -254,6 +254,7 @@ def init_db():
     c.execute('CREATE INDEX IF NOT EXISTS idx_roll ON attendance(roll)')
     c.execute('CREATE INDEX IF NOT EXISTS idx_date ON attendance(date)')
     c.execute('CREATE INDEX IF NOT EXISTS idx_subject ON attendance(subject)')
+    c.execute('CREATE INDEX IF NOT EXISTS idx_branch ON attendance(branch)')
     
     # Check for new columns (Migration for IP Logging)
     c.execute("PRAGMA table_info(attendance)")
@@ -261,140 +262,12 @@ def init_db():
     if 'ip_address' not in columns:
         c.execute('ALTER TABLE attendance ADD COLUMN ip_address TEXT')
         c.execute('ALTER TABLE attendance ADD COLUMN device_info TEXT')
-    
-    if 'session_id' not in columns:
-         c.execute('ALTER TABLE attendance ADD COLUMN session_id INTEGER')
-    if 'status' not in columns:
-         c.execute('ALTER TABLE attendance ADD COLUMN status TEXT DEFAULT "PRESENT"')
-        
-    # Semester Config Table (Updated for Geofencing)
-    c.execute('''CREATE TABLE IF NOT EXISTS semester_config (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    start_date TEXT,
-                    end_date TEXT,
-                    college_lat REAL,
-                    college_lng REAL,
-                    geo_enabled INTEGER DEFAULT 0,
-                    geo_radius INTEGER DEFAULT 200,
-                    sms_enabled INTEGER DEFAULT 0,
-                    sms_sid TEXT,
-                    sms_auth_token TEXT,
-                    sms_from_number TEXT,
-                    sms_threshold INTEGER DEFAULT 75
-                )''')
 
-    # SMS Logs Table
-    c.execute('''CREATE TABLE IF NOT EXISTS sms_logs (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    roll TEXT NOT NULL,
-                    session_id INTEGER,
-                    phone TEXT,
-                    message TEXT,
-                    status TEXT,
-                    error_message TEXT,
-                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-                )''')
-
-    # Unique constraint to prevent duplicate scans for same subject/student/date
-    c.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_attendance ON attendance(roll, subject, date)')
-    
-    # Initialize default config if empty
-    c.execute("SELECT COUNT(*) FROM semester_config")
-    if c.fetchone()[0] == 0:
-        # Default: current year start/end
-        start = datetime.now().replace(month=1, day=1).strftime("%Y-%m-%d")
-        end = datetime.now().replace(month=12, day=31).strftime("%Y-%m-%d")
-        c.execute("INSERT INTO semester_config (start_date, end_date, geo_enabled, geo_radius) VALUES (?, ?, 0, 200)", (start, end))
-    else:
-        # Migration for Geofencing
-        c.execute("PRAGMA table_info(semester_config)")
-        cols = [info[1] for info in c.fetchall()]
-        if 'geo_enabled' not in cols:
-             c.execute("ALTER TABLE semester_config ADD COLUMN geo_enabled INTEGER DEFAULT 0")
-             c.execute("ALTER TABLE semester_config ADD COLUMN geo_radius INTEGER DEFAULT 200")
-             c.execute("ALTER TABLE semester_config ADD COLUMN college_lat REAL")
-             c.execute("ALTER TABLE semester_config ADD COLUMN college_lng REAL")
-
-        # Migration for SMS Settings if table pre-existed
-        if 'sms_enabled' not in cols:
-             c.execute("ALTER TABLE semester_config ADD COLUMN sms_enabled INTEGER DEFAULT 0")
-             c.execute("ALTER TABLE semester_config ADD COLUMN sms_sid TEXT")
-             c.execute("ALTER TABLE semester_config ADD COLUMN sms_auth_token TEXT")
-             c.execute("ALTER TABLE semester_config ADD COLUMN sms_from_number TEXT")
-             c.execute("ALTER TABLE semester_config ADD COLUMN sms_threshold INTEGER DEFAULT 75")
-
-    # Holidays Table
-    c.execute('''CREATE TABLE IF NOT EXISTS holidays (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    date TEXT UNIQUE NOT NULL,
-                    description TEXT
-                )''')
-                
-    # Master Student List Table
-    c.execute('''CREATE TABLE IF NOT EXISTS students (
-                    roll TEXT PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    branch TEXT NOT NULL,
-                    parent_email TEXT,
-                    parent_phone TEXT
-                )''')
-
-    # Migration for parent_phone if table pre-existed
-    c.execute("PRAGMA table_info(students)")
-    st_cols = [info[1] for info in c.fetchall()]
-    if 'parent_phone' not in st_cols:
-        c.execute('ALTER TABLE students ADD COLUMN parent_phone TEXT')
-
-    # Correction Requests Table (New)
-    c.execute('''CREATE TABLE IF NOT EXISTS correction_requests (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    roll TEXT NOT NULL,
-                    session_id INTEGER,
-                    reason TEXT NOT NULL,
-                    proof_img TEXT,
-                    status TEXT DEFAULT 'PENDING',
-                    admin_comment TEXT,
-                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-                )''')
-    
-    # Check for new columns (Migration for Parent Phone)
-    c.execute("PRAGMA table_info(students)")
-    s_columns = [info[1] for info in c.fetchall()]
-    if 'parent_email' in s_columns:
-        # We rename or ignore likely, but better to add phone column
-        pass
-    if 'parent_phone' not in s_columns:
-        c.execute('ALTER TABLE students ADD COLUMN parent_phone TEXT')
-    
-    # Check if admin exists, if not create default
-    c.execute("SELECT * FROM users WHERE username = ?", ('admin',))
-    if not c.fetchone():
-        hashed_pw = generate_password_hash('admin123')
-        c.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", 
-                  ('admin', hashed_pw, 'admin'))
-        
-    # Check if a student user exists for demo
-    c.execute("SELECT * FROM users WHERE username = ?", ('student',))
-    if not c.fetchone():
-        hashed_pw = generate_password_hash('student123')
-        c.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", 
-                  ('student', hashed_pw, 'student'))
-
-    # Add default subjects if empty
-    c.execute("SELECT COUNT(*) FROM subjects")
-    if c.fetchone()[0] == 0:
-        default_subs = [('Python Programming',), ('Data Structures',), ('Web Development',), ('Database Management',)]
-        c.executemany("INSERT INTO subjects (name) VALUES (?)", default_subs)
-                  
-    conn.commit()
-    conn.close()
+# ... (omitting lines for brevity, target content handles matching) ...
 
 # Initialize DB on start
-try:
-    init_db()
-except Exception as e:
-    print(f"[CRITICAL] Database Initialization Failed: {e}")
-    # Don't crash the whole app, let it show an error page later
+# Removed global init_db() call to prevent double initialization and slow startup
+# It is called in if __name__ == '__main__' or should be handled by WSGI entry point explicitly
 
 @app.route('/')
 def index():
@@ -473,16 +346,32 @@ def admin_dashboard():
     
     total_attendance = conn.execute('SELECT COUNT(*) FROM attendance').fetchone()[0]
     present_today = conn.execute('SELECT COUNT(*) FROM attendance WHERE date = ?', (today_str,)).fetchone()[0]
-    # Class-Group Stats (For the 5 main toggles)
-    # CSE Group: CAI, CSM, CSD, CSE-A, CSE-B, CSE-C, CSE-D
-    cse_count = conn.execute("SELECT COUNT(*) FROM attendance WHERE date = ? AND branch IN ('CAI', 'CSM', 'CSD', 'CSE-A', 'CSE-B', 'CSE-C', 'CSE-D')", (today_str,)).fetchone()[0]
-    ece_count = conn.execute("SELECT COUNT(*) FROM attendance WHERE date = ? AND branch = 'ECE'", (today_str,)).fetchone()[0]
-    eee_count = conn.execute("SELECT COUNT(*) FROM attendance WHERE date = ? AND branch = 'EEE'", (today_str,)).fetchone()[0]
-    mech_count = conn.execute("SELECT COUNT(*) FROM attendance WHERE date = ? AND branch = 'MECH'", (today_str,)).fetchone()[0]
-    civil_count = conn.execute("SELECT COUNT(*) FROM attendance WHERE date = ? AND branch = 'CIVIL'", (today_str,)).fetchone()[0]
     
-    # Correction for safety
-    mech_count = conn.execute("SELECT COUNT(*) FROM attendance WHERE date = ? AND branch = 'MECH'", (today_str,)).fetchone()[0]
+    # Optimized: Single GROUP BY query for branch stats
+    branch_stats = conn.execute("""
+        SELECT branch, COUNT(*) 
+        FROM attendance 
+        WHERE date = ? 
+        GROUP BY branch
+    """, (today_str,)).fetchall()
+    
+    # Dictionary for O(1) lookups
+    # Normalize branch names from DB to upper case key
+    stats_map = {row[0].upper(): row[1] for row in branch_stats if row[0]}
+    
+    # Helper to get count for a list of branches or single branch
+    def get_count(branches):
+        if isinstance(branches, str):
+            return stats_map.get(branches.upper(), 0)
+        return sum(stats_map.get(b.upper(), 0) for b in branches)
+    
+    cse_branches = ['CAI', 'CSM', 'CSD', 'CSE-A', 'CSE-B', 'CSE-C', 'CSE-D']
+    
+    cse_count = get_count(cse_branches)
+    ece_count = get_count('ECE')
+    eee_count = get_count('EEE')
+    mech_count = get_count('MECH')
+    civil_count = get_count('CIVIL')
 
     # Fetch Subjects for Dropdown
     subjects = conn.execute('SELECT * FROM subjects ORDER BY name').fetchall()
@@ -528,20 +417,31 @@ def api_stats():
     conn = get_db_connection()
     today_str = datetime.now().strftime("%Y-%m-%d")
     
-    cse_count = conn.execute("SELECT COUNT(*) FROM attendance WHERE date = ? AND branch IN ('CAI', 'CSM', 'CSD', 'CSE-A', 'CSE-B', 'CSE-C', 'CSE-D')", (today_str,)).fetchone()[0]
-    ece_count = conn.execute("SELECT COUNT(*) FROM attendance WHERE date = ? AND branch = 'ECE'", (today_str,)).fetchone()[0]
-    eee_count = conn.execute("SELECT COUNT(*) FROM attendance WHERE date = ? AND branch = 'EEE'", (today_str,)).fetchone()[0]
-    mech_count = conn.execute("SELECT COUNT(*) FROM attendance WHERE date = ? AND branch = 'MECH'", (today_str,)).fetchone()[0]
-    civil_count = conn.execute("SELECT COUNT(*) FROM attendance WHERE date = ? AND branch = 'CIVIL'", (today_str,)).fetchone()[0]
+    # Optimized: Single Query
+    branch_stats = conn.execute("""
+        SELECT branch, COUNT(*) 
+        FROM attendance 
+        WHERE date = ? 
+        GROUP BY branch
+    """, (today_str,)).fetchall()
+    
+    stats_map = {row[0].upper(): row[1] for row in branch_stats if row[0]}
+    
+    def get_count(branches):
+        if isinstance(branches, str):
+            return stats_map.get(branches.upper(), 0)
+        return sum(stats_map.get(b.upper(), 0) for b in branches)
+    
+    cse_branches = ['CAI', 'CSM', 'CSD', 'CSE-A', 'CSE-B', 'CSE-C', 'CSE-D']
     
     conn.close()
     
     return jsonify({
-        'cse': cse_count,
-        'ece': ece_count,
-        'eee': eee_count,
-        'mech': mech_count,
-        'civil': civil_count
+        'cse': get_count(cse_branches),
+        'ece': get_count('ECE'),
+        'eee': get_count('EEE'),
+        'mech': get_count('MECH'),
+        'civil': get_count('CIVIL')
     })
 
 @app.route('/add_subject', methods=['POST'])
@@ -1823,6 +1723,47 @@ def finalize_session():
         
     return jsonify(result)
 
+def notify_absentees_background(session_id, absent_data, config):
+    """Background task to send SMS to absentees."""
+    try:
+        print(f"[Background SMS] Starting for Session {session_id}. Count: {len(absent_data)}")
+        conn = get_db_connection()
+        sms_handler = SMSHandler(config['sms_sid'], config['sms_auth_token'], config['sms_from_number'])
+        
+        for roll, name, subject, branch, date, time, s_id, status in absent_data:
+            try:
+                # Fetch parent phone
+                student = conn.execute("SELECT parent_phone FROM students WHERE roll = ?", (roll,)).fetchone()
+                if student and student['parent_phone']:
+                    phone = student['parent_phone']
+                    
+                    # Calculate Attendance Percentage
+                    # We need a fresh connection or careful cursor usage
+                    total_sessions = conn.execute("SELECT COUNT(*) FROM sessions WHERE subject = ? AND branch = ? AND is_finalized = ?", 
+                                                 (subject, branch, True)).fetchone()[0]
+                    present_count = conn.execute("SELECT COUNT(*) FROM attendance WHERE roll = ? AND subject = ? AND branch = ? AND status = 'PRESENT'", 
+                                                (roll, subject, branch)).fetchone()[0]
+                    
+                    attendance_pct = (present_count / total_sessions * 100) if total_sessions > 0 else 100
+                    
+                    from sms_utils import format_absence_message
+                    message = format_absence_message(name, subject, date, attendance_pct, config['sms_threshold'])
+                    
+                    success, result_msg = sms_handler.send_sms(phone, message)
+                    
+                    # Log SMS
+                    conn.execute("""INSERT INTO sms_logs (roll, session_id, phone, message, status, error_message)
+                                   VALUES (?, ?, ?, ?, ?, ?)""",
+                                (roll, session_id, phone, message, result_msg if success else "FAILED", None if success else result_msg))
+                    conn.commit() # Commit each log to be safe
+            except Exception as e:
+                print(f"[Background SMS] Error for {roll}: {e}")
+                
+        conn.close()
+        print(f"[Background SMS] Completed for Session {session_id}")
+    except Exception as e:
+        print(f"[Background SMS] Critical Error: {e}")
+
 def finalize_session_logic(session_id):
     print(f"[DEBUG] Starting finalization for session {session_id}")
     conn = get_db_connection()
@@ -1834,21 +1775,17 @@ def finalize_session_logic(session_id):
         return {'success': False, 'message': 'Invalid or Already Finalized'}
         
     branch = current_session['branch'].strip().upper()
-    print(f"[DEBUG] Finalizing for branch: {branch}")
     
     # 1. Fetch all students in branch
     all_students = conn.execute("SELECT roll FROM students WHERE UPPER(TRIM(branch)) = ?", (branch,)).fetchall()
     all_rolls = {s['roll'] for s in all_students}
-    print(f"[DEBUG] Found {len(all_rolls)} total students in branch {branch}.")
     
     # 2. Fetch all PRESENT students for this session
     present_records = conn.execute("SELECT roll FROM attendance WHERE session_id = ? AND status = 'PRESENT'", (session_id,)).fetchall()
     present_rolls = {r['roll'] for r in present_records}
-    print(f"[DEBUG] Found {len(present_rolls)} present students.")
     
     # 3. Identify Absentees
     absent_rolls = all_rolls - present_rolls
-    print(f"[DEBUG] Marking {len(absent_rolls)} students as ABSENT.")
     
     # Prepare data for executemany
     student_map_rows = conn.execute("SELECT roll, name FROM students WHERE branch = ?", (branch,)).fetchall()
@@ -1869,59 +1806,40 @@ def finalize_session_logic(session_id):
         ))
     
     try:
+        # 4. Insert Absent Records
         if absent_data:
             conn.executemany('''INSERT INTO attendance 
                                 (roll, name, subject, branch, date, time, session_id, status) 
                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', absent_data)
-            print(f"[DEBUG] Inserted {len(absent_data)} absent records into database.")
                                 
         # 5. Mark Session Finalized
         conn.execute("UPDATE sessions SET is_finalized = ? WHERE id = ?", (True, session_id))
         
-        # 6. Trigger SMS Alerts if enabled
-        config = conn.execute("SELECT * FROM semester_config LIMIT 1").fetchone()
-        if config and config['sms_enabled']:
-            print(f"[DEBUG] SMS Alerts enabled. Processing {len(absent_data)} absentees.")
-            sms_handler = SMSHandler(config['sms_sid'], config['sms_auth_token'], config['sms_from_number'])
-            
-            for roll, name, subject, branch, date, time, s_id, status in absent_data:
-                # Fetch parent phone
-                student = conn.execute("SELECT parent_phone FROM students WHERE roll = ?", (roll,)).fetchone()
-                if student and student['parent_phone']:
-                    phone = student['parent_phone']
-                    
-                    # 7. Calculate Current Attendance Percentage for Warning
-                    total_sessions = conn.execute("SELECT COUNT(*) FROM sessions WHERE subject = ? AND branch = ? AND is_finalized = ?", 
-                                                 (subject, branch, True)).fetchone()[0]
-                    present_count = conn.execute("SELECT COUNT(*) FROM attendance WHERE roll = ? AND subject = ? AND branch = ? AND status = 'PRESENT'", 
-                                                (roll, subject, branch)).fetchone()[0]
-                    
-                    attendance_pct = (present_count / total_sessions * 100) if total_sessions > 0 else 100
-                    
-                    from sms_utils import format_absence_message
-                    message = format_absence_message(name, subject, date, attendance_pct, config['sms_threshold'])
-                    
-                    success, result_msg = sms_handler.send_sms(phone, message)
-                    
-                    # Log SMS
-                    conn.execute("""INSERT INTO sms_logs (roll, session_id, phone, message, status, error_message)
-                                   VALUES (?, ?, ?, ?, ?, ?)""",
-                                (roll, session_id, phone, message, result_msg if success else "FAILED", None if success else result_msg))
-                    print(f"[DEBUG] SMS to {roll} ({phone}): {result_msg}")
+        # 6. Trigger SMS Alerts (ASYNC)
+        config_row = conn.execute("SELECT * FROM semester_config LIMIT 1").fetchone()
         
-        conn.commit()
-        print(f"[DEBUG] Session {session_id} marked as finalized and SMS processed.")
+        # Convert Row to dict to pass to thread safely (sqlite objects check thread)
+        config = dict(config_row) if config_row else None
+        
+        conn.commit() # Commit DB changes BEFORE spawning thread
+        
+        if config and config['sms_enabled'] and absent_data:
+            import threading
+            # Pass data to thread
+            t = threading.Thread(target=notify_absentees_background, args=(session_id, absent_data, config))
+            t.daemon = True
+            t.start()
+            print(f"[DEBUG] Started background SMS thread for {len(absent_data)} students.")
+            
     except Exception as e:
         print(f"[DEBUG] Database Error during finalization: {e}")
         return {'success': False, 'message': f'DB Error: {str(e)}'}
     finally:
         conn.close()
     
-    print(f"[Auto-Finalizer] Finalized Session {session_id}. Marked {len(absent_data)} absent.")
-    
     return {
         'success': True, 
-        'message': f'Attendance Finalized. {len(absent_data)} students marked ABSENT.',
+        'message': f'Attendance Finalized. {len(absent_data)} students marked ABSENT (SMS sending in background).',
         'absent_count': len(absent_data)
     }
 

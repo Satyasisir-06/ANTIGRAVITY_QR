@@ -15,8 +15,7 @@
         <nav class="navbar">
             <div class="brand"><span class="pulse-live"></span><i class="fas fa-user-shield"></i> Admin Panel</div>
             <div class="nav-links">
-                <button onclick="toggleDarkMode()"
-                    style="width: auto; padding: 8px 12px; background: transparent; border: 1px solid var(--text-color); color: var(--text-color); border-radius: 50%; width: 40px; height: 40px; display: inline-flex; justify-content: center; align-items: center; cursor: pointer; margin-right: 10px;">
+                <button onclick="toggleDarkMode()" class="theme-toggle-btn" data-tooltip="Toggle Theme">
                     <i id="theme-icon" class="fas fa-moon"></i>
                 </button>
                 <a href="/view_attendance" data-tooltip="View Records"><i class="fas fa-list"></i></a>
@@ -32,8 +31,7 @@
             </div>
         </nav>
 
-        <div class="stats-container"
-            style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; justify-content: center;">
+        <div class="stats-container flex-wrap-center" style="margin-bottom: 2rem;">
             <a href="/class_records?group=CSE" class="stat-card"
                 style="text-decoration: none; color: inherit; cursor: pointer; text-align: center; flex: 1; min-width: 120px;">
                 <i class="fas fa-laptop-code" style="font-size: 1.5rem; color: #3498db; margin-bottom: 10px;"></i>
@@ -71,7 +69,7 @@
             </a>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+        <div class="responsive-grid">
             <!-- Session Management -->
             <div style="grid-column: 1 / -1; margin-bottom: 2rem;">
                 <div class="glass-card">
@@ -86,8 +84,8 @@
                     <!-- Start Session Form (Collapsible) -->
                     <div id="start-session-form"
                         style="display: none; border-bottom: 1px solid var(--border-color); padding-bottom: 20px; margin-bottom: 20px;">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                            <div class="form-group">
+                        <div class="mobile-stack" style="margin-bottom: 1rem;">
+                            <div class="form-group" style="flex: 1;">
                                 <label>Subject</label>
                                 <input type="text" id="s_subject" list="subjectListInSession" placeholder="Subject"
                                     autocomplete="off">
@@ -97,7 +95,7 @@
                                         {% endfor %}
                                 </datalist>
                             </div>
-                            <div class="form-group">
+                            <div class="form-group" style="flex: 1;">
                                 <label>Branch</label>
                                 <select id="s_branch">
                                     <option value="CSE-A">CSE-A</option>
@@ -113,7 +111,7 @@
                                     <option value="EEE">EEE</option>
                                 </select>
                             </div>
-                            <div class="form-group">
+                            <div class="form-group" style="flex: 1;">
                                 <label>Class Type</label>
                                 <div class="segmented-control">
                                     <label>
@@ -132,7 +130,7 @@
 
                     <!-- Active Sessions List -->
                     <div id="active-sessions-grid"
-                        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem;">
+                        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
                         {% if active_sessions %}
                         {% for s in active_sessions %}
                         <div id="session-card-{{ s.id }}" class="session-card animate-pop">
@@ -192,11 +190,11 @@
                 <!-- Manual Entry Code (Already Present) -->
                 <h2><i class="fas fa-edit"></i> Manual Entry</h2>
                 <form id="manualForm" onsubmit="manualAttendance(event)">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="responsive-grid" style="gap: 10px; margin-bottom: 10px;">
                         <input type="text" id="m_roll" placeholder="Roll No" required>
                         <input type="text" id="m_name" placeholder="Name" required>
                     </div>
-                    <div style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="responsive-grid" style="gap: 10px;">
                         <input type="text" id="m_subject" placeholder="Subject" required>
                         <select id="m_branch" required>
                             <option value="CAI">CAI</option>

@@ -74,7 +74,7 @@
                         <input type="number" name="geo_radius" value="{{ config.geo_radius }}" placeholder="200">
                     </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="responsive-grid" style="gap: 10px;">
                         <div class="form-group">
                             <label>Lat</label>
                             <input type="text" name="college_lat" id="college_lat" value="{{ config.college_lat }}"
@@ -161,7 +161,7 @@
             <div style="flex: 1; min-width: 300px;">
                 <h2><i class="fas fa-umbrella-beach"></i> Holidays</h2>
                 <div style="background: rgba(255,255,255,0.3); padding: 1.5rem; border-radius: 20px;">
-                    <div style="display: flex; gap: 10px; margin-bottom: 1rem; flex-wrap: wrap;">
+                    <div class="mobile-stack" style="margin-bottom: 1rem;">
                         <div style="flex: 1;">
                             <label style="font-size: 0.85rem; margin-bottom: 2px;">From</label>
                             <input type="date" id="h_date" required>
@@ -225,8 +225,8 @@
                     <p style="margin-bottom: 15px;"><b>Option 1: Upload / Replace List</b><br>
                         Upload a CSV file with columns: <i>Roll Number, Name, Branch</i></p>
 
-                    <form action="/upload_students" method="POST" enctype="multipart/form-data"
-                        style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 2rem;">
+                    <form action="/upload_students" method="POST" enctype="multipart/form-data" class="mobile-stack"
+                        style="align-items: center; margin-bottom: 2rem;">
 
                         <!-- Custom File Input -->
                         <div style="position: relative; overflow: hidden; display: inline-block;">
@@ -258,11 +258,11 @@
                     <hr style="border-color: rgba(255,255,255,0.2); margin-bottom: 1.5rem;">
 
                     <p style="margin-bottom: 10px;"><b>Option 2: Manual Add / Edit Student</b></p>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                    <div class="responsive-grid" style="gap: 10px; margin-bottom: 10px;">
                         <input type="text" id="ms_roll" placeholder="Roll No">
                         <input type="text" id="ms_name" placeholder="Name">
                     </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                    <div class="responsive-grid" style="gap: 10px; margin-bottom: 10px;">
                         <select id="ms_branch">
                             <option value="CAI">CAI</option>
                             <option value="CSM">CSM</option>
