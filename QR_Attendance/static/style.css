@@ -483,6 +483,65 @@ tr:hover {
     .stats-container {
         flex-direction: column;
     }
+
+    /* Mobile Table Card View */
+    .table-container {
+        overflow: visible;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+    }
+
+    table,
+    thead,
+    tbody,
+    th,
+    td,
+    tr {
+        display: block;
+    }
+
+    thead tr {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+    }
+
+    tr {
+        margin-bottom: 1rem;
+        background: var(--card-bg);
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        padding: 1rem;
+    }
+
+    td {
+        border: none;
+        position: relative;
+        padding-left: 50% !important;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        text-align: right;
+        display: flex;
+        /* Use Flex for alignment */
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+    }
+
+    td::before {
+        content: attr(data-label);
+        font-weight: 700;
+        color: var(--text-muted);
+        text-align: left;
+        /* flex: 1; */
+    }
+
+    /* Specific adjustment for flex display to override absolute positioning if needed */
+    td {
+        padding-left: 0 !important;
+    }
 }
 
 .tag-pill {

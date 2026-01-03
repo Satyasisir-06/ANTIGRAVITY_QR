@@ -177,12 +177,12 @@
                     <tbody>
                         {% for row in records %}
                         <tr>
-                            <td>{{ row.date }}</td>
-                            <td>{{ row.time }}</td>
-                            <td>{{ row.roll }}</td>
-                            <td>{{ row.name }}</td>
-                            <td>{{ row.subject }}</td>
-                            <td>
+                            <td data-label="Date">{{ row.date }}</td>
+                            <td data-label="Time">{{ row.time }}</td>
+                            <td data-label="Roll No">{{ row.roll }}</td>
+                            <td data-label="Name">{{ row.name }}</td>
+                            <td data-label="Subject">{{ row.subject }}</td>
+                            <td data-label="Status">
                                 {% if row.status == 'ABSENT' %}
                                 <span class="status-absent"><i class="fas fa-times-circle"></i> Absent</span>
                                 {% else %}

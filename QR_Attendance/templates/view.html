@@ -72,13 +72,13 @@
                 <tbody>
                     {% for row in records %}
                     <tr id="row-{{ row.id }}">
-                        <td>{{ row.roll }}</td>
-                        <td>{{ row.name }}</td>
-                        <td>{{ row.subject }}</td>
-                        <td>{{ row.branch }}</td>
-                        <td>{{ row.date }}</td>
-                        <td>{{ row.time }}</td>
-                        <td>
+                        <td data-label="Roll No">{{ row.roll }}</td>
+                        <td data-label="Name">{{ row.name }}</td>
+                        <td data-label="Subject">{{ row.subject }}</td>
+                        <td data-label="Branch">{{ row.branch }}</td>
+                        <td data-label="Date">{{ row.date }}</td>
+                        <td data-label="Time">{{ row.time }}</td>
+                        <td data-label="Status">
                             {% if row.status == 'PRESENT' %}
                             <span class="status-present"><i class="fas fa-check-circle"></i> Present</span>
                             {% else %}
@@ -86,7 +86,7 @@
                             {% endif %}
                         </td>
                         {% if session.role == 'admin' %}
-                        <td>
+                        <td data-label="Action">
                             <button class="danger" style="padding: 5px 10px; width: auto; font-size: 0.8rem;"
                                 onclick="deleteRecord({{ row.id }})">
                                 <i class="fas fa-trash"></i>

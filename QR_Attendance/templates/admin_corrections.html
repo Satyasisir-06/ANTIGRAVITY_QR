@@ -38,10 +38,10 @@
                 <tbody>
                     {% for req in pending %}
                     <tr>
-                        <td>{{ req.student_name if req.student_name else 'Unknown' }}</td>
-                        <td>{{ req.roll }}</td>
-                        <td>{{ req.reason }}</td>
-                        <td>
+                        <td data-label="Student">{{ req.student_name if req.student_name else 'Unknown' }}</td>
+                        <td data-label="Roll No">{{ req.roll }}</td>
+                        <td data-label="Reason">{{ req.reason }}</td>
+                        <td data-label="Proof">
                             {% if req.proof_img %}
                             <a href="{{ url_for('static', filename='proofs/' + req.proof_img) }}" target="_blank"
                                 class="btn-small" style="background: var(--info-color);">
@@ -51,8 +51,8 @@
                             No Proof
                             {% endif %}
                         </td>
-                        <td>{{ req.timestamp }}</td>
-                        <td>
+                        <td data-label="Submitted">{{ req.timestamp }}</td>
+                        <td data-label="Action">
                             <div style="display: flex; gap: 5px;">
                                 <button onclick="handleRequest('{{ req.id }}', 'APPROVE')" class="btn-small"
                                     style="background: var(--success-color);">
@@ -88,15 +88,15 @@
                 <tbody>
                     {% for req in history %}
                     <tr>
-                        <td>{{ req.roll }}</td>
-                        <td>{{ req.reason }}</td>
-                        <td>
+                        <td data-label="Roll No">{{ req.roll }}</td>
+                        <td data-label="Reason">{{ req.reason }}</td>
+                        <td data-label="Status">
                             <span class="status-tag"
                                 style="background: {{ '#55efc4' if req.status=='APPROVED' else '#ff7675' }}; color: white;">
                                 {{ req.status }}
                             </span>
                         </td>
-                        <td>{{ req.admin_comment or '-' }}</td>
+                        <td data-label="Admin Comment">{{ req.admin_comment or '-' }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
