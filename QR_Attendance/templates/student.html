@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Dashboard | QR Attendance</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=2">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
 </head>
@@ -387,24 +387,22 @@
                 <tbody>
                     {% for row in records %}
                     <tr>
-                        <td>{{ row.date }}</td>
-                        <td>{{ row.time }}</td>
-                        <td>{{ row.subject }}</td>
-                        <td>{{ row.branch }}</td>
-                        <td>
+                        <td data-label="Date">{{ row.date }}</td>
+                        <td data-label="Time">{{ row.time }}</td>
+                        <td data-label="Subject">{{ row.subject }}</td>
+                        <td data-label="Branch">{{ row.branch }}</td>
+                        <td data-label="Status">
                             {% if row.status == 'PRESENT' %}
                             <span class="status-present"><i class="fas fa-check-circle"></i> Present</span>
                             {% else %}
                             <span class="status-absent"><i class="fas fa-times-circle"></i> Absent</span>
                             {% endif %}
                         </td>
-                        <td>
+                        <td data-label="Action">
                             {% if row.status == 'ABSENT' %}
-                            <button
-                                onclick="openCorrectionModal('{{ row.session_id }}', '{{ row.subject }}', '{{ row.date }}')"
-                                class="btn-small"
-                                style="padding: 5px 10px; font-size: 0.8rem; background: #000000; color: white; border: 1px solid rgba(255,255,255,0.2);">
-                                <i class="fas fa-edit"></i> Fix
+                            <button onclick="requestCorrection({{ row.id }})" class="btn-small"
+                                style="background: var(--info-color);">
+                                <i class="fas fa-question-circle"></i> Report Issue
                             </button>
                             {% else %}
                             -
@@ -413,7 +411,7 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="6" style="text-align: center;">No attendance records found.</td>
+                        <td colspan="6" style="text-align: center;">No records found.</td>
                     </tr>
                     {% endfor %}
                 </tbody>

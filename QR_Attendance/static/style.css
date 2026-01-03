@@ -484,6 +484,16 @@ tr:hover {
         flex-direction: column;
     }
 
+    .mobile-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    body {
+        padding: 10px;
+    }
+
     /* Mobile Table Card View */
     .table-container {
         overflow: visible;
