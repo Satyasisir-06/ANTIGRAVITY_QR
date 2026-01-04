@@ -909,67 +909,91 @@ body.dark-mode .segmented-control label:has(input:checked) {
 
     .mobile-stack>* {
         width: 100%;
-        min-width: 0 !important;
-        /* Override min-width constraints */
     }
 
-    .navbar {
-        flex-direction: column;
-        gap: 1rem;
-        padding-bottom: 0.5rem;
-    }
-
-    .nav-links {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 15px;
-        width: 100%;
-        margin-left: 0 !important;
-    }
-
-    .nav-links a {
-        margin: 0;
-        padding: 5px;
-        font-size: 1.2rem;
-        /* Make icons larger for touch */
-    }
-
-    .glass-container {
-        padding: 1.25rem;
-        width: 95%;
-        /* More width on mobile */
-        max-width: 95%;
-    }
-
-    .container-wide {
-        max-width: 100%;
-    }
-
-    h1 {
-        font-size: 1.5rem;
-    }
-
-    h2 {
-        font-size: 1.3rem;
-    }
-
-    /* Better button sizing for touch */
-    button,
-    input,
-    select {
-        padding: 12px;
-        font-size: 1rem;
-    }
-
-    /* Stats cards smaller padding */
-    .stat-card {
+    /* Compact Session Card on Mobile */
+    .session-card {
         padding: 1rem;
     }
 
-    .stat-num {
-        font-size: 1.6rem;
+    .session-card .qr-container {
+        max-width: 200px;
+        /* Limit QR size */
+        margin: 0 auto;
     }
+
+    .session-card h3 {
+        font-size: 1.1rem;
+    }
+
+    /* Reduce big timer size */
+    [id^="class-timer-"] {
+        font-size: 1.1rem !important;
+    }
+
+    /* Better Manual Form Spacing */
+    #manualForm .responsive-grid {
+        gap: 10px;
+    }
+}
+
+.navbar {
+    flex-direction: column;
+    gap: 1rem;
+    padding-bottom: 0.5rem;
+}
+
+.nav-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+    width: 100%;
+    margin-left: 0 !important;
+}
+
+.nav-links a {
+    margin: 0;
+    padding: 5px;
+    font-size: 1.2rem;
+    /* Make icons larger for touch */
+}
+
+.glass-container {
+    padding: 1.25rem;
+    width: 95%;
+    /* More width on mobile */
+    max-width: 95%;
+}
+
+.container-wide {
+    max-width: 100%;
+}
+
+h1 {
+    font-size: 1.5rem;
+}
+
+h2 {
+    font-size: 1.3rem;
+}
+
+/* Better button sizing for touch */
+button,
+input,
+select {
+    padding: 12px;
+    font-size: 1rem;
+}
+
+/* Stats cards smaller padding */
+.stat-card {
+    padding: 1rem;
+}
+
+.stat-num {
+    font-size: 1.6rem;
+}
 }
 
 /* Theme Toggle Button */

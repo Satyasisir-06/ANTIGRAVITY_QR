@@ -176,7 +176,7 @@ def get_db_connection():
             print(f"[ERROR] Failed to connect to Supabase: {e}")
             raise e
     else:
-        conn = sqlite3.connect(DB_NAME)
+        conn = sqlite3.connect(DB_NAME, check_same_thread=False)
         conn.row_factory = sqlite3.Row
         return DBWrapper(conn, False)
 
@@ -1793,8 +1793,13 @@ def finalize_session_logic(session_id):
     absent_rolls = all_rolls - present_rolls
     
     # Prepare data for executemany
-    student_map_rows = conn.execute("SELECT roll, name FROM students WHERE branch = ?", (branch,)).fetchall()
+    # FIX: Use same normalized branch matching as above to ensure we find the students
+    student_map_rows = conn.execute("SELECT roll, name FROM students WHERE UPPER(TRIM(branch)) = ?", (branch,)).fetchall()
     student_map = {r['roll']: r['name'] for r in student_map_rows}
+    
+    # DEBUG: Log if we found students but map is empty (shouldn't happen with fix)
+    if all_rolls and not student_map:
+        print(f"[CRITICAL DEBUG] Found {len(all_rolls)} rolls but Student Map is empty! Branch: '{branch}'")
     
     absent_data = []
     now_time = datetime.now().strftime("%H:%M:%S")
@@ -1872,6 +1877,7 @@ def auto_finalizer_thread():
                     
         except Exception as e:
             print(f"[Auto-Finalizer] Error: {e}")
+            traceback.print_exc()
             
         time.sleep(60) # Check every minute
 
