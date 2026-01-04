@@ -13,7 +13,8 @@
     --shadow-light: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
     --success-color: #00b894;
     --danger-color: #d63031;
-    --card-radius: 20px;
+    --card-radius: 16px;
+    /* Reduced radius */
     --card-bg: rgba(255, 255, 255, 0.7);
     --border-color: rgba(0, 0, 0, 0.1);
     --qr-bg: white;
@@ -193,7 +194,7 @@ body {
     }
 }
 
-/* Glassmorphism Card Container */
+/* Glassmorphism Card Container - Compact */
 .glass-container {
     background: var(--glass-bg);
     box-shadow: var(--shadow-light);
@@ -201,7 +202,8 @@ body {
     -webkit-backdrop-filter: blur(10px);
     border-radius: var(--card-radius);
     border: 1px solid var(--glass-border);
-    padding: 2rem;
+    padding: 1.5rem;
+    /* Reduced from 2rem */
     width: 100%;
     max-width: 420px;
     transition: transform 0.3s ease;
@@ -212,7 +214,7 @@ body {
 }
 
 .container-wide {
-    max-width: 1000px;
+    max-width: 900px;
 }
 
 /* Typography */
@@ -221,42 +223,57 @@ h1 {
     margin-bottom: 0.5rem;
     color: #2d3436;
     text-align: center;
+    font-size: 1.8rem;
+    /* Reduced size */
 }
 
 h2 {
     font-weight: 600;
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
+    /* Reduced from 1rem */
     text-align: center;
     color: #2d3436;
+    font-size: 1.4rem;
+    /* Reduced size */
 }
 
 p {
     color: var(--text-muted);
-    line-height: 1.6;
-    margin-bottom: 1.5rem;
+    line-height: 1.5;
+    /* Reduced from 1.6 */
+    margin-bottom: 1rem;
+    /* Reduced from 1.5rem */
+    font-size: 0.95rem;
+    /* Slightly smaller text */
 }
 
 /* Forms */
 .form-group {
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
+    /* Reduced from 1.5rem */
 }
 
 label {
     display: block;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.4rem;
+    /* Reduced from 0.5rem */
     font-weight: 500;
     color: #2d3436;
+    font-size: 0.9rem;
 }
 
 input,
 select {
     width: 100%;
-    padding: 12px 15px;
-    border-radius: 12px;
+    padding: 10px 12px;
+    /* Reduced padding from 12px 15px */
+    border-radius: 10px;
+    /* Reduced radius */
     border: 2px solid rgba(255, 255, 255, 0.5);
     background: rgba(255, 255, 255, 0.6);
     outline: none;
-    font-size: 1rem;
+    font-size: 0.95rem;
+    /* Reduced font size from 1rem */
     transition: all 0.3s;
 }
 
@@ -269,13 +286,16 @@ select:focus {
 
 button {
     width: 100%;
-    padding: 14px;
-    border-radius: 12px;
+    padding: 12px;
+    /* Reduced from 14px */
+    border-radius: 10px;
+    /* Reduced radius */
     border: none;
     background: linear-gradient(to right, #a18cd1, #fbc2eb);
     color: white;
     font-weight: 600;
-    font-size: 1.1rem;
+    font-size: 1rem;
+    /* Reduced from 1.1rem */
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
 }
@@ -309,20 +329,24 @@ button.outline:hover {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
+    /* Reduced from 2rem */
     border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-    padding-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    /* Reduced from 1rem */
 }
 
 .brand {
-    font-size: 1.5rem;
+    font-size: 1.3rem;
+    /* Reduced from 1.5rem */
     font-weight: 700;
 }
 
 .nav-links {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.75rem;
+    /* Reduced from 1rem */
 }
 
 .nav-links a {
@@ -333,6 +357,7 @@ button.outline:hover {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    font-size: 0.9rem;
 }
 
 .nav-links a::after {
@@ -406,9 +431,12 @@ table {
 
 th,
 td {
-    padding: 1rem;
+    padding: 0.75rem;
+    /* Reduced from 1rem */
     text-align: left;
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    font-size: 0.9rem;
+    /* Reduced font size */
 }
 
 th {
@@ -446,8 +474,10 @@ tr:hover {
 
 /* Success Elements */
 .checkmark {
-    width: 80px;
-    height: 80px;
+    width: 60px;
+    /* Reduced from 80px */
+    height: 60px;
+    /* Reduced from 80px */
     border-radius: 50%;
     display: block;
     stroke-width: 2;
@@ -455,7 +485,8 @@ tr:hover {
     stroke-miterlimit: 10;
     box-shadow: inset 0px 0px 0px #7ac142;
     animation: fill .4s ease-in-out .4s forwards, scale .3s ease-in-out .9s both;
-    margin: 0 auto 1rem auto;
+    margin: 0 auto 0.75rem auto;
+    /* Reduced margin */
     background: #7ac142;
 }
 
@@ -466,18 +497,19 @@ tr:hover {
 /* Responsive */
 @media (max-width: 768px) {
     .glass-container {
-        padding: 1.5rem;
+        padding: 1.25rem;
+        /* Further reduced for mobile */
     }
 
     .navbar {
         flex-direction: column;
-        gap: 1rem;
+        gap: 0.75rem;
     }
 
     th,
     td {
-        padding: 0.75rem;
-        font-size: 0.9rem;
+        padding: 0.6rem;
+        font-size: 0.85rem;
     }
 
     .stats-container {
@@ -487,7 +519,8 @@ tr:hover {
     .mobile-stack {
         display: flex;
         flex-direction: column;
-        gap: 15px;
+        gap: 10px;
+        /* Reduced gap */
     }
 
     body {
@@ -518,26 +551,29 @@ tr:hover {
     }
 
     tr {
-        margin-bottom: 1rem;
+        margin-bottom: 0.75rem;
+        /* Reduced */
         background: var(--card-bg);
         border-radius: 12px;
         border: 1px solid var(--border-color);
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-        padding: 1rem;
+        padding: 0.8rem;
+        /* Reduced padding */
     }
 
     td {
         border: none;
         position: relative;
         padding-left: 50% !important;
-        padding-top: 0.5rem;
-        padding-bottom: 0.5rem;
+        padding-top: 0.4rem;
+        padding-bottom: 0.4rem;
         text-align: right;
         display: flex;
         /* Use Flex for alignment */
         justify-content: space-between;
         align-items: center;
         width: 100%;
+        font-size: 0.9rem;
     }
 
     td::before {
@@ -556,9 +592,11 @@ tr:hover {
 
 .tag-pill {
     background: var(--card-bg);
-    padding: 5px 12px;
+    padding: 4px 10px;
+    /* Reduced padding */
     border-radius: 20px;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
+    /* Reduced font size */
     display: flex;
     align-items: center;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
@@ -574,12 +612,15 @@ body.dark-mode .tag-pill {
 .stat-card {
     flex: 1;
     background: var(--card-bg);
-    padding: 1.5rem;
+    padding: 1rem;
+    /* Reduced from 1.5rem */
     border-radius: 15px;
     text-align: center;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
     transition: transform 0.3s;
     border: 1px solid var(--border-color);
+    min-width: 200px;
+    max-width: 250px;
 }
 
 .stat-card:hover {
@@ -598,7 +639,8 @@ body.dark-mode .stat-card:hover {
 }
 
 .stat-num {
-    font-size: 2rem;
+    font-size: 1.8rem;
+    /* Reduced from 2rem */
     font-weight: 700;
     background: var(--primary-gradient);
     -webkit-background-clip: text;
@@ -608,32 +650,41 @@ body.dark-mode .stat-card:hover {
 }
 
 .stat-card h3 {
-    font-size: 1rem;
+    font-size: 0.9rem;
+    /* Reduced from 1rem */
     color: var(--text-muted);
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.4rem;
+    /* Reduced margin */
 }
 
 /* Pagination */
 .pagination {
-    margin-top: 2rem;
+    margin-top: 1.5rem;
+    /* Reduced */
     display: flex;
     justify-content: center;
-    gap: 8px;
-    padding: 10px;
+    gap: 6px;
+    /* Reduced */
+    padding: 8px;
+    /* Reduced */
     flex-wrap: wrap;
 }
 
 .page-btn {
-    padding: 6px 12px;
-    min-width: 40px;
+    padding: 5px 10px;
+    /* Reduced */
+    min-width: 35px;
+    /* Reduced */
     text-align: center;
     background: var(--card-bg);
     border: 1px solid var(--border-color);
-    border-radius: 10px;
+    border-radius: 8px;
+    /* Reduced radius */
     text-decoration: none;
     color: var(--text-color);
     font-weight: 700;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    /* Reduced */
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
     position: relative;
@@ -646,7 +697,7 @@ body.dark-mode .page-btn {
 
 .pagination-ellipsis {
     align-self: center;
-    padding: 0 5px;
+    padding: 0 4px;
     color: var(--text-muted);
     font-weight: 700;
 }
@@ -677,7 +728,8 @@ body.dark-mode .page-btn {
 /* Glass Card (Admin sections) */
 .glass-card {
     background: var(--card-bg) !important;
-    padding: 20px;
+    padding: 1.25rem;
+    /* Reduced from 20px */
     border-radius: 15px;
     border: 1px solid var(--border-color);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
@@ -690,9 +742,11 @@ body.dark-mode .glass-card {
 /* Individual Session Cards */
 .session-card {
     background: var(--card-bg) !important;
-    padding: 15px;
+    padding: 12px;
+    /* Reduced from 15px */
     border-radius: 12px;
-    border-left: 5px solid var(--primary-color) !important;
+    border-left: 4px solid var(--primary-color) !important;
+    /* Thinner border */
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
     transition: all 0.3s ease;
 }
@@ -700,7 +754,7 @@ body.dark-mode .glass-card {
 body.dark-mode .session-card {
     background: rgba(255, 255, 255, 0.05) !important;
     border: 1px solid var(--glass-border);
-    border-left: 5px solid #a18cd1 !important;
+    border-left: 4px solid #a18cd1 !important;
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4), var(--accent-glow);
 }
 
@@ -711,7 +765,8 @@ body.dark-mode .session-card {
 .qr-container {
     text-align: center;
     background: var(--qr-bg) !important;
-    padding: 10px;
+    padding: 8px;
+    /* Reduced from 10px */
     border-radius: 10px;
     border: 1px solid var(--border-color);
 }
@@ -719,10 +774,13 @@ body.dark-mode .session-card {
 .toggle-wrapper {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 15px;
+    gap: 10px;
+    /* Reduced gap */
+    margin-bottom: 12px;
+    /* Reduced margin */
     background: rgba(255, 255, 255, 0.4);
-    padding: 10px 15px;
+    padding: 8px 12px;
+    /* Reduced padding */
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.5);
     transition: all 0.3s ease;
@@ -735,8 +793,10 @@ body.dark-mode .toggle-wrapper {
 
 .toggle-switch {
     position: relative;
-    width: 50px;
-    height: 26px;
+    width: 44px;
+    /* Reduced width */
+    height: 24px;
+    /* Reduced height */
 }
 
 .toggle-switch input {
@@ -755,14 +815,17 @@ body.dark-mode .toggle-wrapper {
     background-color: #ccc;
     -webkit-transition: .4s;
     transition: .4s;
-    border-radius: 34px;
+    border-radius: 24px;
+    /* Adjusted radius */
 }
 
 .slider:before {
     position: absolute;
     content: "";
-    height: 20px;
-    width: 20px;
+    height: 18px;
+    /* Reduced size */
+    width: 18px;
+    /* Reduced size */
     left: 3px;
     bottom: 3px;
     background-color: white;
@@ -781,9 +844,10 @@ input:focus+.slider {
 }
 
 input:checked+.slider:before {
-    -webkit-transform: translateX(24px);
-    -ms-transform: translateX(24px);
-    transform: translateX(24px);
+    -webkit-transform: translateX(20px);
+    /* Adjusted translation */
+    -ms-transform: translateX(20px);
+    transform: translateX(20px);
 }
 
 .toggle-label {
@@ -791,13 +855,17 @@ input:checked+.slider:before {
     font-weight: 600;
     cursor: pointer;
     flex: 1;
+    font-size: 0.9rem;
+    /* Reduced font size */
 }
 
 /* Segmented Control (Radio Buttons) */
 .segmented-control {
     display: flex;
     background: rgba(255, 255, 255, 0.5);
-    padding: 4px;
+    padding: 3px;
+    /* Reduced padding */
+
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.5);
     width: 100%;
@@ -935,65 +1003,66 @@ body.dark-mode .segmented-control label:has(input:checked) {
     #manualForm .responsive-grid {
         gap: 10px;
     }
-}
 
-.navbar {
-    flex-direction: column;
-    gap: 1rem;
-    padding-bottom: 0.5rem;
-}
+    .navbar {
+        flex-direction: column;
+        gap: 1rem;
+        padding-bottom: 0.5rem;
+    }
 
-.nav-links {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 15px;
-    width: 100%;
-    margin-left: 0 !important;
-}
+    .nav-links {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 15px;
+        width: 100%;
+        margin-left: 0 !important;
+    }
 
-.nav-links a {
-    margin: 0;
-    padding: 5px;
-    font-size: 1.2rem;
-    /* Make icons larger for touch */
-}
+    .nav-links a {
+        margin: 0;
+        padding: 5px;
+        font-size: 1.2rem;
+        /* Make icons larger for touch */
+    }
 
-.glass-container {
-    padding: 1.25rem;
-    width: 95%;
-    /* More width on mobile */
-    max-width: 95%;
-}
+    .glass-container {
+        padding: 1.25rem;
+        width: 95%;
+        /* More width on mobile */
+        max-width: 95%;
+    }
 
-.container-wide {
-    max-width: 100%;
-}
+    .container-wide {
+        max-width: 100%;
+    }
 
-h1 {
-    font-size: 1.5rem;
-}
+    h1 {
+        font-size: 1.5rem;
+    }
 
-h2 {
-    font-size: 1.3rem;
-}
+    h2 {
+        font-size: 1.3rem;
+    }
 
-/* Better button sizing for touch */
-button,
-input,
-select {
-    padding: 12px;
-    font-size: 1rem;
-}
+    /* Better button sizing for touch */
+    button,
+    input,
+    select {
+        padding: 12px;
+        font-size: 1rem;
+    }
 
-/* Stats cards smaller padding */
-.stat-card {
-    padding: 1rem;
-}
+    /* Stats cards smaller padding */
+    .stat-card {
+        padding: 1rem;
+    }
 
-.stat-num {
-    font-size: 1.6rem;
-}
+    .stat-num {
+        font-size: 1.6rem;
+    }
+
+
 }
 
 /* Theme Toggle Button */
