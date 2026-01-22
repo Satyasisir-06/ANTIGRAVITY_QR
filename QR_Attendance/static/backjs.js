@@ -509,3 +509,49 @@ if ('serviceWorker' in navigator) {
             .catch(err => console.log('Service Worker Error: ' + err));
     });
 }
+
+// Force Finalize All Expired Sessions
+async function forceFinalizeAllExpired() {
+    if (!confirm('Manually finalize all expired sessions?\n\nThis will mark all students who haven\'t scanned as ABSENT for expired sessions.')) {
+        return;
+    }
+
+    try {
+        const btn = event.target.closest('button');
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Finalizing...';
+
+        const res = await fetch('/api/force_finalize_all', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            if (data.finalized_count > 0) {
+                alert(`✓ Successfully finalized ${data.finalized_count} expired session(s)!`);
+                // Reload to refresh the session list
+                location.reload();
+            } else {
+                alert('✓ ' + data.message);
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        } else {
+            alert('Error: ' + data.message);
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+    } catch (e) {
+        console.error('Force finalize error:', e);
+        alert('Network error: ' + e.message);
+        const btn = event.target.closest('button');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+    }
+}
+

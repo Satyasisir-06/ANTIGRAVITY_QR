@@ -1709,6 +1709,88 @@ def export_csv():
     return Response(output, mimetype="text/csv", 
                     headers={"Content-Disposition": "attachment;filename=attendance_report.csv"})
 
+@app.route('/api/active_sessions')
+def api_active_sessions():
+    """API endpoint to get all active (unfinalized) sessions"""
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    
+    conn = get_db_connection()
+    active_sessions = conn.execute("SELECT * FROM sessions WHERE is_finalized = ? ORDER BY date DESC, start_time DESC", (False,)).fetchall()
+    conn.close()
+    
+    # Convert to list of dicts and check expiration status
+    now = datetime.now()
+    sessions_list = []
+    
+    for s in active_sessions:
+        s_dict = dict(s)
+        end_dt_str = f"{s['date']} {s['end_time']}"
+        try:
+            end_dt = datetime.strptime(end_dt_str, "%Y-%m-%d %H:%M:%S")
+            s_dict['is_expired'] = now > end_dt
+            s_dict['end_datetime'] = end_dt.isoformat()
+        except:
+            s_dict['is_expired'] = False
+            s_dict['end_datetime'] = None
+        sessions_list.append(s_dict)
+    
+    return jsonify({
+        'success': True,
+        'count': len(sessions_list),
+        'sessions': sessions_list
+    })
+
+@app.route('/api/force_finalize_all', methods=['POST'])
+def api_force_finalize_all():
+    """API endpoint to force finalize all expired sessions"""
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+    
+    conn = get_db_connection()
+    active_sessions = conn.execute("SELECT * FROM sessions WHERE is_finalized = ?", (False,)).fetchall()
+    conn.close()
+    
+    now = datetime.now()
+    expired_sessions = []
+    
+    for s in active_sessions:
+        end_dt_str = f"{s['date']} {s['end_time']}"
+        try:
+            end_dt = datetime.strptime(end_dt_str, "%Y-%m-%d %H:%M:%S")
+            if now > end_dt:
+                expired_sessions.append(s['id'])
+        except:
+            continue
+    
+    if not expired_sessions:
+        return jsonify({
+            'success': True,
+            'message': 'No expired sessions to finalize',
+            'finalized_count': 0
+        })
+    
+    # Finalize each expired session
+    finalized_count = 0
+    errors = []
+    
+    for session_id in expired_sessions:
+        try:
+            result = finalize_session_logic(session_id)
+            if result['success'] and not result.get('already_done'):
+                finalized_count += 1
+        except Exception as e:
+            errors.append(f"Session {session_id}: {str(e)}")
+    
+    return jsonify({
+        'success': True,
+        'message': f'Finalized {finalized_count} expired session(s)',
+        'finalized_count': finalized_count,
+        'total_expired': len(expired_sessions),
+        'errors': errors if errors else None
+    })
+
+
 @app.route('/finalize_session', methods=['POST'])
 def finalize_session():
     if 'user_id' not in session or session.get('role') != 'admin':
@@ -1854,32 +1936,53 @@ def finalize_session_logic(session_id):
     }
 
 def auto_finalizer_thread():
+    """
+    Background thread that automatically finalizes expired sessions.
+    Runs every 30 seconds to ensure timely finalization.
+    """
     import time
+    print("[Auto-Finalizer] Thread started. Checking every 30 seconds...")
+    
     while True:
         try:
             conn = get_db_connection()
             # Find active sessions that have ended
-            # We need to parse date and time to compare
             active_sessions = conn.execute("SELECT * FROM sessions WHERE is_finalized = ?", (False,)).fetchall()
             conn.close()
             
+            if active_sessions:
+                print(f"[Auto-Finalizer] Found {len(active_sessions)} active session(s) to check...")
+            
             now = datetime.now()
+            finalized_count = 0
             
             for s in active_sessions:
                 s_end_iso = f"{s['date']} {s['end_time']}"
                 try:
                     end_dt = datetime.strptime(s_end_iso, "%Y-%m-%d %H:%M:%S")
                     if now > end_dt:
-                        print(f"[Auto-Finalizer] Session {s['id']} expired at {end_dt}. Finalizing now...")
-                        finalize_session_logic(s['id'])
-                except ValueError:
+                        print(f"[Auto-Finalizer] Session {s['id']} ({s['subject']} - {s['class_type']}) expired at {end_dt}. Finalizing now...")
+                        result = finalize_session_logic(s['id'])
+                        if result['success'] and not result.get('already_done'):
+                            finalized_count += 1
+                            print(f"[Auto-Finalizer] ✓ Session {s['id']} finalized successfully.")
+                except ValueError as ve:
+                    print(f"[Auto-Finalizer] Error parsing date/time for session {s['id']}: {ve}")
                     continue
+                except Exception as e:
+                    print(f"[Auto-Finalizer] Error finalizing session {s['id']}: {e}")
+                    traceback.print_exc()
+                    continue
+            
+            if finalized_count > 0:
+                print(f"[Auto-Finalizer] ✓ Finalized {finalized_count} session(s) this cycle.")
                     
         except Exception as e:
-            print(f"[Auto-Finalizer] Error: {e}")
+            print(f"[Auto-Finalizer] Critical Error: {e}")
             traceback.print_exc()
             
-        time.sleep(60) # Check every minute
+        # Check every 30 seconds for more responsive finalization
+        time.sleep(30)
 
 def weekly_report_thread():
     import time
