@@ -1,0 +1,12 @@
+Teacher_ID,Teacher_Name,Email,Subject,Branch,Day,Time_Slot,Semester
+T001,Dr. John Smith,john@college.edu,Machine Learning,CSE-A,Monday,09:00-10:00,2025-Spring
+T001,Dr. John Smith,john@college.edu,Machine Learning,CSE-B,Monday,11:00-12:00,2025-Spring
+T001,Dr. John Smith,john@college.edu,DBMS,CSE-A,Tuesday,10:00-11:00,2025-Spring
+T002,Prof. Mary Jane,mary@college.edu,Networks,ECE,Monday,10:00-11:00,2025-Spring
+T002,Prof. Mary Jane,mary@college.edu,Networks,EEE,Wednesday,09:00-10:00,2025-Spring
+T003,Dr. Robert Brown,robert@college.edu,Data Structures,CSE-C,Tuesday,11:00-12:00,2025-Spring
+T003,Dr. Robert Brown,robert@college.edu,Algorithms,CSE-D,Thursday,10:00-11:00,2025-Spring
+T004,Prof. Sarah Wilson,sarah@college.edu,Thermodynamics,MECH,Monday,14:00-15:00,2025-Spring
+T004,Prof. Sarah Wilson,sarah@college.edu,Mechanics,CIVIL,Wednesday,11:00-12:00,2025-Spring
+T005,Dr. Ahmed Khan,ahmed@college.edu,Digital Electronics,ECE,Tuesday,09:00-10:00,2025-Spring
+T005,Dr. Ahmed Khan,ahmed@college.edu,VLSI Design,ECE,Friday,14:00-17:00,2025-Spring
