@@ -3,49 +3,283 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#a18cd1">
     <title>Mark Attendance | Smart Attendance</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=2">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=3">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}?v=3">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Mobile-optimized scan session styles */
+        body {
+            padding: 20px 16px;
+        }
+
+        .scan-container {
+            background: var(--glass-bg);
+            box-shadow: var(--shadow-light);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+            padding: 24px;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .scan-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .scan-header h2 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            color: var(--text-color);
+        }
+
+        .scan-header i {
+            font-size: 28px;
+            margin-right: 8px;
+            color: #a18cd1;
+        }
+
+        .session-info-card {
+            background: rgba(161, 140, 209, 0.1);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 24px;
+            border: 1px solid rgba(161, 140, 209, 0.2);
+        }
+
+        .session-info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .session-info-row:last-child {
+            border-bottom: none;
+        }
+
+        .session-label {
+            font-weight: 600;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .session-value {
+            font-weight: 600;
+            color: #a18cd1;
+            font-size: 15px;
+        }
+
+        .form-group-mobile {
+            margin-bottom: 18px;
+        }
+
+        .form-group-mobile label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-color);
+            font-size: 14px;
+        }
+
+        .form-group-mobile input {
+            width: 100%;
+            padding: 14px 16px;
+            font-size: 16px !important; /* Prevent iOS zoom */
+            border-radius: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            background: rgba(255, 255, 255, 0.6);
+            transition: all 0.3s ease;
+        }
+
+        .form-group-mobile input:focus {
+            border-color: #a18cd1;
+            background: #fff;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(161, 140, 209, 0.1);
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 12px;
+            border: none;
+            background: linear-gradient(to right, #a18cd1, #fbc2eb);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(161, 140, 209, 0.3);
+            min-height: 44px; /* Touch target */
+        }
+
+        .submit-btn:active {
+            transform: scale(0.98);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .submit-btn i {
+            margin-right: 8px;
+        }
+
+        .message-box {
+            margin-top: 20px;
+            padding: 16px;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: 500;
+            display: none;
+        }
+
+        .message-box.success {
+            background: rgba(46, 204, 113, 0.1);
+            border: 1px solid rgba(46, 204, 113, 0.3);
+            color: #27ae60;
+            display: block;
+        }
+
+        .message-box.error {
+            background: rgba(231, 76, 60, 0.1);
+            border: 1px solid rgba(231, 76, 60, 0.3);
+            color: #e74c3c;
+            display: block;
+        }
+
+        .message-box.info {
+            background: rgba(52, 152, 219, 0.1);
+            border: 1px solid rgba(52, 152, 219, 0.3);
+            color: #3498db;
+            display: block;
+        }
+
+        .message-box i {
+            margin-right: 8px;
+        }
+
+        .alert-box {
+            background: rgba(231, 76, 60, 0.1);
+            border: 1px solid rgba(231, 76, 60, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            color: #e74c3c;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .alert-box i {
+            margin-right: 8px;
+        }
+
+        /* Success animation */
+        @keyframes successPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .success-animation {
+            animation: successPulse 0.6s ease-in-out;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 480px) {
+            .scan-container {
+                padding: 20px 16px;
+            }
+
+            .scan-header h2 {
+                font-size: 20px;
+            }
+
+            .scan-header i {
+                font-size: 24px;
+            }
+        }
+    </style>
 </head>
 
 <body>
-    <div class="glass-container animate-pop">
-        <h2 style="text-align: center; margin-bottom: 2rem;">
-            <i class="fas fa-qrcode"></i> Mark Attendance
-        </h2>
+    <div class="scan-container animate-pop">
+        <div class="scan-header">
+            <h2>
+                <i class="fas fa-qrcode"></i> Mark Attendance
+            </h2>
+        </div>
 
         {% if error %}
-        <div class="alert danger">
+        <div class="alert-box">
             <i class="fas fa-exclamation-circle"></i> {{ error }}
         </div>
         {% else %}
-        <div class="session-info" style="text-align: center; margin-bottom: 20px;">
-            <p><strong>Subject:</strong> {{ session_data.subject }}</p>
-            <p><strong>Branch:</strong> {{ session_data.branch }}</p>
-            <p><strong>Type:</strong> {{ session_data.class_type }}</p>
+        <div class="session-info-card">
+            <div class="session-info-row">
+                <span class="session-label">Subject</span>
+                <span class="session-value">{{ session_data.subject }}</span>
+            </div>
+            <div class="session-info-row">
+                <span class="session-label">Branch</span>
+                <span class="session-value">{{ session_data.branch }}</span>
+            </div>
+            <div class="session-info-row">
+                <span class="session-label">Type</span>
+                <span class="session-value">{{ session_data.class_type }}</span>
+            </div>
         </div>
 
-        <form id="attendanceForm" style="display: flex; flex-direction: column; gap: 1rem;">
+        <form id="attendanceForm">
             <input type="hidden" id="token" value="{{ token }}">
 
-            <input type="text" id="roll" placeholder="Enter Roll Number"
-                value="{% if session.get('role') == 'student' %}{{ session.get('username') }}{% endif %}" {% if
-                session.get('role')=='student' %}readonly style="background: rgba(0,0,0,0.05); color: #666;" {% endif %}
-                required>
+            <div class="form-group-mobile">
+                <label for="roll">
+                    <i class="fas fa-id-card"></i> Roll Number
+                </label>
+                <input type="text" 
+                       id="roll" 
+                       placeholder="Enter your roll number"
+                       value="{% if session.get('role') == 'student' %}{{ session.get('username') }}{% endif %}" 
+                       {% if session.get('role')=='student' %}
+                       readonly 
+                       style="background: rgba(0,0,0,0.05); color: #666;" 
+                       {% endif %}
+                       required
+                       autocomplete="off">
+            </div>
 
-            <input type="text" id="name" placeholder="Enter Name" required>
+            <div class="form-group-mobile">
+                <label for="name">
+                    <i class="fas fa-user"></i> Full Name
+                </label>
+                <input type="text" 
+                       id="name" 
+                       placeholder="Enter your full name" 
+                       required
+                       autocomplete="name">
+            </div>
 
-            <button type="submit" id="submitBtn">
+            <button type="submit" id="submitBtn" class="submit-btn">
                 <i class="fas fa-check-circle"></i> Mark Present
             </button>
         </form>
-        <div id="msg" style="margin-top: 15px; text-align: center;"></div>
+
+        <div id="msg" class="message-box"></div>
         {% endif %}
     </div>
 
     <script>
-        const GEO_ENABLED = {{ geo_enabled|default (0) | int }};
+        const GEO_ENABLED = {{ geo_enabled|default(0) | int }};
         let userLat = null;
         let userLng = null;
 
@@ -54,7 +288,10 @@
             const msg = document.getElementById('msg');
 
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-satellite-dish fa-spin"></i> Locating...'; // Initial state
+            btn.innerHTML = '<i class="fas fa-satellite-dish fa-spin"></i> Locating...';
+            msg.className = 'message-box info';
+            msg.style.display = 'block';
+            msg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Getting your location...';
 
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
@@ -63,17 +300,21 @@
                         userLng = pos.coords.longitude;
                         btn.disabled = false;
                         btn.innerHTML = '<i class="fas fa-check-circle"></i> Mark Present';
-                        msg.innerHTML = '<small style="color: #2ecc71"><i class="fas fa-map-marker-alt"></i> Location Verified</small>';
+                        msg.className = 'message-box success';
+                        msg.innerHTML = '<i class="fas fa-map-marker-alt"></i> Location Verified';
+                        setTimeout(() => { msg.style.display = 'none'; }, 3000);
                     },
                     (err) => {
                         console.error(err);
-                        msg.innerHTML = '<span style="color: #e74c3c"><i class="fas fa-times"></i> Location Access Denied. Required for attendance.</span>';
+                        msg.className = 'message-box error';
+                        msg.innerHTML = '<i class="fas fa-times"></i> Location Access Denied. Required for attendance.';
                         btn.innerHTML = 'Location Denied';
                     },
                     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
                 );
             } else {
-                msg.innerHTML = '<span style="color: #e74c3c">Browser does not support Location.</span>';
+                msg.className = 'message-box error';
+                msg.innerHTML = '<i class="fas fa-times"></i> Browser does not support location.';
             }
         }
 
@@ -81,11 +322,13 @@
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
             const originalText = btn.innerHTML;
+            const msg = document.getElementById('msg');
+            
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
             btn.disabled = true;
 
-            const roll = document.getElementById('roll').value;
-            const name = document.getElementById('name').value;
+            const roll = document.getElementById('roll').value.trim();
+            const name = document.getElementById('name').value.trim();
             const token = document.getElementById('token').value;
 
             const payload = { roll, name, token };
@@ -102,22 +345,49 @@
                 });
                 const data = await res.json();
 
-                const msg = document.getElementById('msg');
+                msg.style.display = 'block';
+                
                 if (data.success) {
-                    msg.innerHTML = `<span style="color: #2ecc71"><i class="fas fa-check"></i> ${data.message}</span>`;
-                    document.getElementById('attendanceForm').style.display = 'none';
+                    msg.className = 'message-box success success-animation';
+                    msg.innerHTML = `<i class="fas fa-check"></i> ${data.message}`;
+                    document.getElementById('attendanceForm').style.opacity = '0.5';
+                    document.getElementById('attendanceForm').style.pointerEvents = 'none';
+                    
+                    // Vibrate on success (if supported)
+                    if (navigator.vibrate) {
+                        navigator.vibrate([100, 50, 100]);
+                    }
                 } else {
-                    msg.innerHTML = `<span style="color: #e74c3c"><i class="fas fa-times"></i> ${data.message}</span>`;
+                    msg.className = 'message-box error';
+                    msg.innerHTML = `<i class="fas fa-times"></i> ${data.message}`;
                     btn.innerHTML = originalText;
                     btn.disabled = false;
+                    
+                    // Vibrate error pattern
+                    if (navigator.vibrate) {
+                        navigator.vibrate(200);
+                    }
                 }
             } catch (err) {
                 console.error(err);
+                msg.style.display = 'block';
+                msg.className = 'message-box error';
+                msg.innerHTML = '<i class="fas fa-wifi"></i> Network Error. Please check your connection.';
                 btn.innerHTML = originalText;
                 btn.disabled = false;
-                alert("Network Error");
+                
+                if (navigator.vibrate) {
+                    navigator.vibrate(200);
+                }
             }
         });
+
+        // Auto-focus on roll number for faster entry
+        if (document.getElementById('roll').value === '') {
+            document.getElementById('roll').focus();
+        } else {
+            document.getElementById('name').focus();
+        }
     </script>
 </body>
 
