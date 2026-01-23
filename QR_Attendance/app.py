@@ -26,7 +26,7 @@ from teacher_utils import (
     admin_required, teacher_required, admin_or_teacher_required,
     parse_timetable_csv, insert_teachers_and_subjects,
     get_teacher_by_user_id, get_teacher_subjects, get_teacher_unique_subjects,
-    can_teacher_create_session
+    can_teacher_create_session, DB_INTEGRITY_ERRORS, DBRow, DBResult, DBWrapper, get_db_connection
 )
 
 app = Flask(__name__, 
@@ -73,118 +73,7 @@ def haversine(lat1, lon1, lat2, lon2):
     d = R * c
     return d
 
-class DBRow:
-    """A row object that allows access by index and name (case-insensitive), like sqlite3.Row"""
-    def __init__(self, data, description):
-        self.data = data
-        self.description = description
-        # Map lowercase names to indices for case-insensitive lookup
-        self._mapping = {d[0].lower(): i for i, d in enumerate(description)}
-
-    def __getitem__(self, key):
-        if isinstance(key, int):
-            return self.data[key]
-        return self.data[self._mapping[key.lower()]]
-
-    def keys(self):
-        return [d[0] for d in self.description]
-
-    def __getattr__(self, name):
-        name_lower = name.lower()
-        if name_lower in self._mapping:
-            return self.data[self._mapping[name_lower]]
-        raise AttributeError(name)
-
-class DBResult:
-    def __init__(self, cursor, is_postgres):
-        self.cursor = cursor
-        self.is_postgres = is_postgres
-
-    def fetchone(self):
-        row = self.cursor.fetchone()
-        if self.is_postgres and row is not None:
-            return DBRow(list(row), self.cursor.description)
-        return row
-
-    def fetchall(self):
-        rows = self.cursor.fetchall()
-        if self.is_postgres:
-            return [DBRow(list(row), self.cursor.description) for row in rows]
-        return rows
-
-    def __iter__(self):
-        if self.is_postgres:
-            for row in self.cursor:
-                yield DBRow(list(row), self.cursor.description)
-        else:
-            for row in self.cursor:
-                yield row
-
-    @property
-    def lastrowid(self):
-        if hasattr(self.cursor, 'lastrowid'):
-            return self.cursor.lastrowid
-        return None
-
-    def rowcount(self):
-        return self.cursor.rowcount
-
-class DBWrapper:
-    def __init__(self, conn, is_postgres):
-        self.conn = conn
-        self.is_postgres = is_postgres
-
-    def execute(self, query, args=()):
-        if self.is_postgres:
-            query = query.replace('?', '%s')
-            cur = self.conn.cursor()
-            cur.execute(query, args)
-            return DBResult(cur, True)
-        else:
-            res = self.conn.execute(query, args)
-            return DBResult(res, False)
-
-    def cursor(self):
-        if self.is_postgres:
-            return self.conn.cursor()
-        else:
-            return self.conn.cursor()
-
-    def executemany(self, query, args_list):
-        if self.is_postgres:
-            query = query.replace('?', '%s')
-            cur = self.conn.cursor()
-            cur.executemany(query, args_list)
-            return DBResult(cur, True)
-        else:
-            res = self.conn.executemany(query, args_list)
-            return DBResult(res, False)
-
-    def commit(self):
-        self.conn.commit()
-
-    def close(self):
-        self.conn.close()
-
-def get_db_connection():
-    db_url = os.environ.get('DATABASE_URL')
-    if db_url:
-        # Compatibility fix: Some platforms use 'postgres://', but psycopg2 needs 'postgresql://'
-        if db_url.startswith("postgres://"):
-            db_url = db_url.replace("postgres://", "postgresql://", 1)
-            
-        try:
-            import psycopg2
-            # Use standard cursor (returns tuples) so our DBRow can index it easily
-            conn = psycopg2.connect(db_url, sslmode='require')
-            return DBWrapper(conn, True)
-        except Exception as e:
-            print(f"[ERROR] Failed to connect to Supabase: {e}")
-            raise e
-    else:
-        conn = sqlite3.connect(DB_NAME, check_same_thread=False)
-        conn.row_factory = sqlite3.Row
-        return DBWrapper(conn, False)
+# Removed redundant DB classes and get_db_connection (now imported from teacher_utils)
 
 def init_db():
     db_url = os.environ.get('DATABASE_URL')
@@ -193,6 +82,13 @@ def init_db():
     if db_url:
         print("[DATABASE] Using Supabase/PostgreSQL. Running light init.")
         try:
+            # Run Teacher System Migration
+            from migrate_teacher_system import migrate_database
+            migrate_database()
+            
+            # Re-get connection as migrate_database closes it
+            conn = get_db_connection()
+            
             # Ensure users table has at least one admin
             admin = conn.execute("SELECT * FROM users WHERE username = ?", ('admin',)).fetchone()
             if not admin:
@@ -210,9 +106,9 @@ def init_db():
                 conn.commit()
                 
         except Exception as e:
-            print(f"[DATABASE] Init Error (Postgres): {e}. This might be expected if script was already run.")
+            print(f"[DATABASE] Init Error (Postgres): {e}.")
         finally:
-            conn.close()
+            if conn: conn.close()
         return
 
     # LOCAL SQLITE LOGIC (Legacy)
@@ -2354,6 +2250,53 @@ def teacher_session_history():
         return jsonify({'success': True, 'history': history})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/admin/system_setup')
+@admin_required
+def admin_system_setup():
+    """Admin-only route to run initial teacher data setup from local CSV"""
+    try:
+        from migrate_teacher_system import migrate_database
+        # Run migration first to ensure tables exist
+        migrate_database()
+        
+        if not os.path.exists('sample_timetable.csv'):
+            return jsonify({'success': False, 'message': 'sample_timetable.csv not found on server'})
+            
+        with open('sample_timetable.csv', 'rb') as f:
+            success, result = parse_timetable_csv(f)
+            
+        if not success:
+            return jsonify({'success': False, 'message': f"CSV Error: {result}"})
+            
+        teachers_data = result['teachers']
+        subjects_data = result['subjects']
+        
+        success, message, details = insert_teachers_and_subjects(teachers_data, subjects_data)
+        
+        if not success:
+            return jsonify({'success': False, 'message': f"DB Error: {message}"})
+            
+        # Link profiles to users
+        conn = get_db_connection()
+        res = conn.execute("""
+            UPDATE teachers 
+            SET user_id = (SELECT id FROM users WHERE username = teachers.teacher_id)
+            WHERE user_id IS NULL
+        """)
+        linked_count = res.rowcount()
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True, 
+            'message': f"{message} | Linked {linked_count} existing users.",
+            'details': details
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({'success': False, 'message': str(e), 'trace': traceback.format_exc()})
 
 @app.route('/admin/upload_timetable', methods=['POST'])
 @admin_required

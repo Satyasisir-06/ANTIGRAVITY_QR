@@ -9,12 +9,126 @@ import csv
 import io
 from datetime import datetime
 import sqlite3
+import os
+try:
+    import psycopg2
+    from psycopg2 import IntegrityError as PostgresIntegrityError
+except ImportError:
+    psycopg2 = None
+    PostgresIntegrityError = None
+
+# Common Integrity Error tuple for catching
+DB_INTEGRITY_ERRORS = (sqlite3.IntegrityError, PostgresIntegrityError) if PostgresIntegrityError else (sqlite3.IntegrityError,)
+
+class DBRow:
+    """A row object that allows access by index and name (case-insensitive), like sqlite3.Row"""
+    def __init__(self, data, description):
+        self.data = data
+        self.description = description
+        # Map lowercase names to indices for case-insensitive lookup
+        self._mapping = {d[0].lower(): i for i, d in enumerate(description)}
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return self.data[key]
+        return self.data[self._mapping[key.lower()]]
+
+    def keys(self):
+        return [d[0] for d in self.description]
+
+    def __getattr__(self, name):
+        name_lower = name.lower()
+        if name_lower in self._mapping:
+            return self.data[self._mapping[name_lower]]
+        raise AttributeError(name)
+
+class DBResult:
+    def __init__(self, cursor, is_postgres):
+        self.cursor = cursor
+        self.is_postgres = is_postgres
+
+    def fetchone(self):
+        row = self.cursor.fetchone()
+        if self.is_postgres and row is not None:
+            return DBRow(list(row), self.cursor.description)
+        return row
+
+    def fetchall(self):
+        rows = self.cursor.fetchall()
+        if self.is_postgres:
+            return [DBRow(list(row), self.cursor.description) for row in rows]
+        return rows
+
+    def __iter__(self):
+        if self.is_postgres:
+            for row in self.cursor:
+                yield DBRow(list(row), self.cursor.description)
+        else:
+            for row in self.cursor:
+                yield row
+
+    @property
+    def lastrowid(self):
+        if hasattr(self.cursor, 'lastrowid'):
+            return self.cursor.lastrowid
+        return None
+
+    def rowcount(self):
+        return self.cursor.rowcount
+
+class DBWrapper:
+    def __init__(self, conn, is_postgres):
+        self.conn = conn
+        self.is_postgres = is_postgres
+
+    def execute(self, query, args=()):
+        if self.is_postgres:
+            query = query.replace('?', '%s')
+            cur = self.conn.cursor()
+            cur.execute(query, args)
+            return DBResult(cur, True)
+        else:
+            res = self.conn.execute(query, args)
+            return DBResult(res, False)
+
+    def cursor(self):
+        return self.conn.cursor()
+
+    def executemany(self, query, args_list):
+        if self.is_postgres:
+            query = query.replace('?', '%s')
+            cur = self.conn.cursor()
+            cur.executemany(query, args_list)
+            return DBResult(cur, True)
+        else:
+            res = self.conn.executemany(query, args_list)
+            return DBResult(res, False)
+
+    def commit(self):
+        self.conn.commit()
+
+    def close(self):
+        self.conn.close()
 
 def get_db_connection(db_name='attendance.db'):
-    """Get database connection"""
-    conn = sqlite3.connect(db_name)
-    conn.row_factory = sqlite3.Row
-    return conn
+    """Get Northern-compatible database connection (honors DATABASE_URL)"""
+    db_url = os.environ.get('DATABASE_URL')
+    if db_url:
+        # Compatibility fix: Some platforms use 'postgres://', but psycopg2 needs 'postgresql://'
+        if db_url.startswith("postgres://"):
+            db_url = db_url.replace("postgres://", "postgresql://", 1)
+            
+        try:
+            # Use standard cursor (returns tuples) so our DBRow can index it easily
+            conn = psycopg2.connect(db_url, sslmode='require')
+            return DBWrapper(conn, True)
+        except Exception as e:
+            print(f"[ERROR] Failed to connect to Production DB: {e}")
+            raise e
+    else:
+        conn = sqlite3.connect(db_name, check_same_thread=False)
+        conn.row_factory = sqlite3.Row
+        return DBWrapper(conn, False)
 
 # ==================== ROLE-BASED ACCESS DECORATORS ====================
 
