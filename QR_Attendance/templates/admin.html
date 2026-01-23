@@ -69,71 +69,58 @@
             </a>
         </div>
 
+
         <div class="responsive-grid">
-            <!-- Session Management -->
+            <!-- Timetable Upload Section -->
+            <div style="grid-column: 1 / -1; margin-bottom: 2rem;">
+                <div class="glass-card">
+                    <h2><i class="fas fa-upload"></i> Upload Teacher Timetable</h2>
+                    <p style="color: var(--text-muted); margin-bottom: 1rem;">Upload a CSV file to assign subjects to
+                        teachers. This will automatically create teacher accounts.</p>
+
+                    <form id="timetableForm" enctype="multipart/form-data" style="margin-bottom: 1rem;">
+                        <div style="display: flex; gap: 1rem; align-items: end; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 300px;">
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Select Timetable
+                                    CSV</label>
+                                <input type="file" id="timetableFile" accept=".csv" required
+                                    style="width: 100%; padding: 10px; border-radius: 8px; border: 2px dashed var(--border-color);">
+                            </div>
+                            <button type="submit" class="primary" style="width: auto; padding: 0 30px;">
+                                <i class="fas fa-cloud-upload-alt"></i> Upload
+                            </button>
+                        </div>
+                    </form>
+
+                    <div id="uploadResult" style="margin-top: 1rem; padding: 1rem; border-radius: 8px; display: none;">
+                    </div>
+
+                    <details style="margin-top: 1rem; cursor: pointer;">
+                        <summary style="font-weight: 600; color: var(--primary-color);">
+                            <i class="fas fa-info-circle"></i> CSV Format Example
+                        </summary>
+                        <div
+                            style="margin-top: 1rem; background: rgba(0,0,0,0.05); padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 0.85rem; overflow-x: auto;">
+                            Teacher_ID,Teacher_Name,Email,Subject,Branch,Day,Time_Slot,Semester<br>
+                            T001,Dr. John Smith,john@college.edu,Machine
+                            Learning,CSE-A,Monday,09:00-10:00,2025-Spring<br>
+                            T001,Dr. John Smith,john@college.edu,DBMS,CSE-B,Tuesday,11:00-12:00,2025-Spring<br>
+                            T002,Prof. Mary Jane,mary@college.edu,Networks,ECE,Wednesday,10:00-11:00,2025-Spring
+                        </div>
+                    </details>
+                </div>
+            </div>
+
+            <!-- Currently Running Classes (Monitoring Only) -->
             <div style="grid-column: 1 / -1; margin-bottom: 2rem;">
                 <div class="glass-card">
                     <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; gap: 10px; flex-wrap: wrap;">
-                        <h2 style="margin: 0;"><i class="fas fa-chalkboard-teacher"></i> Session Management</h2>
-                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                            <button onclick="forceFinalizeAllExpired()" class="secondary" style="width: auto;">
-                                <i class="fas fa-broom"></i> Finalize All Expired
-                            </button>
-                            <button onclick="toggleSessionForm()" class="primary" style="width: auto;">
-                                <i class="fas fa-plus"></i> New Session
-                            </button>
-                        </div>
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h2 style="margin: 0;"><i class="fas fa-chalkboard-teacher"></i> Currently Running Classes</h2>
+                        <span class="live-badge"><span class="dot"></span>Monitoring</span>
                     </div>
 
-                    <!-- Start Session Form (Collapsible) -->
-                    <div id="start-session-form"
-                        style="display: none; border-bottom: 1px solid var(--border-color); padding-bottom: 20px; margin-bottom: 20px;">
-                        <div class="mobile-stack" style="margin-bottom: 1rem;">
-                            <div class="form-group" style="flex: 1;">
-                                <label>Subject</label>
-                                <input type="text" id="s_subject" list="subjectListInSession" placeholder="Subject"
-                                    autocomplete="off">
-                                <datalist id="subjectListInSession">
-                                    {% for sub in subjects %}
-                                    <option value="{{ sub.name }}">
-                                        {% endfor %}
-                                </datalist>
-                            </div>
-                            <div class="form-group" style="flex: 1;">
-                                <label>Branch</label>
-                                <select id="s_branch">
-                                    <option value="CSE-A">CSE-A</option>
-                                    <option value="CSE-B">CSE-B</option>
-                                    <option value="CSE-C">CSE-C</option>
-                                    <option value="CSE-D">CSE-D</option>
-                                    <option value="CSM">CSM</option>
-                                    <option value="CSD">CSD</option>
-                                    <option value="CAI">CAI</option>
-                                    <option value="CIVIL">CIVIL</option>
-                                    <option value="MECH">MECH</option>
-                                    <option value="ECE">ECE</option>
-                                    <option value="EEE">EEE</option>
-                                </select>
-                            </div>
-                            <div class="form-group" style="flex: 1;">
-                                <label>Class Type</label>
-                                <div class="segmented-control">
-                                    <label>
-                                        <input type="radio" name="ctype" value="Lecture" checked> Lecture (1h)
-                                    </label>
-                                    <label>
-                                        <input type="radio" name="ctype" value="Lab"> Lab (3h)
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                        <button onclick="startSession()" class="primary" style="width: 100%; font-size: 1.1rem;">
-                            <i class="fas fa-play-circle"></i> Start Session & Generate QR
-                        </button>
-                    </div>
-
-                    <!-- Active Sessions List -->
+                    <!-- Active Sessions Grid (Read-Only) -->
                     <div id="active-sessions-grid"
                         style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
                         {% if active_sessions %}
