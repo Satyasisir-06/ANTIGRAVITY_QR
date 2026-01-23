@@ -94,7 +94,8 @@
         .form-group-mobile input {
             width: 100%;
             padding: 14px 16px;
-            font-size: 16px !important; /* Prevent iOS zoom */
+            font-size: 16px !important;
+            /* Prevent iOS zoom */
             border-radius: 12px;
             border: 2px solid rgba(255, 255, 255, 0.5);
             background: rgba(255, 255, 255, 0.6);
@@ -120,7 +121,8 @@
             cursor: pointer;
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(161, 140, 209, 0.3);
-            min-height: 44px; /* Touch target */
+            min-height: 44px;
+            /* Touch target */
         }
 
         .submit-btn:active {
@@ -186,8 +188,15 @@
 
         /* Success animation */
         @keyframes successPulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
         }
 
         .success-animation {
@@ -246,27 +255,17 @@
                 <label for="roll">
                     <i class="fas fa-id-card"></i> Roll Number
                 </label>
-                <input type="text" 
-                       id="roll" 
-                       placeholder="Enter your roll number"
-                       value="{% if session.get('role') == 'student' %}{{ session.get('username') }}{% endif %}" 
-                       {% if session.get('role')=='student' %}
-                       readonly 
-                       style="background: rgba(0,0,0,0.05); color: #666;" 
-                       {% endif %}
-                       required
-                       autocomplete="off">
+                <input type="text" id="roll" placeholder="Enter your roll number"
+                    value="{% if session.get('role') == 'student' %}{{ session.get('username') }}{% endif %}" {% if
+                    session.get('role')=='student' %} readonly style="background: rgba(0,0,0,0.05); color: #666;" {%
+                    endif %} required autocomplete="off">
             </div>
 
             <div class="form-group-mobile">
                 <label for="name">
                     <i class="fas fa-user"></i> Full Name
                 </label>
-                <input type="text" 
-                       id="name" 
-                       placeholder="Enter your full name" 
-                       required
-                       autocomplete="name">
+                <input type="text" id="name" placeholder="Enter your full name" required autocomplete="name">
             </div>
 
             <button type="submit" id="submitBtn" class="submit-btn">
@@ -279,7 +278,7 @@
     </div>
 
     <script>
-        const GEO_ENABLED = {{ geo_enabled|default(0) | int }};
+        const GEO_ENABLED = {{ geo_enabled|default (0) | int }};
         let userLat = null;
         let userLng = null;
 
@@ -323,7 +322,7 @@
             const btn = document.getElementById('submitBtn');
             const originalText = btn.innerHTML;
             const msg = document.getElementById('msg');
-            
+
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
             btn.disabled = true;
 
@@ -346,13 +345,13 @@
                 const data = await res.json();
 
                 msg.style.display = 'block';
-                
+
                 if (data.success) {
                     msg.className = 'message-box success success-animation';
                     msg.innerHTML = `<i class="fas fa-check"></i> ${data.message}`;
                     document.getElementById('attendanceForm').style.opacity = '0.5';
                     document.getElementById('attendanceForm').style.pointerEvents = 'none';
-                    
+
                     // Vibrate on success (if supported)
                     if (navigator.vibrate) {
                         navigator.vibrate([100, 50, 100]);
@@ -362,7 +361,7 @@
                     msg.innerHTML = `<i class="fas fa-times"></i> ${data.message}`;
                     btn.innerHTML = originalText;
                     btn.disabled = false;
-                    
+
                     // Vibrate error pattern
                     if (navigator.vibrate) {
                         navigator.vibrate(200);
@@ -375,7 +374,7 @@
                 msg.innerHTML = '<i class="fas fa-wifi"></i> Network Error. Please check your connection.';
                 btn.innerHTML = originalText;
                 btn.disabled = false;
-                
+
                 if (navigator.vibrate) {
                     navigator.vibrate(200);
                 }
