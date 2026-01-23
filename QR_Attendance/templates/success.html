@@ -3,26 +3,162 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Success!</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#00b894">
+    <title>Success! | QR Attendance</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=3">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}?v=3">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding: 20px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .success-container {
+            background: var(--glass-bg);
+            box-shadow: var(--shadow-light);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+            padding: 48px 32px;
+            width: 100%;
+            max-width: 420px;
+            text-align: center;
+        }
+
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 24px;
+            background: linear-gradient(135deg, #00b894, #55efc4);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: successPulse 0.6s ease-in-out;
+        }
+
+        .success-icon i {
+            font-size: 40px;
+            color: white;
+        }
+
+        @keyframes successPulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        .success-container h1 {
+            font-size: 28px;
+            color: #00b894;
+            margin-bottom: 16px;
+        }
+
+        .success-container p {
+            font-size: 16px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .close-hint {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-top: 24px;
+            opacity: 0.7;
+        }
+
+        /* Confetti animation */
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: #00b894;
+            position: absolute;
+            animation: confetti-fall 3s linear;
+        }
+
+        @keyframes confetti-fall {
+            to {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .success-container {
+                padding: 40px 24px;
+            }
+
+            .success-icon {
+                width: 64px;
+                height: 64px;
+            }
+
+            .success-icon i {
+                font-size: 32px;
+            }
+
+            .success-container h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
 </head>
 
 <body>
-    <div class="glass-container animate-pop" style="text-align: center;">
-        <div class="checkmark"></div>
-        <h1 style="color: var(--success-color);">Success!</h1>
-        <p>Your attendance has been marked.</p>
-        <p style="font-size: 0.9rem;">You can close this tab now.</p>
-
-        <script>
-            // Confetti effect (simple version using CSS/JS)
-            // For brevity, we trust the CSS nice checkmark animation acts as the main visual
-            setTimeout(() => {
-                // Auto close logic if supported or just message
-            }, 3000);
-        </script>
+    <div class="success-container animate-pop">
+        <div class="success-icon">
+            <i class="fas fa-check"></i>
+        </div>
+        <h1>Success!</h1>
+        <p>Your attendance has been marked successfully.</p>
+        <p class="close-hint">
+            <i class="fas fa-info-circle"></i> You can close this page now
+        </p>
     </div>
+
+    <script>
+        // Haptic feedback
+        if (navigator.vibrate) {
+            navigator.vibrate([100, 50, 100]);
+        }
+
+        // Simple confetti effect
+        function createConfetti() {
+            for (let i = 0; i < 20; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.background = ['#00b894', '#55efc4', '#a18cd1', '#fbc2eb'][Math.floor(Math.random() * 4)];
+                confetti.style.animationDelay = Math.random() * 2 + 's';
+                document.body.appendChild(confetti);
+
+                setTimeout(() => confetti.remove(), 3000);
+            }
+        }
+
+        createConfetti();
+
+        // Auto-close after 5 seconds (optional)
+        setTimeout(() => {
+            if (window.history.length > 1) {
+                window.history.back();
+            }
+        }, 5000);
+    </script>
 </body>
 
 </html>
