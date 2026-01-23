@@ -2318,6 +2318,43 @@ def get_teachers():
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
 
+@app.route('/admin/teacher_session_history')
+@admin_required
+def teacher_session_history():
+    """Get history of all teacher-created sessions (Teacher Attendance)"""
+    try:
+        conn = get_db_connection()
+        # Join with teachers to get names
+        sessions = conn.execute('''
+            SELECT s.*, t.name as teacher_name, 
+                   (SELECT COUNT(*) FROM attendance 
+                    WHERE subject = s.subject AND branch = s.branch AND date = s.date) as student_count
+            FROM sessions s
+            JOIN teachers t ON s.teacher_id = t.id
+            WHERE s.is_finalized = 1
+            ORDER BY s.date DESC, s.start_time DESC
+            LIMIT 100
+        ''').fetchall()
+        
+        history = []
+        for s in sessions:
+            history.append({
+                'id': s['id'],
+                'teacher_name': s['teacher_name'],
+                'subject': s['subject'],
+                'branch': s['branch'],
+                'date': s['date'],
+                'start_time': s['start_time'],
+                'end_time': s['end_time'],
+                'student_count': s['student_count'],
+                'class_type': s['class_type']
+            })
+            
+        conn.close()
+        return jsonify({'success': True, 'history': history})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
 @app.route('/admin/upload_timetable', methods=['POST'])
 @admin_required
 def upload_timetable():
