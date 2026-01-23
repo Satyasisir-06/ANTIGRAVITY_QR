@@ -2290,6 +2290,34 @@ def teacher_finalize_session():
 
 # ==================== ADMIN TIMETABLE UPLOAD ====================
 
+@app.route('/admin/get_teachers')
+@admin_required
+def get_teachers():
+    """Get list of teachers with their subject counts for admin dashboard"""
+    try:
+        conn = get_db_connection()
+        teachers = conn.execute('''
+            SELECT t.id, t.teacher_id, t.name, t.email, 
+                   (SELECT COUNT(*) FROM teacher_subjects WHERE teacher_id = t.id) as subject_count
+            FROM teachers t
+            ORDER BY t.name
+        ''').fetchall()
+        
+        teacher_list = []
+        for t in teachers:
+            teacher_list.append({
+                'id': t['id'],
+                'teacher_id': t['teacher_id'],
+                'name': t['name'],
+                'email': t['email'],
+                'subject_count': t['subject_count']
+            })
+        
+        conn.close()
+        return jsonify({'success': True, 'teachers': teacher_list})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
 @app.route('/admin/upload_timetable', methods=['POST'])
 @admin_required
 def upload_timetable():
