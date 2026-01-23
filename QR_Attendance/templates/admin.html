@@ -331,6 +331,63 @@
                 }
             });
         });
+
+        // Timetable Upload Handler
+        document.getElementById('timetableForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const fileInput = document.getElementById('timetableFile');
+            const resultDiv = document.getElementById('uploadResult');
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+
+            if (!fileInput.files.length) {
+                resultDiv.style.display = 'block';
+                resultDiv.style.background = 'rgba(231, 76, 60, 0.1)';
+                resultDiv.style.color = '#e74c3c';
+                resultDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Please select a file';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('timetable_file', fileInput.files[0]);
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+            resultDiv.style.display = 'block';
+            resultDiv.style.background = 'rgba(52, 152, 219, 0.1)';
+            resultDiv.style.color = '#3498db';
+            resultDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing CSV file...';
+
+            try {
+                const response = await fetch('/admin/upload_timetable', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    resultDiv.style.background = 'rgba(46, 204, 113, 0.1)';
+                    resultDiv.style.color = '#2ecc71';
+                    resultDiv.innerHTML = '<i class="fas fa-check-circle"></i> ' + data.message +
+                        (data.details ? '<div style="margin-top: 0.5rem; font-size: 0.9rem;"><strong>Details:</strong><br>• Teachers added: ' +
+                            data.details.teachers_added + '<br>• Teachers updated: ' + data.details.teachers_updated +
+                            '<br>• Subject assignments: ' + data.details.subjects_added + '</div>' : '');
+                    fileInput.value = '';
+                } else {
+                    resultDiv.style.background = 'rgba(231, 76, 60, 0.1)';
+                    resultDiv.style.color = '#e74c3c';
+                    resultDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Error: ' + data.message;
+                }
+            } catch (error) {
+                resultDiv.style.background = 'rgba(231, 76, 60, 0.1)';
+                resultDiv.style.color = '#e74c3c';
+                resultDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Network error';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Upload';
+            }
+        });
     </script>
 </body>
 
