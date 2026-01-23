@@ -1050,19 +1050,43 @@ body.dark-mode .segmented-control label:has(input:checked) {
     input,
     select {
         padding: 12px;
-        font-size: 1rem;
+        font-size: 16px; /* Prevents iOS zoom */
     }
 
     /* Stats cards smaller padding */
     .stat-card {
         padding: 1rem;
+        min-width: unset;
+        max-width: 100%;
     }
 
     .stat-num {
         font-size: 1.6rem;
     }
 
+    /* Better mobile navigation */
+    .nav-links {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
 
+    /* Ensure buttons are tappable */
+    button, 
+    .btn,
+    a.btn {
+        min-height: 44px;
+        padding: 12px 16px;
+    }
+
+    /* Mobile-friendly session cards */
+    .session-card {
+        margin-bottom: 1rem;
+    }
+
+    /* Responsive grid for small screens */
+    .responsive-grid {
+        grid-template-columns: 1fr !important;
+    }
 }
 
 /* Theme Toggle Button */
