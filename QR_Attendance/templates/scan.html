@@ -3,47 +3,164 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mark Attendance</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#a18cd1">
+    <title>Mark Attendance | QR Attendance</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=3">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}?v=3">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding: 20px 16px;
+        }
+
+        .scan-container {
+            background: var(--glass-bg);
+            box-shadow: var(--shadow-light);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 32px 24px;
+            max-width: 420px;
+            margin: 0 auto;
+        }
+
+        .scan-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .scan-header h2 {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .info-card {
+            background: rgba(161, 140, 209, 0.1);
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .info-card strong {
+            color: #a18cd1;
+            font-size: 16px;
+        }
+
+        .expired-message {
+            color: var(--danger-color);
+            text-align: center;
+            padding: 32px 16px;
+        }
+
+        .expired-message i {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .form-group-scan {
+            margin-bottom: 18px;
+        }
+
+        .form-group-scan label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-group-scan input {
+            width: 100%;
+            padding: 14px 16px;
+            font-size: 16px !important;
+            border-radius: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            background: rgba(255, 255, 255, 0.6);
+        }
+
+        .form-group-scan input:focus {
+            border-color: #a18cd1;
+            background: #fff;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(161, 140, 209, 0.1);
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 12px;
+            border: none;
+            background: linear-gradient(to right, #a18cd1, #fbc2eb);
+            color: white;
+            cursor: pointer;
+            min-height: 44px;
+            margin-top: 8px;
+        }
+
+        .submit-btn:active {
+            transform: scale(0.98);
+        }
+
+        .error-msg {
+            margin-top: 16px;
+            padding: 12px;
+            background: rgba(231, 76, 60, 0.1);
+            border: 1px solid rgba(231, 76, 60, 0.3);
+            border-radius: 12px;
+            color: #e74c3c;
+            text-align: center;
+            display: none;
+        }
+
+        .error-msg.show {
+            display: block;
+        }
+    </style>
 </head>
 
 <body>
-    <div class="glass-container animate-pop">
-        <div style="text-align: center;">
-            <h2>Mark Attendance</h2>
-            {% if is_expired %}
-            <div style="color: var(--danger-color); font-size: 1.2rem; font-weight: bold; margin: 2rem;">
-                <i class="fas fa-times-circle fa-3x"></i><br><br>
-                This QR Code has expired.
-            </div>
-            {% else %}
-            <p>Please fill in your details quickly.</p>
-            <div style="background: rgba(255,255,255,0.3); padding: 10px; border-radius: 10px; margin-bottom: 1rem;">
-                <strong>{{ subject }}</strong> ({{ branch }})
-            </div>
-
-            <form id="scanForm">
-                <!-- Hidden fields for valid data -->
-                <input type="hidden" id="s_subject" value="{{ subject }}">
-                <input type="hidden" id="s_branch" value="{{ branch }}">
-                <input type="hidden" id="s_exp" value="{{ exp }}">
-
-                <div class="form-group">
-                    <label>Roll Number</label>
-                    <input type="text" id="s_roll" placeholder="Enter Roll No" required>
-                </div>
-                <div class="form-group">
-                    <label>Full Name</label>
-                    <input type="text" id="s_name" placeholder="Enter Name" required>
-                </div>
-
-                <button type="submit">Submit Attendance</button>
-            </form>
-            <p id="msg" style="margin-top: 10px; color: var(--danger-color);"></p>
-            {% endif %}
+    <div class="scan-container animate-pop">
+        <div class="scan-header">
+            <h2><i class="fas fa-qrcode"></i> Mark Attendance</h2>
         </div>
+
+        {% if is_expired %}
+        <div class="expired-message">
+            <i class="fas fa-times-circle"></i><br>
+            <h3>QR Code Expired</h3>
+            <p>This attendance session has ended</p>
+        </div>
+        {% else %}
+        <div class="info-card">
+            <strong>{{ subject }}</strong><br>
+            <small>{{ branch }}</small>
+        </div>
+
+        <form id="scanForm">
+            <input type="hidden" id="s_subject" value="{{ subject }}">
+            <input type="hidden" id="s_branch" value="{{ branch }}">
+            <input type="hidden" id="s_exp" value="{{ exp }}">
+
+            <div class="form-group-scan">
+                <label for="s_roll"><i class="fas fa-id-card"></i> Roll Number</label>
+                <input type="text" id="s_roll" placeholder="Enter your roll number" required autofocus>
+            </div>
+
+            <div class="form-group-scan">
+                <label for="s_name"><i class="fas fa-user"></i> Full Name</label>
+                <input type="text" id="s_name" placeholder="Enter your full name" required>
+            </div>
+
+            <button type="submit" class="submit-btn">
+                <i class="fas fa-check-circle"></i> Submit Attendance
+            </button>
+        </form>
+
+        <div id="msg" class="error-msg"></div>
+        {% endif %}
     </div>
 
     <script>
@@ -53,11 +170,12 @@
             const msg = document.getElementById('msg');
 
             btn.disabled = true;
-            btn.innerText = "Processing...";
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            msg.classList.remove('show');
 
             const data = {
-                roll: document.getElementById('s_roll').value,
-                name: document.getElementById('s_name').value,
+                roll: document.getElementById('s_roll').value.trim(),
+                name: document.getElementById('s_name').value.trim(),
                 subject: document.getElementById('s_subject').value,
                 branch: document.getElementById('s_branch').value,
                 exp: document.getElementById('s_exp').value
@@ -72,18 +190,28 @@
                 const result = await res.json();
 
                 if (result.success) {
-                    window.location.href = '/success'; // Redirect to the success route
+                    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+                    window.location.href = '/success';
                 } else {
-                    msg.innerText = result.message;
+                    msg.textContent = result.message;
+                    msg.classList.add('show');
                     btn.disabled = false;
-                    btn.innerText = "Submit Attendance";
+                    btn.innerHTML = '<i class="fas fa-check-circle"></i> Submit Attendance';
+                    if (navigator.vibrate) navigator.vibrate(200);
                 }
             } catch (err) {
                 console.error(err);
-                msg.innerText = "Network Error";
+                msg.textContent = 'Network Error. Please try again.';
+                msg.classList.add('show');
                 btn.disabled = false;
-                btn.innerText = "Submit Attendance";
+                btn.innerHTML = '<i class="fas fa-check-circle"></i> Submit Attendance';
+                if (navigator.vibrate) navigator.vibrate(200);
             }
+        });
+
+        // Auto-uppercase roll number
+        document.getElementById('s_roll').addEventListener('input', function (e) {
+            e.target.value = e.target.value.toUpperCase();
         });
     </script>
 </body>
