@@ -683,20 +683,25 @@ def handle_correction():
         conn.close()
         return jsonify({'success': False, 'message': str(e)}), 500
 
+# ============================================================================
+# SESSION MANAGEMENT - REWRITTEN FOR RELIABILITY
+# ============================================================================
+
 @app.route('/start_session', methods=['POST'])
 def start_session():
+    """Start a new class/lab session and generate QR code."""
     if 'user_id' not in session or session.get('role') != 'admin':
         return jsonify({'success': False, 'message': 'Unauthorized'}), 403
     
     data = request.json
     subject = data.get('subject')
     branch = data.get('branch')
-    class_type = data.get('class_type', 'Lecture') # 'Lecture' or 'Lab'
+    class_type = data.get('class_type', 'Lecture')
     
     if not subject or not branch:
-        return jsonify({'success': False, 'message': 'Missing data'}), 400
+        return jsonify({'success': False, 'message': 'Subject and Branch are required'}), 400
     
-    # Calculate times
+    # Calculate session times
     now = datetime.now()
     date_str = now.strftime("%Y-%m-%d")
     start_time = now.strftime("%H:%M:%S")
@@ -704,33 +709,29 @@ def start_session():
     duration = 3 if class_type == 'Lab' else 1
     end_dt = now + timedelta(hours=duration)
     end_time = end_dt.strftime("%H:%M:%S")
-
-    # Generate Unique Token for Session
+    
+    # Generate unique token
     import uuid
     token = str(uuid.uuid4())
     
     try:
-        # Save Session
         conn = get_db_connection()
-        cursor = conn.execute('''INSERT INTO sessions 
-                                (subject, branch, date, start_time, end_time, class_type, qr_token) 
-                                VALUES (?, ?, ?, ?, ?, ?, ?)''',
-                                (subject, branch, date_str, start_time, end_time, class_type, token))
+        cursor = conn.execute('''
+            INSERT INTO sessions (subject, branch, date, start_time, end_time, class_type, qr_token, is_finalized) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (subject, branch, date_str, start_time, end_time, class_type, token, False))
         session_id = cursor.lastrowid
         conn.commit()
         conn.close()
         
-        print(f"[Session Start] Session {session_id} created successfully for {subject} - {branch}")
-    except DB_INTEGRITY_ERRORS as e:
-        print(f"[Session Start Error] Integrity error: {e}")
-        return jsonify({'success': False, 'message': 'Duplicate session detected. Please finalize existing session first.'}), 400
+        print(f"[SESSION START] Created session {session_id}: {subject} - {branch} ({class_type})")
+        
     except Exception as e:
-        print(f"[Session Start Error] Unexpected error: {e}")
+        print(f"[SESSION START ERROR] {e}")
         traceback.print_exc()
         return jsonify({'success': False, 'message': f'Failed to create session: {str(e)}'}), 500
-
-    # QR Data: URL for scanning
-    # Use public host URL instead of local IP for production
+    
+    # Generate QR code
     base_url = request.host_url.rstrip('/')
     qr_url = f"{base_url}/scan_session?token={token}"
     
@@ -744,31 +745,20 @@ def start_session():
         img.save(buf)
         buf.seek(0)
         img_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+        
     except Exception as e:
-        print(f"[QR Generation Error] {e}")
-        # Session is created, but QR failed - still return success with error note
-        return jsonify({
-            'success': True, 
-            'qr_image': '',
-            'session_id': session_id,
-            'end_time': end_time,
-            'start_timestamp': now.timestamp(),
-            'end_timestamp': end_dt.timestamp(),
-            'token': token,
-            'qr_url': qr_url,
-            'server_now': datetime.now().timestamp(),
-            'warning': 'Session created but QR generation failed'
-        })
+        print(f"[QR GENERATION ERROR] {e}")
+        img_base64 = ''
     
     return jsonify({
-        'success': True, 
-        'qr_image': img_base64,
+        'success': True,
         'session_id': session_id,
+        'qr_image': img_base64,
+        'qr_url': qr_url,
+        'token': token,
         'end_time': end_time,
         'start_timestamp': now.timestamp(),
         'end_timestamp': end_dt.timestamp(),
-        'token': token,
-        'qr_url': qr_url,
         'server_now': datetime.now().timestamp()
     })
 
@@ -1949,6 +1939,7 @@ def api_delete_session():
 
 @app.route('/finalize_session', methods=['POST'])
 def finalize_session():
+    """Manually finalize a specific session."""
     if 'user_id' not in session or session.get('role') != 'admin':
         return jsonify({'success': False, 'message': 'Unauthorized'}), 403
     
@@ -1956,193 +1947,177 @@ def finalize_session():
     session_id = data.get('session_id')
     
     if not session_id:
-        return jsonify({'success': False, 'message': 'Missing session_id'}), 400
+        return jsonify({'success': False, 'message': 'session_id is required'}), 400
     
-    try:
-        result = finalize_session_logic(session_id)
-        return jsonify(result)
-    except Exception as e:
-        print(f"[Finalize Session Error] {e}")
-        traceback.print_exc()
-        return jsonify({'success': False, 'message': f'Error finalizing session: {str(e)}'}), 500
+    result = finalize_session_core(session_id)
+    return jsonify(result)
 
-def notify_absentees_background(session_id, absent_data, config):
-    """Background task to send SMS to absentees."""
+
+def finalize_session_core(session_id):
+    """
+    Core finalization logic that marks absent students.
+    Called by both manual finalize and auto-finalizer.
+    """
+    print(f"[FINALIZE] Starting finalization for session {session_id}")
+    
+    conn = None
     try:
-        print(f"[Background SMS] Starting for Session {session_id}. Count: {len(absent_data)}")
         conn = get_db_connection()
-        sms_handler = SMSHandler(config['sms_sid'], config['sms_auth_token'], config['sms_from_number'])
         
-        for roll, name, subject, branch, date, time, s_id, status in absent_data:
-            try:
-                # Fetch parent phone
-                student = conn.execute("SELECT parent_phone FROM students WHERE roll = ?", (roll,)).fetchone()
-                if student and student['parent_phone']:
-                    phone = student['parent_phone']
-                    
-                    # Calculate Attendance Percentage
-                    # We need a fresh connection or careful cursor usage
-                    total_sessions = conn.execute("SELECT COUNT(*) FROM sessions WHERE subject = ? AND branch = ? AND is_finalized = ?", 
-                                                 (subject, branch, True)).fetchone()[0]
-                    present_count = conn.execute("SELECT COUNT(*) FROM attendance WHERE roll = ? AND subject = ? AND branch = ? AND status = 'PRESENT'", 
-                                                (roll, subject, branch)).fetchone()[0]
-                    
-                    attendance_pct = (present_count / total_sessions * 100) if total_sessions > 0 else 100
-                    
-                    from sms_utils import format_absence_message
-                    message = format_absence_message(name, subject, date, attendance_pct, config['sms_threshold'])
-                    
-                    success, result_msg = sms_handler.send_sms(phone, message)
-                    
-                    # Log SMS
-                    conn.execute("""INSERT INTO sms_logs (roll, session_id, phone, message, status, error_message)
-                                   VALUES (?, ?, ?, ?, ?, ?)""",
-                                (roll, session_id, phone, message, result_msg if success else "FAILED", None if success else result_msg))
-                    conn.commit() # Commit each log to be safe
-            except Exception as e:
-                print(f"[Background SMS] Error for {roll}: {e}")
-                
-        conn.close()
-        print(f"[Background SMS] Completed for Session {session_id}")
-    except Exception as e:
-        print(f"[Background SMS] Critical Error: {e}")
-
-def finalize_session_logic(session_id):
-    print(f"[DEBUG] Starting finalization for session {session_id}")
-    conn = get_db_connection()
-    current_session = conn.execute("SELECT * FROM sessions WHERE id = ?", (session_id,)).fetchone()
-    
-    if not current_session:
-        print(f"[DEBUG] Session {session_id} not found.")
-        conn.close()
-        return {'success': False, 'message': 'Invalid Session'}
+        # Get session details
+        sess = conn.execute("SELECT * FROM sessions WHERE id = ?", (session_id,)).fetchone()
         
-    if current_session['is_finalized']:
-        print(f"[DEBUG] Session {session_id} already finalized.")
-        conn.close()
-        return {'success': True, 'message': 'Session Already Finalized', 'already_done': True}
+        if not sess:
+            print(f"[FINALIZE ERROR] Session {session_id} not found")
+            if conn:
+                conn.close()
+            return {'success': False, 'message': 'Session not found'}
         
-    branch = current_session['branch'].strip().upper()
-    
-    # 1. Fetch all students in branch
-    all_students = conn.execute("SELECT roll FROM students WHERE UPPER(TRIM(branch)) = ?", (branch,)).fetchall()
-    all_rolls = {s['roll'] for s in all_students}
-    print(f"[DEBUG] Found {len(all_rolls)} students registered in branch {branch}")
-    
-    # 2. Fetch all PRESENT students for this session
-    present_records = conn.execute("SELECT roll FROM attendance WHERE session_id = ? AND status = 'PRESENT'", (session_id,)).fetchall()
-    present_rolls = {r['roll'] for r in present_records}
-    print(f"[DEBUG] Found {len(present_rolls)} students marked PRESENT in session {session_id}")
-    
-    # 3. Identify Absentees
-    absent_rolls = all_rolls - present_rolls
-    print(f"[DEBUG] Resulting in {len(absent_rolls)} ABSENTEES")
-    
-    # Prepare data for executemany
-    student_map_rows = conn.execute("SELECT roll, name FROM students WHERE UPPER(TRIM(branch)) = ?", (branch,)).fetchall()
-    student_map = {r['roll']: r['name'] for r in student_map_rows}
-    
-    absent_data = []
-    now_time = datetime.now().strftime("%H:%M:%S")
-    for roll in absent_rolls:
-        absent_data.append((
-            roll, 
-            student_map.get(roll, 'Unknown'), 
-            current_session['subject'], 
-            current_session['branch'], 
-            current_session['date'], 
-            now_time, 
-            session_id, 
-            'ABSENT'
-        ))
-    
-    try:
-        # 4. Insert Absent Records
+        if sess['is_finalized']:
+            print(f"[FINALIZE SKIP] Session {session_id} already finalized")
+            if conn:
+                conn.close()
+            return {'success': True, 'message': 'Session already finalized', 'already_done': True, 'absent_count': 0}
+        
+        branch = sess['branch'].strip().upper()
+        subject = sess['subject']
+        date = sess['date']
+        
+        print(f"[FINALIZE] Session {session_id}: {subject} - {branch} on {date}")
+        
+        # Get all students in this branch
+        all_students = conn.execute(
+            "SELECT roll, name FROM students WHERE UPPER(TRIM(branch)) = ?", 
+            (branch,)
+        ).fetchall()
+        
+        if not all_students:
+            print(f"[FINALIZE WARNING] No students found in branch {branch}")
+            # Still mark as finalized even if no students
+            conn.execute("UPDATE sessions SET is_finalized = ? WHERE id = ?", (True, session_id))
+            conn.commit()
+            conn.close()
+            return {'success': True, 'message': 'Session finalized (no students in branch)', 'absent_count': 0}
+        
+        all_rolls = {s['roll'] for s in all_students}
+        print(f"[FINALIZE] Total students in {branch}: {len(all_rolls)}")
+        
+        # Get students who marked attendance (PRESENT)
+        present_records = conn.execute(
+            "SELECT roll FROM attendance WHERE session_id = ? AND status = 'PRESENT'",
+            (session_id,)
+        ).fetchall()
+        present_rolls = {r['roll'] for r in present_records}
+        print(f"[FINALIZE] Students present: {len(present_rolls)}")
+        
+        # Calculate absentees
+        absent_rolls = all_rolls - present_rolls
+        print(f"[FINALIZE] Students absent: {len(absent_rolls)}")
+        
+        # Create student map for names
+        student_map = {s['roll']: s['name'] for s in all_students}
+        
+        # Insert absent records
+        now_time = datetime.now().strftime("%H:%M:%S")
+        absent_data = []
+        
+        for roll in absent_rolls:
+            absent_data.append((
+                roll,
+                student_map.get(roll, 'Unknown'),
+                subject,
+                branch,
+                date,
+                now_time,
+                session_id,
+                'ABSENT'
+            ))
+        
         if absent_data:
-            print(f"[DEBUG] Inserting {len(absent_data)} absent records for session {session_id}")
-            conn.executemany('''INSERT INTO attendance 
-                                (roll, name, subject, branch, date, time, session_id, status) 
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', absent_data)
-                                
-        # 5. Mark Session Finalized
-        print(f"[DEBUG] Marking session {session_id} as finalized in DB")
+            conn.executemany('''
+                INSERT INTO attendance (roll, name, subject, branch, date, time, session_id, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', absent_data)
+            print(f"[FINALIZE] Inserted {len(absent_data)} ABSENT records")
+        
+        # Mark session as finalized
         conn.execute("UPDATE sessions SET is_finalized = ? WHERE id = ?", (True, session_id))
+        conn.commit()
         
-        # 6. Trigger SMS Alerts (ASYNC)
-        config_row = conn.execute("SELECT * FROM semester_config LIMIT 1").fetchone()
+        print(f"[FINALIZE SUCCESS] Session {session_id} finalized. {len(absent_data)} absent")
         
-        # Convert Row to dict to pass to thread safely (sqlite objects check thread)
-        config = dict(config_row) if config_row else None
-        
-        conn.commit() # Commit DB changes BEFORE spawning thread
-        
-        if config and config['sms_enabled'] and absent_data:
-            import threading
-            # Pass data to thread
-            t = threading.Thread(target=notify_absentees_background, args=(session_id, absent_data, config))
-            t.daemon = True
-            t.start()
-            print(f"[DEBUG] Started background SMS thread for {len(absent_data)} students.")
-            
-    except Exception as e:
-        print(f"[DEBUG] Database Error during finalization: {e}")
-        return {'success': False, 'message': f'DB Error: {str(e)}'}
-    finally:
         conn.close()
-    
-    return {
-        'success': True, 
-        'message': f'Attendance Finalized. {len(absent_data)} students marked ABSENT (SMS sending in background).',
-        'absent_count': len(absent_data)
-    }
+        
+        return {
+            'success': True,
+            'message': f'Session finalized. {len(absent_data)} students marked absent.',
+            'absent_count': len(absent_data)
+        }
+        
+    except Exception as e:
+        print(f"[FINALIZE ERROR] Exception during finalization: {e}")
+        traceback.print_exc()
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+        return {'success': False, 'message': f'Finalization failed: {str(e)}'}
+
 
 def auto_finalizer_thread():
     """
-    Background thread that automatically finalizes expired sessions.
-    Runs every 30 seconds to ensure timely finalization.
+    Background thread that auto-finalizes expired sessions.
+    Runs every 30 seconds.
     """
-    import time
-    print("[Auto-Finalizer] Thread started. Checking every 30 seconds...")
+    print("[AUTO-FINALIZER] Thread started. Checking every 30 seconds...")
     
     while True:
         try:
+            # Use a fresh DB connection for each check
             conn = get_db_connection()
-            # Find active sessions that have ended
-            active_sessions = conn.execute("SELECT * FROM sessions WHERE is_finalized = ?", (False,)).fetchall()
+            active_sessions = conn.execute(
+                "SELECT * FROM sessions WHERE is_finalized = ? ORDER BY date DESC, start_time DESC",
+                (False,)
+            ).fetchall()
             conn.close()
             
-            if active_sessions:
-                print(f"[Auto-Finalizer] Found {len(active_sessions)} active session(s) to check...")
+            if not active_sessions:
+                time.sleep(30)
+                continue
             
             now = datetime.now()
             finalized_count = 0
             
-            for s in active_sessions:
-                s_end_iso = f"{s['date']} {s['end_time']}"
+            for sess in active_sessions:
                 try:
-                    end_dt = datetime.strptime(s_end_iso, "%Y-%m-%d %H:%M:%S")
+                    # Parse end time
+                    end_datetime_str = f"{sess['date']} {sess['end_time']}"
+                    end_dt = datetime.strptime(end_datetime_str, "%Y-%m-%d %H:%M:%S")
+                    
+                    # Check if expired
                     if now > end_dt:
-                        print(f"[Auto-Finalizer] Session {s['id']} ({s['subject']} - {s['class_type']}) expired at {end_dt}. Finalizing now...")
-                        result = finalize_session_logic(s['id'])
+                        print(f"[AUTO-FINALIZER] Session {sess['id']} expired. Finalizing...")
+                        
+                        result = finalize_session_core(sess['id'])
+                        
                         if result['success'] and not result.get('already_done'):
                             finalized_count += 1
-                            print(f"[Auto-Finalizer] ✓ Session {s['id']} finalized successfully.")
+                            print(f"[AUTO-FINALIZER] ✓ Finalized session {sess['id']}")
+                            
                 except ValueError as ve:
-                    print(f"[Auto-Finalizer] Error parsing date/time for session {s['id']}: {ve}")
-                    continue
+                    print(f"[AUTO-FINALIZER] Date parse error for session {sess['id']}: {ve}")
                 except Exception as e:
-                    print(f"[Auto-Finalizer] Error finalizing session {s['id']}: {e}")
+                    print(f"[AUTO-FINALIZER] Error finalizing session {sess['id']}: {e}")
                     traceback.print_exc()
-                    continue
             
             if finalized_count > 0:
-                print(f"[Auto-Finalizer] ✓ Finalized {finalized_count} session(s) this cycle.")
-                    
-        except Exception as e:
-            print(f"[Auto-Finalizer] Critical Error: {e}")
-            traceback.print_exc()
+                print(f"[AUTO-FINALIZER] ✓ Auto-finalized {finalized_count} session(s)")
             
-        # Check every 30 seconds for more responsive finalization
+        except Exception as e:
+            print(f"[AUTO-FINALIZER] Critical error in main loop: {e}")
+            traceback.print_exc()
+        
         time.sleep(30)
 
 def weekly_report_thread():
