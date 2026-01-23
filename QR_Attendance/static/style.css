@@ -1050,7 +1050,8 @@ body.dark-mode .segmented-control label:has(input:checked) {
     input,
     select {
         padding: 12px;
-        font-size: 16px; /* Prevents iOS zoom */
+        font-size: 16px;
+        /* Prevents iOS zoom */
     }
 
     /* Stats cards smaller padding */
@@ -1071,7 +1072,7 @@ body.dark-mode .segmented-control label:has(input:checked) {
     }
 
     /* Ensure buttons are tappable */
-    button, 
+    button,
     .btn,
     a.btn {
         min-height: 44px;
@@ -1086,6 +1087,120 @@ body.dark-mode .segmented-control label:has(input:checked) {
     /* Responsive grid for small screens */
     .responsive-grid {
         grid-template-columns: 1fr !important;
+    }
+
+    /* DASHBOARD SPECIFIC MOBILE FIXES */
+
+    /* Container adjustments */
+    .container-wide {
+        padding: 1rem;
+        max-width: 100%;
+    }
+
+    /* Stats container - stack vertically */
+    .stats-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .flex-wrap-center {
+        flex-direction: column;
+    }
+
+    /* Navigation - make it mobile friendly */
+    .navbar {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: stretch;
+    }
+
+    .brand {
+        text-align: center;
+        font-size: 1.2rem;
+    }
+
+    .nav-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: center;
+    }
+
+    .nav-links a {
+        padding: 8px 12px;
+        font-size: 0.85rem;
+    }
+
+    /* Session grid - single column on mobile */
+    #active-sessions-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem;
+    }
+
+    /* Session card improvements */
+    .session-card {
+        padding: 1rem;
+    }
+
+    .session-card-content {
+        flex-direction: column !important;
+    }
+
+    .qr-container {
+        width: 100%;
+        max-width: 300px;
+        margin: 0 auto 1rem auto;
+    }
+
+    /* Glass card spacing */
+    .glass-card {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    /* Form improvements on mobile */
+    .mobile-stack {
+        flex-direction: column !important;
+    }
+
+    .mobile-stack .form-group {
+        width: 100% !important;
+        flex: none !important;
+    }
+
+    /* Manual entry form */
+    #manualForm .responsive-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Segmented control */
+    .segmented-control {
+        flex-direction: column;
+    }
+
+    .segmented-control label {
+        width: 100%;
+        text-align: center;
+    }
+
+    /* Hide excessive icons on small screens */
+    .nav-links [data-tooltip]::before {
+        display: none;
+        /* Hide tooltips on mobile */
+    }
+
+    /* Ensure text doesn't overflow */
+    h1,
+    h2,
+    h3 {
+        word-wrap: break-word;
+    }
+
+    /* Toast notifications positioning */
+    #toast-container {
+        right: 10px;
+        bottom: 10px;
+        left: 10px;
     }
 }
 
