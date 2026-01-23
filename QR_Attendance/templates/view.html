@@ -27,10 +27,12 @@
         <form action="/view_attendance" method="GET"
             style="display: flex; gap: 10px; margin-bottom: 2rem; flex-wrap: wrap;">
             <div style="flex: 1;">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Subject</label>
                 <input type="text" name="subject" placeholder="Filter by Subject"
                     value="{{ request.args.get('subject', '') }}">
             </div>
             <div style="flex: 1;">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Branch</label>
                 <select name="branch">
                     <option value="">All Branches</option>
                     <option value="CAI" {% if request.args.get('branch')=='CAI' %}selected{% endif %}>CAI</option>
@@ -47,6 +49,7 @@
                 </select>
             </div>
             <div style="flex: 1;">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Date</label>
                 <input type="date" name="date" value="{{ request.args.get('date', '') }}">
             </div>
             <button type="submit" style="width: auto; padding: 0 30px;">Filter</button>
