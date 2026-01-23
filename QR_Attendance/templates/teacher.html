@@ -135,6 +135,46 @@
                 {% endif %}
             </div>
         </div>
+
+        <!-- Manual Entry Section -->
+        <div style="grid-column: 1 / -1; margin: 2rem auto 0; width: 100%;" class="glass-card">
+            <h2><i class="fas fa-edit"></i> Manual Entry</h2>
+            <p style="color: var(--text-muted); margin-bottom: 1rem;">Manually mark attendance for students who missed
+                the QR scan.</p>
+            <form id="teacherManualForm" onsubmit="teacherManualAttendance(event)">
+                <div
+                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+                    <div class="form-group">
+                        <label>Roll No</label>
+                        <input type="text" id="tm_roll" placeholder="Enter Roll No" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Student Name</label>
+                        <input type="text" id="tm_name" placeholder="Enter Full Name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Subject</label>
+                        <select id="tm_subject" required onchange="updateManualBranchOptions()">
+                            <option value="">Select Subject</option>
+                            {% for subj in all_subjects %}
+                            <option value="{{ subj.subject }}" data-branch="{{ subj.branch }}">{{ subj.subject }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Branch</label>
+                        <select id="tm_branch" required>
+                            <option value="">Select Branch</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="secondary" style="width: 100%;">
+                    <i class="fas fa-check-double"></i> Mark Present
+                </button>
+                <div id="tm_msg" style="margin-top: 10px; text-align: center; font-weight: bold;"></div>
+            </form>
+        </div>
     </div>
 
     <script src="{{ url_for('static', filename='backjs.js') }}?v=5"></script>
@@ -260,6 +300,66 @@
             }
         });
         {% endif %}
+
+        // Subject-Branch mapping for Manual Entry
+        function updateManualBranchOptions() {
+            const select = document.getElementById('tm_subject');
+            const branchSelect = document.getElementById('tm_branch');
+            const selectedSubject = select.value;
+
+            branchSelect.innerHTML = '<option value="">Select Branch</option>';
+
+            if (selectedSubject && subjectBranchMap[selectedSubject]) {
+                const branch = subjectBranchMap[selectedSubject];
+                const option = document.createElement('option');
+                option.value = branch;
+                option.textContent = branch;
+                option.selected = true;
+                branchSelect.appendChild(option);
+            }
+        }
+
+        async function teacherManualAttendance(event) {
+            event.preventDefault();
+            const roll = document.getElementById('tm_roll').value;
+            const name = document.getElementById('tm_name').value;
+            const subject = document.getElementById('tm_subject').value;
+            const branch = document.getElementById('tm_branch').value;
+            const msg = document.getElementById('tm_msg');
+            const btn = event.target.querySelector('button');
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+
+            // Mark attendance with a 5-minute safety window
+            const expiry = Math.floor(Date.now() / 1000) + 300;
+
+            try {
+                const res = await fetch('/mark_attendance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ roll, name, subject, branch, exp: expiry })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    msg.innerText = "✓ Success: Attendance marked for " + name;
+                    msg.style.color = "var(--success-color)";
+                    document.getElementById('teacherManualForm').reset();
+                    setTimeout(() => msg.innerText = "", 5000);
+                } else {
+                    msg.innerText = "✗ Error: " + data.message;
+                    msg.style.color = "var(--danger-color)";
+                }
+            } catch (err) {
+                console.error(err);
+                msg.innerText = "✗ Network Error";
+                msg.style.color = "var(--danger-color)";
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check-double"></i> Mark Present';
+            }
+        }
     </script>
 </body>
 
