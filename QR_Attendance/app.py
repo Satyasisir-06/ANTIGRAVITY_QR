@@ -2277,8 +2277,24 @@ def admin_system_setup():
         if not success:
             return jsonify({'success': False, 'message': f"DB Error: {message}"})
             
-        # Link profiles to users
+        # 3. Create User Accounts for Teachers and Link them
         conn = get_db_connection()
+        created_users = 0
+        
+        for t in teachers_data:
+            teacher_id = t['teacher_id']
+            # Check if user exists
+            user = conn.execute("SELECT id FROM users WHERE username = ?", (teacher_id,)).fetchone()
+            if not user:
+                # Create user with default password 'teacher123'
+                hashed_pw = generate_password_hash('teacher123')
+                conn.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", 
+                          (teacher_id, hashed_pw, 'teacher'))
+                created_users += 1
+        
+        conn.commit()
+            
+        # Link all profiles to users (including newly created ones)
         res = conn.execute("""
             UPDATE teachers 
             SET user_id = (SELECT id FROM users WHERE username = teachers.teacher_id)
@@ -2290,7 +2306,7 @@ def admin_system_setup():
         
         return jsonify({
             'success': True, 
-            'message': f"{message} | Linked {linked_count} existing users.",
+            'message': f"{message} | Created {created_users} users | Linked {linked_count} profiles.",
             'details': details
         })
         
