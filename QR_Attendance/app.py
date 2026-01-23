@@ -22,6 +22,12 @@ import math
 import socket
 from werkzeug.security import generate_password_hash, check_password_hash
 from sms_utils import SMSHandler
+from teacher_utils import (
+    admin_required, teacher_required, admin_or_teacher_required,
+    parse_timetable_csv, insert_teachers_and_subjects,
+    get_teacher_by_user_id, get_teacher_subjects, get_teacher_unique_subjects,
+    can_teacher_create_session
+)
 
 app = Flask(__name__, 
             static_folder='static',
@@ -274,6 +280,8 @@ def index():
     if 'user_id' in session:
         if session.get('role') == 'admin':
             return redirect(url_for('admin_dashboard'))
+        elif session.get('role') == 'teacher':
+            return redirect(url_for('teacher_dashboard'))
         else:
             return redirect(url_for('student_dashboard'))
     return redirect(url_for('login'))
@@ -295,6 +303,8 @@ def login():
             
             if user['role'] == 'admin':
                 return redirect(url_for('admin_dashboard'))
+            elif user['role'] == 'teacher':
+                return redirect(url_for('teacher_dashboard'))
             else:
                 return redirect(url_for('student_dashboard'))
         else:
@@ -2134,6 +2144,191 @@ def weekly_report_thread():
         except Exception as e:
             print(f"[Weekly Report Thread Error] {e}")
         time.sleep(40)
+
+# ==================== TEACHER ROUTES ====================
+
+@app.route('/teacher')
+@teacher_required
+def teacher_dashboard():
+    """Teacher dashboard - shows assigned subjects and active sessions"""
+    try:
+        # Get teacher info
+        teacher = get_teacher_by_user_id(session['user_id'])
+        if not teacher:
+            flash('Teacher profile not found. Please contact admin.', 'error')
+            return redirect(url_for('logout'))
+        
+        # Get today's subjects
+        from datetime import datetime
+        today = datetime.now().strftime('%A')  # Monday, Tuesday, etc.
+        today_subjects = get_teacher_subjects(teacher['id'], today)
+        
+        # Get all unique subjects for this teacher
+        all_subjects = get_teacher_unique_subjects(teacher['id'])
+        
+        # Get active sessions created by this teacher
+        conn = get_db_connection()
+        active_sessions = conn.execute('''
+            SELECT * FROM sessions 
+            WHERE teacher_id = ? AND is_finalized = 0
+            ORDER BY start_time DESC
+        ''', (teacher['id'],)).fetchall()
+        conn.close()
+        
+        return render_template('teacher.html',
+                             teacher=teacher,
+                             today_subjects=today_subjects,
+                             all_subjects=all_subjects,
+                             active_sessions=active_sessions,
+                             server_now=int(time.time()))
+    except Exception as e:
+        print(f"[TEACHER DASHBOARD ERROR] {e}")
+        traceback.print_exc()
+        flash('Error loading dashboard', 'error')
+        return redirect(url_for('logout'))
+
+@app.route('/teacher/start_session', methods=['POST'])
+@teacher_required
+def teacher_start_session():
+    """Teacher creates a new session for their assigned subject"""
+    try:
+        subject = request.form.get('subject')
+        branch = request.form.get('branch')
+        class_type = request.form.get('class_type', 'Lecture')
+        
+        # Get teacher info
+        teacher = get_teacher_by_user_id(session['user_id'])
+        if not teacher:
+            return jsonify({'success': False, 'message': 'Teacher profile not found'})
+        
+        # Verify teacher is assigned to this subject-branch
+        if not can_teacher_create_session(teacher['id'], subject, branch):
+            return jsonify({'success': False, 'message': 'You are not assigned to teach this subject-branch combination'})
+        
+        # Use existing start_session logic (import from main app)
+        # Call the existing start_session route functionality
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Calculate times
+        duration_minutes = 180 if class_type == 'Lab' else 60
+        now = datetime.now()
+        end_dt = now + timedelta(minutes=duration_minutes)
+        
+        date_str = now.strftime("%Y-%m-%d")
+        start_time_str = now.strftime("%H:%M:%S")
+        end_time_str = end_dt.strftime("%H:%M:%S")
+        
+        # Generate unique token
+        import secrets
+        qr_token = secrets.token_urlsafe(16)
+        
+        # Insert session with teacher tracking
+        cursor.execute("""
+            INSERT INTO sessions 
+            (subject, branch, date, start_time, end_time, class_type, qr_token, is_finalized, created_by, teacher_id, start_timestamp, end_timestamp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)
+        """, (subject, branch, date_str, start_time_str, end_time_str, class_type, 
+              qr_token, session['user_id'], teacher['id'], 
+              int(now.timestamp()), int(end_dt.timestamp())))
+        
+        session_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        print(f"[SESSION START] Teacher {teacher['name']} created session {session_id}: {subject} - {branch}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Session started for {subject} - {branch}',
+            'session_id': session_id
+        })
+        
+    except Exception as e:
+        print(f"[TEACHER START SESSION ERROR] {e}")
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/teacher/finalize_session', methods=['POST'])
+@teacher_required
+def teacher_finalize_session():
+    """Teacher finalizes their own session"""
+    try:
+        session_id = request.json.get('session_id')
+        
+        # Get teacher info
+        teacher = get_teacher_by_user_id(session['user_id'])
+        if not teacher:
+            return jsonify({'success': False, 'message': 'Teacher profile not found'})
+        
+        # Verify this session belongs to this teacher
+        conn = get_db_connection()
+        sess = conn.execute('SELECT * FROM sessions WHERE id = ?', (session_id,)).fetchone()
+        
+        if not sess:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Session not found'})
+        
+        if sess['teacher_id'] != teacher['id']:
+            conn.close()
+            return jsonify({'success': False, 'message': 'You can only finalize your own sessions'})
+        
+        conn.close()
+        
+        # Use existing finalize logic
+        result = finalize_session_core(session_id)
+        
+        if result['success']:
+            return jsonify({'success': True, 'message': result['message'], 'absent_count': result.get('absent_count', 0)})
+        else:
+            return jsonify({'success': False, 'message': result['message']})
+            
+    except Exception as e:
+        print(f"[TEACHER FINALIZE ERROR] {e}")
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)})
+
+# ==================== ADMIN TIMETABLE UPLOAD ====================
+
+@app.route('/admin/upload_timetable', methods=['POST'])
+@admin_required
+def upload_timetable():
+    """Admin uploads teacher timetable CSV"""
+    try:
+        if 'timetable_file' not in request.files:
+            return jsonify({'success': False, 'message': 'No file uploaded'})
+        
+        file = request.files['timetable_file']
+        
+        if file.filename == '':
+            return jsonify({'success': False, 'message': 'No file selected'})
+        
+        if not file.filename.endswith('.csv'):
+            return jsonify({'success': False, 'message': 'Only CSV files are allowed'})
+        
+        # Parse CSV
+        success, result = parse_timetable_csv(file.stream)
+        
+        if not success:
+            return jsonify({'success': False, 'message': result})
+        
+        # Insert into database
+        success, message, details = insert_teachers_and_subjects(
+            result['teachers'], 
+            result['subjects']
+        )
+        
+        if success:
+            print(f"[TIMETABLE UPLOAD] {message}")
+            print(f"[TIMETABLE UPLOAD] Details: {details}")
+            return jsonify({'success': True, 'message': message, 'details': details})
+        else:
+            return jsonify({'success': False, 'message': message})
+            
+    except Exception as e:
+        print(f"[TIMETABLE UPLOAD ERROR] {e}")
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)})
 
 @app.route('/success')
 def success_page():
