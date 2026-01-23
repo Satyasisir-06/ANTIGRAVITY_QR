@@ -709,30 +709,56 @@ def start_session():
     import uuid
     token = str(uuid.uuid4())
     
-    # Save Session
-    conn = get_db_connection()
-    cursor = conn.execute('''INSERT INTO sessions 
-                            (subject, branch, date, start_time, end_time, class_type, qr_token) 
-                            VALUES (?, ?, ?, ?, ?, ?, ?)''',
-                            (subject, branch, date_str, start_time, end_time, class_type, token))
-    session_id = cursor.lastrowid
-    conn.commit()
-    conn.close()
+    try:
+        # Save Session
+        conn = get_db_connection()
+        cursor = conn.execute('''INSERT INTO sessions 
+                                (subject, branch, date, start_time, end_time, class_type, qr_token) 
+                                VALUES (?, ?, ?, ?, ?, ?, ?)''',
+                                (subject, branch, date_str, start_time, end_time, class_type, token))
+        session_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        print(f"[Session Start] Session {session_id} created successfully for {subject} - {branch}")
+    except DB_INTEGRITY_ERRORS as e:
+        print(f"[Session Start Error] Integrity error: {e}")
+        return jsonify({'success': False, 'message': 'Duplicate session detected. Please finalize existing session first.'}), 400
+    except Exception as e:
+        print(f"[Session Start Error] Unexpected error: {e}")
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': f'Failed to create session: {str(e)}'}), 500
 
     # QR Data: URL for scanning
     # Use public host URL instead of local IP for production
     base_url = request.host_url.rstrip('/')
     qr_url = f"{base_url}/scan_session?token={token}"
     
-    qr = qrcode.QRCode(version=1, box_size=10, border=5)
-    qr.add_data(qr_url)
-    qr.make(fit=True)
-    img = qr.make_image(fill='black', back_color='white')
-    
-    buf = io.BytesIO()
-    img.save(buf)
-    buf.seek(0)
-    img_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+    try:
+        qr = qrcode.QRCode(version=1, box_size=10, border=5)
+        qr.add_data(qr_url)
+        qr.make(fit=True)
+        img = qr.make_image(fill='black', back_color='white')
+        
+        buf = io.BytesIO()
+        img.save(buf)
+        buf.seek(0)
+        img_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+    except Exception as e:
+        print(f"[QR Generation Error] {e}")
+        # Session is created, but QR failed - still return success with error note
+        return jsonify({
+            'success': True, 
+            'qr_image': '',
+            'session_id': session_id,
+            'end_time': end_time,
+            'start_timestamp': now.timestamp(),
+            'end_timestamp': end_dt.timestamp(),
+            'token': token,
+            'qr_url': qr_url,
+            'server_now': datetime.now().timestamp(),
+            'warning': 'Session created but QR generation failed'
+        })
     
     return jsonify({
         'success': True, 
@@ -825,56 +851,70 @@ def mark_session_attendance():
             return jsonify({'success': False, 'message': f'You are too far from class! ({int(dist)}m away)'})
 
     if not all([roll, name, token]):
-        conn.close()
-        return jsonify({'success': False, 'message': 'Missing fields'})
-        
-    session_data = conn.execute("SELECT * FROM sessions WHERE qr_token = ?", (token,)).fetchone()
+        return jsonify({'success': False, 'message': 'Missing required fields'}), 400
     
-    if not session_data:
-        conn.close()
-        return jsonify({'success': False, 'message': 'Invalid Session'})
-    
-    # Verify not finalized
-    if session_data['is_finalized']:
-         conn.close()
-         return jsonify({'success': False, 'message': 'Attendance Finalized'})
-         
-    # Upsert attendance
-    # We check if student already marked for THIS subject TODAY
-    # This prevents multiple scans for the same subject even in different sessions
-    existing = conn.execute('''
-        SELECT id FROM attendance 
-        WHERE LOWER(roll) = LOWER(?) AND date = ? AND LOWER(subject) = LOWER(?) AND LOWER(branch) = LOWER(?)
-    ''', (roll, session_data['date'], session_data['subject'], session_data['branch'])).fetchone()
-    
-    if existing:
-        conn.close()
-        return jsonify({'success': False, 'message': 'Attendance already marked for this subject today!'})
-    
-    # Insert
-    now_time = datetime.now().strftime("%H:%M:%S")
     try:
+        conn = get_db_connection()
+        config = conn.execute("SELECT * FROM semester_config").fetchone()
+        
+        session_data = conn.execute("SELECT * FROM sessions WHERE qr_token = ?", (token,)).fetchone()
+        
+        if not session_data:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Invalid Session Token'}), 404
+    
+        # Verify not finalized
+        if session_data['is_finalized']:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Attendance period has ended. Session is finalized.'}), 400
+          
+        # Upsert attendance
+        # We check if student already marked for THIS subject TODAY
+        # This prevents multiple scans for the same subject even in different sessions
+        existing = conn.execute('''
+            SELECT id FROM attendance 
+            WHERE LOWER(roll) = LOWER(?) AND date = ? AND LOWER(subject) = LOWER(?) AND LOWER(branch) = LOWER(?)
+        ''', (roll, session_data['date'], session_data['subject'], session_data['branch'])).fetchone()
+        
+        if existing:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Attendance already marked for this subject today!'}), 400
+        
+        # Insert attendance record
+        now_time = datetime.now().strftime("%H:%M:%S")
         conn.execute('''INSERT INTO attendance 
                         (roll, name, subject, branch, date, time, session_id, status) 
                         VALUES (?, ?, ?, ?, ?, ?, ?, 'PRESENT')''',
                         (roll, name, session_data['subject'], session_data['branch'], 
                          session_data['date'], now_time, session_data['id']))
         conn.commit()
-    except DB_INTEGRITY_ERRORS:
         conn.close()
-        return jsonify({'success': False, 'message': 'Attendance already marked for this subject today!'})
-    conn.close()
+        
+        print(f"[Attendance] {roll} marked PRESENT for {session_data['subject']} - {session_data['branch']}")
     
-    # Real-time Update
-    socketio.emit('new_attendance', {
-        'session_id': session_data['id'],
-        'roll': roll,
-        'name': name,
-        'branch': session_data['branch'],
-        'time': now_time
-    })
-    
-    return jsonify({'success': True, 'message': 'Attendance Marked Successfully'})
+        
+        # Real-time Update via SocketIO
+        try:
+            socketio.emit('new_attendance', {
+                'session_id': session_data['id'],
+                'roll': roll,
+                'name': name,
+                'branch': session_data['branch'],
+                'time': now_time
+            })
+        except Exception as socket_err:
+            print(f"[SocketIO Error] {socket_err}")
+            # Don't fail the request if socket fails
+        
+        return jsonify({'success': True, 'message': 'Attendance Marked Successfully'})
+        
+    except DB_INTEGRITY_ERRORS as e:
+        print(f"[Attendance Error] Duplicate entry: {e}")
+        return jsonify({'success': False, 'message': 'Attendance already marked for this subject today!'}), 400
+    except Exception as e:
+        print(f"[Attendance Error] Unexpected error: {e}")
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': f'Error marking attendance: {str(e)}'}), 500
 
 @app.route('/mark_attendance', methods=['POST'])
 def mark_attendance():
@@ -1790,6 +1830,122 @@ def api_force_finalize_all():
         'errors': errors if errors else None
     })
 
+@app.route('/api/restart_session', methods=['POST'])
+def api_restart_session():
+    """API endpoint to restart/unfinalize a specific session"""
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+    
+    data = request.json
+    session_id = data.get('session_id')
+    
+    if not session_id:
+        return jsonify({'success': False, 'message': 'Missing session_id'}), 400
+    
+    try:
+        conn = get_db_connection()
+        
+        # Check if session exists
+        current_session = conn.execute("SELECT * FROM sessions WHERE id = ?", (session_id,)).fetchone()
+        if not current_session:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Session not found'}), 404
+        
+        # Unfinalize the session
+        conn.execute("UPDATE sessions SET is_finalized = ? WHERE id = ?", (False, session_id))
+        
+        # Optional: Delete ABSENT records from this session to allow re-finalization
+        delete_absents = data.get('delete_absents', True)
+        if delete_absents:
+            conn.execute("DELETE FROM attendance WHERE session_id = ? AND status = 'ABSENT'", (session_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        print(f"[Session Restart] Session {session_id} has been restarted successfully")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Session restarted successfully. It is now active again.',
+            'session_id': session_id
+        })
+    except Exception as e:
+        print(f"[Session Restart Error] {e}")
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': f'Error restarting session: {str(e)}'}), 500
+
+@app.route('/api/clear_all_sessions', methods=['POST'])
+def api_clear_all_sessions():
+    """API endpoint to clear ALL active sessions (emergency cleanup)"""
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+    
+    try:
+        conn = get_db_connection()
+        
+        # Get count of active sessions before clearing
+        count_result = conn.execute("SELECT COUNT(*) FROM sessions WHERE is_finalized = ?", (False,)).fetchone()
+        active_count = count_result[0] if count_result else 0
+        
+        # Mark all active sessions as finalized
+        conn.execute("UPDATE sessions SET is_finalized = ? WHERE is_finalized = ?", (True, False))
+        conn.commit()
+        conn.close()
+        
+        print(f"[Clear All Sessions] Cleared {active_count} active session(s)")
+        
+        return jsonify({
+            'success': True,
+            'message': f'All {active_count} active session(s) have been cleared',
+            'cleared_count': active_count
+        })
+    except Exception as e:
+        print(f"[Clear All Sessions Error] {e}")
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': f'Error clearing sessions: {str(e)}'}), 500
+
+@app.route('/api/delete_session', methods=['POST'])
+def api_delete_session():
+    """API endpoint to completely delete a session and its attendance records"""
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+    
+    data = request.json
+    session_id = data.get('session_id')
+    
+    if not session_id:
+        return jsonify({'success': False, 'message': 'Missing session_id'}), 400
+    
+    try:
+        conn = get_db_connection()
+        
+        # Check if session exists
+        current_session = conn.execute("SELECT * FROM sessions WHERE id = ?", (session_id,)).fetchone()
+        if not current_session:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Session not found'}), 404
+        
+        # Delete all attendance records for this session
+        conn.execute("DELETE FROM attendance WHERE session_id = ?", (session_id,))
+        
+        # Delete the session itself
+        conn.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        print(f"[Session Delete] Session {session_id} and its attendance records deleted")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Session and all its attendance records deleted successfully',
+            'session_id': session_id
+        })
+    except Exception as e:
+        print(f"[Session Delete Error] {e}")
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': f'Error deleting session: {str(e)}'}), 500
+
 
 @app.route('/finalize_session', methods=['POST'])
 def finalize_session():
@@ -1799,11 +1955,16 @@ def finalize_session():
     data = request.json
     session_id = data.get('session_id')
     
-    result = finalize_session_logic(session_id)
-    if not result['success']:
+    if not session_id:
+        return jsonify({'success': False, 'message': 'Missing session_id'}), 400
+    
+    try:
+        result = finalize_session_logic(session_id)
         return jsonify(result)
-        
-    return jsonify(result)
+    except Exception as e:
+        print(f"[Finalize Session Error] {e}")
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': f'Error finalizing session: {str(e)}'}), 500
 
 def notify_absentees_background(session_id, absent_data, config):
     """Background task to send SMS to absentees."""
