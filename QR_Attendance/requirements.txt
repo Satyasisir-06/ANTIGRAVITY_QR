@@ -4,3 +4,4 @@ firebase-admin
 requests
 qrcode[pil]
 Pillow
+firebase-functions

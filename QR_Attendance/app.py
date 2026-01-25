@@ -29,8 +29,8 @@ app.secret_key = os.environ.get('SECRET_KEY', 'super_secret_key_for_qr_attendanc
 # We force threading mode regardless of installed packages to avoid eventlet/gevent issues on Vercel
 is_vercel = 'VERCEL' in os.environ or os.environ.get('VERCEL_ENV')
 
-if is_vercel:
-    print("[INIT] Running on Vercel mode. DISABLING SocketIO (Serverless Incompatible).")
+if is_vercel or os.environ.get('FUNCTION_TARGET'):
+    print("[INIT] Running on Serverless (Vercel/Firebase). DISABLING SocketIO.")
     # Create a dummy class that does nothing, so the app doesn't crash on emit() calls
     class MockSocketIO:
         def __init__(self, app=None, **kwargs):
@@ -71,6 +71,7 @@ SMTP_EMAIL = "your_email@gmail.com"
 SMTP_PASSWORD = "your_app_password"
 
 # Haversine formula for geofencing
+def haversine(lat1, lon1, lat2, lon2):
     R = 6371 * 1000 # Radius of Earth in meters
     dLat = math.radians(lat2 - lat1)
     dLon = math.radians(lon2 - lon1)

@@ -1,32 +1,42 @@
 """
-Create CEC25867 teacher account
+Create CEC25867 teacher account (Firebase Version)
 """
-import sqlite3
-from werkzeug.security import generate_password_hash
+import firebase_db as db
 
-conn = sqlite3.connect('attendance.db')
-cursor = conn.cursor()
-
-# Create user
+# User details
 username = 'CEC25867'
 password = 'sisir@2009'
-hashed = generate_password_hash(password)
+email = 'cec25867@college.edu'
+name = 'Teacher CEC25867'
+
+print(f"Creating teacher account for {username}...")
 
 try:
-    cursor.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", 
-                   (username, hashed, 'teacher'))
-    user_id = cursor.lastrowid
+    # 1. Create User Account (Auth/User collection)
+    print(f"Creating user account...")
+    db.create_user(
+        username=username,
+        password=password,
+        role='teacher',
+        email=email
+    )
+    print(f"✓ User account created/updated.")
+
+    # 2. Create Teacher Profile
+    print(f"Creating teacher profile...")
+    db.create_teacher(
+        teacher_id=username, 
+        name=name,
+        email=email,
+        username=username
+    )
+    print(f"✓ Teacher profile created/updated.")
     
-    # Create teacher profile
-    cursor.execute("INSERT INTO teachers (teacher_id, name, email, user_id) VALUES (?, ?, ?, ?)",
-                   (username, 'Teacher CEC25867', 'cec25867@college.edu', user_id))
-    
-    conn.commit()
-    print(f"✓ Successfully created teacher account: {username}")
-    print(f"  User ID: {user_id}")
-    print(f"  Password: {password}")
-    
+    print("\n" + "="*50)
+    print(f"SUCCESS: Account ready for {username}")
+    print(f"Password: {password}")
+    print("="*50 + "\n")
+
 except Exception as e:
-    print(f"✗ Error: {e}")
-finally:
-    conn.close()
+    print(f"\n✗ Error: {e}")
+
