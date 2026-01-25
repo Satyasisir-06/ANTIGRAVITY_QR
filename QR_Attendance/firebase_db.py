@@ -184,7 +184,145 @@ def delete_teacher_subject(subject_id):
     db = get_db()
     db.collection('teacher_subjects').document(subject_id).delete()
 
+# ==================== SYSTEM SUBJECTS ====================
+
+def get_all_subjects():
+    """Get all subjects for the dropdowns"""
+    db = get_db()
+    subjects = []
+    for doc in db.collection('subjects').stream():
+        data = doc.to_dict()
+        data['id'] = doc.id
+        subjects.append(data)
+    return subjects
+
+def add_system_subject(name):
+    """Add a new subject to the system list"""
+    db = get_db()
+    # Check if exists
+    existing = db.collection('subjects').where('name', '==', name).limit(1).get()
+    if existing:
+        return False, "Subject already exists"
+    
+    doc_ref = db.collection('subjects').document()
+    doc_ref.set({'name': name})
+    return True, doc_ref.id
+
+def delete_system_subject(subject_id):
+    """Delete a system subject"""
+    db = get_db()
+    db.collection('subjects').document(subject_id).delete()
+
+# ==================== SEMESTER & HOLIDAYS ====================
+
+def get_semester_config():
+    """Get the semester configuration"""
+    db = get_db()
+    config = db.collection('settings').document('semester_config').get()
+    if config.exists:
+        return config.to_dict()
+    # Default config
+    return {
+        'start_date': '2025-01-01',
+        'end_date': '2025-06-30',
+        'geo_enabled': False,
+        'college_lat': 17.7816,
+        'college_lng': 83.3768,
+        'geo_radius': 200
+    }
+
+def update_semester_config(data):
+    """Update semester configuration"""
+    db = get_db()
+    db.collection('settings').document('semester_config').set(data, merge=True)
+
+def get_holidays():
+    """Get list of holidays"""
+    db = get_db()
+    holidays = []
+    for doc in db.collection('holidays').stream():
+        data = doc.to_dict()
+        data['id'] = doc.id
+        holidays.append(data)
+    # Sort by date
+    holidays.sort(key=lambda x: x.get('date', ''))
+    return holidays
+
+def add_holiday(date, description):
+    """Add a new holiday"""
+    db = get_db()
+    db.collection('holidays').add({
+        'date': date,
+        'description': description
+    })
+
+def delete_holiday(holiday_id):
+    """Delete a holiday"""
+    db = get_db()
+    db.collection('holidays').document(holiday_id).delete()
+
 # ==================== SESSION OPERATIONS ====================
+
+def get_active_sessions(finalized=False):
+    """Get sessions filtered by finalized status"""
+    db = get_db()
+    query = db.collection('sessions').where('is_finalized', '==', finalized)
+    
+    sessions = []
+    for doc in query.stream():
+        data = doc.to_dict()
+        data['id'] = doc.id
+        sessions.append(data)
+    
+    # Sort by date and time
+    sessions.sort(key=lambda x: (x.get('date', ''), x.get('start_time', '')), reverse=True)
+    return sessions
+
+def restart_session(session_id, delete_absents=True):
+    """Restart a finalized session"""
+    db = get_db()
+    batch = db.batch()
+    
+    session_ref = db.collection('sessions').document(session_id)
+    batch.update(session_ref, {'is_finalized': False})
+    
+    if delete_absents:
+        absent_records = db.collection('attendance')\
+            .where('session_id', '==', session_id)\
+            .where('status', '==', 'ABSENT').stream()
+        for doc in absent_records:
+            batch.delete(doc.reference)
+            
+    batch.commit()
+    return True
+
+def delete_session(session_id):
+    """Delete a session and its attendance records"""
+    db = get_db()
+    batch = db.batch()
+    
+    # Delete attendance records
+    attendance_docs = db.collection('attendance').where('session_id', '==', session_id).stream()
+    for doc in attendance_docs:
+        batch.delete(doc.reference)
+        
+    # Delete session
+    batch.delete(db.collection('sessions').document(session_id))
+    
+    batch.commit()
+    return True
+
+def finalize_all_sessions(only_expired=True):
+    """Finalize sessions (usually combined with app.py logic)"""
+    db = get_db()
+    # This is more of a wrapper, individual logic usually in app.py
+    # but we can provide a way to mark all as finalized
+    sessions = db.collection('sessions').where('is_finalized', '==', False).stream()
+    count = 0
+    for doc in sessions:
+        doc.reference.update({'is_finalized': True})
+        count += 1
+    return count
 
 def create_session(teacher_id, subject, branch, class_type, duration_hours=1):
     """Create an attendance session"""
@@ -234,21 +372,49 @@ def finalize_session(session_id):
 
 # ==================== ATTENDANCE OPERATIONS ====================
 
-def mark_attendance(session_id, student_roll_no):
-    """Mark student attendance"""
+def mark_attendance(session_id, student_roll_no, status='PRESENT', **kwargs):
+    """Mark student attendance with optional extra metadata"""
     db = get_db()
     
     attendance_data = {
         'session_id': session_id,
-        'student_roll_no': student_roll_no,
+        'roll': student_roll_no,
+        'status': status,
         'timestamp': firestore.SERVER_TIMESTAMP,
         'marked_at': datetime.now().isoformat()
     }
+    
+    # Add any extra fields (subject, branch, etc.) for easy flat-query reports
+    attendance_data.update(kwargs)
     
     attendance_ref = db.collection('attendance').document()
     attendance_ref.set(attendance_data)
     
     return attendance_ref.id
+
+def log_sms(roll, phone, message, status, error_message=None):
+    """Log an SMS notification"""
+    db = get_db()
+    log_data = {
+        'roll': roll,
+        'phone': phone,
+        'message': message,
+        'status': status,
+        'error_message': error_message,
+        'timestamp': firestore.SERVER_TIMESTAMP,
+        'created_at': datetime.now().isoformat()
+    }
+    db.collection('sms_logs').add(log_data)
+
+def get_sms_logs(limit=100):
+    """Get recent SMS logs"""
+    db = get_db()
+    logs = []
+    for doc in db.collection('sms_logs').order_by('timestamp', direction='DESCENDING').limit(limit).stream():
+        data = doc.to_dict()
+        data['id'] = doc.id
+        logs.append(data)
+    return logs
 
 def get_session_attendance(session_id):
     """Get all attendance records for a session"""
@@ -263,6 +429,106 @@ def get_session_attendance(session_id):
         attendance_records.append(data)
     
     return attendance_records
+
+def get_attendance_history(roll=None, subject=None, branch=None, start_date=None, end_date=None):
+    """Get attendance with multiple filters"""
+    db = get_db()
+    query = db.collection('attendance')
+    
+    if roll:
+        query = query.where('roll', '==', roll)
+    if subject:
+        query = query.where('subject', '==', subject)
+    if branch:
+        query = query.where('branch', '==', branch)
+    
+    # Range queries in Firestore have limitations, but we'll try for start_date
+    if start_date:
+        query = query.where('date', '>=', start_date)
+    if end_date:
+        query = query.where('date', '<=', end_date)
+        
+    records = []
+    for doc in query.stream():
+        data = doc.to_dict()
+        data['id'] = doc.id
+        records.append(data)
+    
+    # Sort by date/time manually if needed
+    records.sort(key=lambda x: (x.get('date', ''), x.get('time', '')), reverse=True)
+    return records
+
+def delete_attendance_record(record_id):
+    """Delete a specific attendance record"""
+    db = get_db()
+    db.collection('attendance').document(record_id).delete()
+
+# ==================== CORRECTION REQUESTS ====================
+
+def submit_correction_request(roll, session_id, reason, proof_img=None):
+    """Submit a correction request from student"""
+    db = get_db()
+    request_data = {
+        'roll': roll,
+        'session_id': session_id,
+        'reason': reason,
+        'proof_img': proof_img,
+        'status': 'PENDING',
+        'timestamp': firestore.SERVER_TIMESTAMP,
+        'created_at': datetime.now().isoformat()
+    }
+    
+    doc_ref = db.collection('correction_requests').document()
+    doc_ref.set(request_data)
+    return doc_ref.id
+
+def get_correction_requests(roll=None, status=None):
+    """Get correction requests with optional filters"""
+    db = get_db()
+    query = db.collection('correction_requests')
+    
+    if roll:
+        query = query.where('roll', '==', roll)
+    if status:
+        query = query.where('status', '==', status)
+        
+    requests = []
+    for doc in query.stream():
+        data = doc.to_dict()
+        data['id'] = doc.id
+        # Try to join with session info if needed, or handle it in app.py
+        requests.append(data)
+    
+    requests.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+    return requests
+
+def handle_correction_request(request_id, action, admin_comment=''):
+    """Approve or reject a correction request"""
+    db = get_db()
+    new_status = 'APPROVED' if action == 'APPROVE' else 'REJECTED'
+    
+    req_ref = db.collection('correction_requests').document(request_id)
+    req_doc = req_ref.get()
+    
+    if not req_doc.exists:
+        return False, "Request not found"
+    
+    req_data = req_doc.to_dict()
+    
+    # If approved, update attendance
+    if action == 'APPROVE':
+        roll = req_data['roll']
+        session_id = req_data['session_id']
+        
+        # Mark student as present
+        mark_attendance(session_id, roll)
+        
+    req_ref.update({
+        'status': new_status,
+        'admin_comment': admin_comment,
+        'handled_at': firestore.SERVER_TIMESTAMP
+    })
+    return True, "Request updated"
 
 # ==================== STUDENT OPERATIONS ====================
 
@@ -290,3 +556,37 @@ def get_student_by_roll_no(roll_no):
         }
     
     return None
+
+def add_student_profile(roll, name, branch, parent_phone=None):
+    """Add or update student profile"""
+    db = get_db()
+    student_data = {
+        'roll': roll,
+        'name': name,
+        'branch': branch,
+        'parent_phone': parent_phone,
+        'updated_at': firestore.SERVER_TIMESTAMP
+    }
+    db.collection('students').document(roll).set(student_data, merge=True)
+
+def get_all_students(branch=None):
+    """Get all students, optionally filtered by branch"""
+    db = get_db()
+    query = db.collection('students')
+    if branch:
+        query = query.where('branch', '==', branch)
+    
+    students = []
+    for doc in query.stream():
+        data = doc.to_dict()
+        data['id'] = doc.id
+        students.append(data)
+    return students
+
+def delete_all_students():
+    """Wipe the students collection (Admin only)"""
+    db = get_db()
+    # Note: For large collections, this should be batched
+    docs = db.collection('students').stream()
+    for doc in docs:
+        doc.reference.delete()

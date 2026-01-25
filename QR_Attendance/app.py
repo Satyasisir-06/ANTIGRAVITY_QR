@@ -14,6 +14,7 @@ import math
 import socket
 from werkzeug.security import generate_password_hash, check_password_hash
 from sms_utils import SMSHandler
+# psycopg2 and PostgreSQL imports removed as we are now using Firebase
 from teacher_utils import (
     admin_required, teacher_required, admin_or_teacher_required,
     parse_timetable_csv
@@ -69,7 +70,7 @@ SMTP_PORT = 587
 SMTP_EMAIL = "your_email@gmail.com"
 SMTP_PASSWORD = "your_app_password"
 
-def haversine(lat1, lon1, lat2, lon2):
+# Haversine formula for geofencing
     R = 6371 * 1000 # Radius of Earth in meters
     dLat = math.radians(lat2 - lat1)
     dLon = math.radians(lon2 - lon1)
@@ -78,8 +79,34 @@ def haversine(lat1, lon1, lat2, lon2):
         math.sin(dLon/2) * math.sin(dLon/2)
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
     d = R * c
-    d = R * c
     return d
+
+def calculate_working_days(start_date, end_date, holidays, include_future=False):
+    """Calculate working days between two dates, excluding Sundays and holidays."""
+    from datetime import datetime
+    try:
+        start = datetime.strptime(start_date, "%Y-%m-%d")
+        end = datetime.strptime(end_date, "%Y-%m-%d")
+        
+        # If we don't want future days, limit end to today
+        if not include_future:
+            today = datetime.now()
+            if end > today:
+                end = today
+                
+        working_days = 0
+        curr = start
+        holiday_dates = [h.get('date') for h in holidays]
+        
+        while curr <= end:
+            # 6 is Sunday
+            if curr.weekday() != 6 and curr.strftime("%Y-%m-%d") not in holiday_dates:
+                working_days += 1
+            curr += timedelta(days=1)
+        return working_days
+    except Exception as e:
+        print(f"[CALC DAYS ERROR] {e}")
+        return 0
 
 # Start Firebase lazily
 @app.before_request
@@ -91,7 +118,7 @@ def init_firebase_lazy():
             app._firebase_initialized = True
         except Exception as e:
             print(f"[LAZY INIT ERROR] {e}")
-            # We don't raise here, we let the route handle it if DB is missing
+            app._firebase_initialized = False # Explicitly mark failed
 
 
 @app.route('/')
@@ -217,42 +244,31 @@ def admin_dashboard():
 
 @app.route('/api/stats')
 def api_stats():
-    # Return placeholder stats
-    return jsonify({
-        'cse': 0, 'ece': 0, 'eee': 0, 'mech': 0, 'civil': 0
-    })
     if 'user_id' not in session or session.get('role') != 'admin':
         return jsonify({'error': 'Unauthorized'}), 401
         
-    conn = get_db_connection()
+    # Get attendance for today from Firebase
     today_str = datetime.now().strftime("%Y-%m-%d")
+    attendance = db.get_attendance_history(start_date=today_str, end_date=today_str)
     
-    # Optimized: Single Query
-    branch_stats = conn.execute("""
-        SELECT branch, COUNT(*) 
-        FROM attendance 
-        WHERE date = ? 
-        GROUP BY branch
-    """, (today_str,)).fetchall()
-    
-    stats_map = {row[0].upper(): row[1] for row in branch_stats if row[0]}
-    
-    def get_count(branches):
-        if isinstance(branches, str):
-            return stats_map.get(branches.upper(), 0)
-        return sum(stats_map.get(b.upper(), 0) for b in branches)
-    
+    # Aggregate by branch
+    stats = {'cse': 0, 'ece': 0, 'eee': 0, 'mech': 0, 'civil': 0}
     cse_branches = ['CAI', 'CSM', 'CSD', 'CSE-A', 'CSE-B', 'CSE-C', 'CSE-D']
     
-    conn.close()
-    
-    return jsonify({
-        'cse': get_count(cse_branches),
-        'ece': get_count('ECE'),
-        'eee': get_count('EEE'),
-        'mech': get_count('MECH'),
-        'civil': get_count('CIVIL')
-    })
+    for rec in attendance:
+        branch = rec.get('branch', '').upper()
+        if branch in cse_branches:
+            stats['cse'] += 1
+        elif 'ECE' in branch:
+            stats['ece'] += 1
+        elif 'EEE' in branch:
+            stats['eee'] += 1
+        elif 'MECH' in branch:
+            stats['mech'] += 1
+        elif 'CIVIL' in branch:
+            stats['civil'] += 1
+            
+    return jsonify(stats)
 
 @app.route('/add_subject', methods=['POST'])
 def add_subject():
@@ -263,28 +279,15 @@ def add_subject():
     if not subject_name:
          return jsonify({'success': False, 'message': 'Name required'})
          
-    conn = get_db_connection()
-    try:
-        conn.execute("INSERT INTO subjects (name) VALUES (?)", (subject_name,))
-        conn.commit()
-        success = True
-        msg = "Subject Added"
-    except sqlite3.IntegrityError:
-        success = False
-        msg = "Subject already exists"
-    conn.close()
-    conn.close()
-    return jsonify({'success': success, 'message': msg})
+    success, result = db.add_system_subject(subject_name)
+    return jsonify({'success': success, 'message': result if not success else "Subject Added"})
 
-@app.route('/delete_subject/<int:id>', methods=['POST'])
+@app.route('/delete_subject/<id>', methods=['POST'])
 def delete_subject(id):
     if 'user_id' not in session or session.get('role') != 'admin':
         return jsonify({'success': False, 'message': 'Unauthorized'}), 403
     
-    conn = get_db_connection()
-    conn.execute('DELETE FROM subjects WHERE id = ?', (id,))
-    conn.commit()
-    conn.close()
+    db.delete_system_subject(id)
     return jsonify({'success': True, 'message': 'Subject Deleted'})
 
 @app.route('/register_student', methods=['POST'])
@@ -299,20 +302,16 @@ def register_student():
     if not username or not password:
          return jsonify({'success': False, 'message': 'Missing fields'})
          
-    hashed_pw = generate_password_hash(password)
-    
-    conn = get_db_connection()
     try:
-        conn.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", 
-                     (username, hashed_pw, 'student'))
-        conn.commit()
-        success = True
-        msg = "Student Registered"
-    except sqlite3.IntegrityError:
-        success = False
-        msg = "Username already exists"
-    conn.close()
-    return jsonify({'success': success, 'message': msg})
+        # Check if user already exists
+        if db.get_user_by_username(username):
+            return jsonify({'success': False, 'message': 'Username already exists'})
+            
+        # Create student user
+        db.create_user(username, password, role='student')
+        return jsonify({'success': True, 'message': "Student Registered"})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
 
 @app.route('/student')
 def student_dashboard():
@@ -320,50 +319,36 @@ def student_dashboard():
         return redirect(url_for('login'))
     
     username = session['username']
-    conn = get_db_connection()
-    # Fetch Semester Config first to filter attendance by date
-    config = conn.execute("SELECT * FROM semester_config").fetchone()
-    holidays = conn.execute("SELECT * FROM holidays").fetchall()
     
-    total_present = 0
+    # Fetch data from Firebase
+    config = db.get_semester_config()
+    holidays = db.get_holidays()
+    
     records = []
     corrections = []
+    total_present = 0
     
     if session['role'] == 'student':
-        # Filter by Current Semester Dates
-        start_date = config['start_date']
-        end_date = config['end_date']
+        # Fetch attendance history filtered by semester dates
+        records = db.get_attendance_history(
+            roll=username, 
+            start_date=config['start_date'], 
+            end_date=config['end_date']
+        )
         
-        # Count Present only within semester range
-        query_res = conn.execute("SELECT COUNT(*) FROM attendance WHERE roll = ? AND status='PRESENT' AND date >= ? AND date <= ?", 
-                                 (username, start_date, end_date)).fetchone()
-        if query_res:
-            total_present = query_res[0]
+        # Count present records
+        total_present = sum(1 for r in records if r.get('status') == 'PRESENT')
         
-        # Fetch records for current semester only (or all? usually semester specific dashboard)
-        records = conn.execute("SELECT * FROM attendance WHERE roll = ? AND date >= ? AND date <= ? ORDER BY date DESC, time DESC", 
-                               (username, start_date, end_date)).fetchall()
-        
-        # Fetch pending/history of corrections
-        corrections = conn.execute("""
-            SELECT cr.*, s.subject 
-            FROM correction_requests cr 
-            LEFT JOIN sessions s ON cr.session_id = s.id 
-            WHERE cr.roll = ? 
-            ORDER BY cr.timestamp DESC
-        """, (username,)).fetchall()
+        # Fetch corrections
+        corrections = db.get_correction_requests(roll=username)
     
-    working_days = 0
-    total_sem_days = 0
+    working_days = calculate_working_days(config['start_date'], config['end_date'], holidays, include_future=False)
+    total_sem_days = calculate_working_days(config['start_date'], config['end_date'], holidays, include_future=True)
+    
     percentage = 0.0
-    
-    if config:
-        working_days = calculate_working_days(config['start_date'], config['end_date'], holidays, include_future=False)
-        total_sem_days = calculate_working_days(config['start_date'], config['end_date'], holidays, include_future=True)
-        if working_days > 0:
-            percentage = (total_present / working_days) * 100
+    if working_days > 0:
+        percentage = (total_present / working_days) * 100
         
-    conn.close()
     return render_template('student.html', 
                            records=records, 
                            corrections=corrections,
@@ -388,10 +373,7 @@ def submit_correction():
         flash('Please provide a reason for your request.', 'danger')
         return redirect(url_for('student_dashboard'))
         
-    # Convert session_id to None if empty (general report)
-    if not session_id or session_id == '':
-        session_id = None
-    
+    # Proof image handling remains same (stores in static/proofs)
     proof_filename = None
     if 'proof' in request.files:
         file = request.files['proof']
@@ -405,11 +387,8 @@ def submit_correction():
             except Exception as e:
                 print(f"[Error] Saving proof: {e}")
             
-    conn = get_db_connection()
-    conn.execute("INSERT INTO correction_requests (roll, session_id, reason, proof_img, status) VALUES (?, ?, ?, ?, ?)",
-                 (roll, session_id, reason, proof_filename, 'PENDING'))
-    conn.commit()
-    conn.close()
+    # Submit to Firebase
+    db.submit_correction_request(roll, session_id, reason, proof_filename)
     
     flash('Correction request submitted! Admin will review it soon.', 'success')
     return redirect(url_for('student_dashboard'))
@@ -419,41 +398,17 @@ def my_corrections():
     if 'user_id' not in session:
         return jsonify([])
         
-    conn = get_db_connection()
-    requests = conn.execute("""
-        SELECT cr.*, s.subject 
-        FROM correction_requests cr 
-        LEFT JOIN sessions s ON cr.session_id = s.id 
-        WHERE cr.roll = ? 
-        ORDER BY cr.timestamp DESC
-    """, (session['username'],)).fetchall()
-    conn.close()
-    
-    return jsonify([dict(r) for r in requests])
+    requests = db.get_correction_requests(roll=session['username'])
+    return jsonify(requests)
 
 @app.route('/admin/corrections')
 def view_corrections():
     if 'user_id' not in session or session.get('role') != 'admin':
         return redirect(url_for('login'))
         
-    conn = get_db_connection()
-    pending = conn.execute("""
-        SELECT cr.*, s.name as student_name 
-        FROM correction_requests cr 
-        LEFT JOIN students s ON cr.roll = s.roll 
-        WHERE cr.status = 'PENDING' 
-        ORDER BY cr.timestamp DESC
-    """).fetchall()
-    
-    history = conn.execute("""
-        SELECT cr.*, s.name as student_name 
-        FROM correction_requests cr 
-        LEFT JOIN students s ON cr.roll = s.roll 
-        WHERE cr.status != 'PENDING' 
-        ORDER BY cr.timestamp DESC 
-        LIMIT 50
-    """).fetchall()
-    conn.close()
+    pending = db.get_correction_requests(status='PENDING')
+    # Filter for history
+    history = [r for r in db.get_correction_requests() if r.get('status') != 'PENDING'][:50]
     
     return render_template('admin_corrections.html', pending=pending, history=history)
 
@@ -469,29 +424,8 @@ def handle_correction():
     if not req_id or not action:
         return jsonify({'success': False, 'message': 'Missing data'}), 400
         
-    conn = get_db_connection()
-    req = conn.execute("SELECT * FROM correction_requests WHERE id = ?", (req_id,)).fetchone()
-    
-    if not req:
-        conn.close()
-        return jsonify({'success': False, 'message': 'Request not found'}), 404
-        
-    new_status = 'APPROVED' if action == 'APPROVE' else 'REJECTED'
-    
-    try:
-        if action == 'APPROVE':
-            # Update attendance table if it's an approval
-            # We need to find the specific attendance record or insert one if missing
-            # Since we have session_id and roll, we can update
-            conn.execute("UPDATE attendance SET status = 'PRESENT' WHERE roll = ? AND session_id = ?", (req['roll'], req['session_id']))
-            
-        conn.execute("UPDATE correction_requests SET status = ?, admin_comment = ? WHERE id = ?", (new_status, comment, req_id))
-        conn.commit()
-        conn.close()
-        return jsonify({'success': True})
-    except Exception as e:
-        conn.close()
-        return jsonify({'success': False, 'message': str(e)}), 500
+    success, msg = db.handle_correction_request(req_id, action, comment)
+    return jsonify({'success': success, 'message': msg})
 
 # ============================================================================
 # SESSION MANAGEMENT - REWRITTEN FOR RELIABILITY
@@ -525,14 +459,32 @@ def start_session():
     token = str(uuid.uuid4())
     
     try:
-        conn = get_db_connection()
-        cursor = conn.execute('''
-            INSERT INTO sessions (subject, branch, date, start_time, end_time, class_type, qr_token, is_finalized) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (subject, branch, date_str, start_time, end_time, class_type, token, False))
-        session_id = cursor.lastrowid
-        conn.commit()
-        conn.close()
+        # Create session in Firebase
+        # We need to adapt the duration based on class type
+        duration = 3 if class_type == 'Lab' else 1
+        
+        # In Firebase, we'll store additional info
+        # We can use a custom function or the existing create_session
+        session_id = db.create_session(
+            teacher_id=session.get('user_id', 'admin'),
+            subject=subject,
+            branch=branch,
+            class_type=class_type,
+            duration_hours=duration
+        )
+        
+        # To keep QR tokens working as before, we might need to update the session doc
+        # Or modify db.create_session to include token.
+        # Let's just use the doc ID as token for now, or add token field.
+        import uuid
+        token = str(uuid.uuid4())
+        
+        db.get_db().collection('sessions').document(session_id).update({
+            'qr_token': token,
+            'date': date_str,
+            'start_time': start_time,
+            'end_time': end_time
+        })
         
         print(f"[SESSION START] Created session {session_id}: {subject} - {branch} ({class_type})")
         
@@ -596,10 +548,16 @@ def scan_session():
     if not token:
         return "Invalid Link", 400
         
-    conn = get_db_connection()
-    session_data = conn.execute("SELECT * FROM sessions WHERE qr_token = ?", (token,)).fetchone()
-    config = conn.execute("SELECT * FROM semester_config").fetchone()
-    conn.close()
+    # Fetch session from Firebase
+    sessions = db.get_db().collection('sessions').where('qr_token', '==', token).limit(1).get()
+    
+    if not sessions:
+        return render_template('scan_session.html', error="Invalid or Expired Session Token")
+    
+    session_data = sessions[0].to_dict()
+    session_data['id'] = sessions[0].id
+    
+    config = db.get_semester_config()
     
     if not session_data:
         return render_template('scan_session.html', error="Invalid or Expired Session Token")
@@ -628,67 +586,70 @@ def mark_session_attendance():
         roll = session['username'].strip().upper()
     
     # Geofence Validation
-    conn = get_db_connection()
-    config = conn.execute("SELECT * FROM semester_config").fetchone()
+    config = db.get_semester_config()
     
-    if config['geo_enabled']:
+    if config.get('geo_enabled'):
         lat = data.get('lat')
         lng = data.get('lng')
         
         if not lat or not lng:
-            conn.close()
             return jsonify({'success': False, 'message': 'Location access required for attendance!'})
             
-        college_lat = config['college_lat'] or 0
-        college_lng = config['college_lng'] or 0
-        radius = config['geo_radius'] or 200
+        college_lat = config.get('college_lat', 0)
+        college_lng = config.get('college_lng', 0)
+        radius = config.get('geo_radius', 200)
         
         dist = haversine(float(lat), float(lng), college_lat, college_lng)
         print(f"[Geofence] User Dist: {dist}m | Allowed: {radius}m")
         
         if dist > radius:
-            conn.close()
             return jsonify({'success': False, 'message': f'You are too far from class! ({int(dist)}m away)'})
 
     if not all([roll, name, token]):
         return jsonify({'success': False, 'message': 'Missing required fields'}), 400
     
     try:
-        conn = get_db_connection()
-        config = conn.execute("SELECT * FROM semester_config").fetchone()
-        
-        session_data = conn.execute("SELECT * FROM sessions WHERE qr_token = ?", (token,)).fetchone()
-        
-        if not session_data:
-            conn.close()
+        # Fetch session from Firebase
+        sessions = db.get_db().collection('sessions').where('qr_token', '==', token).limit(1).get()
+        if not sessions:
             return jsonify({'success': False, 'message': 'Invalid Session Token'}), 404
+            
+        session_data = sessions[0].to_dict()
+        session_data['id'] = sessions[0].id
     
         # Verify not finalized
-        if session_data['is_finalized']:
-            conn.close()
+        if session_data.get('is_finalized'):
             return jsonify({'success': False, 'message': 'Attendance period has ended. Session is finalized.'}), 400
           
-        # Upsert attendance
-        # We check if student already marked for THIS subject TODAY
-        # This prevents multiple scans for the same subject even in different sessions
-        existing = conn.execute('''
-            SELECT id FROM attendance 
-            WHERE LOWER(roll) = LOWER(?) AND date = ? AND LOWER(subject) = LOWER(?) AND LOWER(branch) = LOWER(?)
-        ''', (roll, session_data['date'], session_data['subject'], session_data['branch'])).fetchone()
+        # Check if already marked
+        existing = db.get_attendance_history(
+            roll=roll,
+            subject=session_data['subject'],
+            start_date=session_data['date'],
+            end_date=session_data['date']
+        )
         
         if existing:
-            conn.close()
             return jsonify({'success': False, 'message': 'Attendance already marked for this subject today!'}), 400
         
-        # Insert attendance record
+        # Mark attendance in Firebase
         now_time = datetime.now().strftime("%H:%M:%S")
-        conn.execute('''INSERT INTO attendance 
-                        (roll, name, subject, branch, date, time, session_id, status) 
-                        VALUES (?, ?, ?, ?, ?, ?, ?, 'PRESENT')''',
-                        (roll, name, session_data['subject'], session_data['branch'], 
-                         session_data['date'], now_time, session_data['id']))
-        conn.commit()
-        conn.close()
+        db.mark_attendance(session_data['id'], roll)
+        
+        # Update attendance doc with more fields for compatibility
+        # mark_attendance as currently written only takes session_id and student_roll_no
+        # Let's add more details if needed, or just rely on the session join.
+        # Actually, our attendance collection needs roll, name, subject, branch, date, time for legacy reports
+        latest_att = db.get_db().collection('attendance').limit(1).order_by('timestamp', direction='DESCENDING').get()
+        if latest_att:
+            latest_att[0].reference.update({
+                'roll': roll,
+                'name': name,
+                'subject': session_data['subject'],
+                'branch': session_data['branch'],
+                'date': session_data['date'],
+                'time': now_time
+            })
         
         print(f"[Attendance] {roll} marked PRESENT for {session_data['subject']} - {session_data['branch']}")
     
@@ -777,45 +738,38 @@ def view_attendance():
     if 'user_id' not in session:
          return redirect(url_for('login'))
          
-    conn = get_db_connection()
-    
     # Filters
     f_subject = request.args.get('subject', '')
     f_branch = request.args.get('branch', '')
     f_date = request.args.get('date', '')
     
-    # Pagination
+    # Page
     page = request.args.get('page', 1, type=int)
-    per_page = 10
+    per_page = 20
+    
+    # Fetch from Firebase
+    records = db.get_attendance_history(
+        subject=f_subject if f_subject else None,
+        branch=f_branch if f_branch else None,
+        start_date=f_date if f_date else None,
+        end_date=f_date if f_date else None
+    )
+    
+    # Manual pagination for now (Firestore pagination is more complex)
+    total = len(records)
     offset = (page - 1) * per_page
+    records = records[offset : offset + per_page]
     
-    query = "SELECT * FROM attendance WHERE 1=1"
-    params = []
+    subjects = db.get_all_subjects()
     
-    if f_subject:
-        query += " AND subject = ?"
-        params.append(f_subject)
-    if f_branch:
-        query += " AND branch = ?"
-        params.append(f_branch)
-    if f_date:
-        query += " AND date = ?"
-        params.append(f_date)
-        
-    # Get total count for pagination
-    count_query = "SELECT COUNT(*) FROM (" + query + ")"
-    total_records = conn.execute(count_query, params).fetchone()[0]
-    total_pages = (total_records + per_page - 1) // per_page
-    
-    # Add limit and offset
-    query += " ORDER BY date DESC, time DESC LIMIT ? OFFSET ?"
-    params.extend([per_page, offset])
-    
-    records = conn.execute(query, params).fetchall()
-    conn.close()
-    
-    return render_template('view.html', records=records, page=page, total_pages=total_pages, 
-                           f_subject=f_subject, f_branch=f_branch, f_date=f_date)
+    return render_template('view_attendance.html', 
+                            records=records, 
+                            subjects=subjects,
+                            f_subject=f_subject,
+                            f_branch=f_branch,
+                            f_date=f_date,
+                            page=page,
+                            total_pages=(total // per_page) + 1)
 
 @app.route('/reports')
 def reports_page():
@@ -848,28 +802,22 @@ def trigger_report():
     return jsonify({'success': True, 'filename': filename})
 
 def generate_weekly_report():
-    conn = get_db_connection()
-    cur = conn.cursor()
-    
-    # Range: Last 7 days
+    # Fetch data from Firebase
     end_date = datetime.now()
     start_date = end_date - timedelta(days=7)
     
     start_str = start_date.strftime("%Y-%m-%d")
     end_str = end_date.strftime("%Y-%m-%d")
     
-    filename = f"Weekly_Report_{start_str}_to_{end_str}.csv"
-    # Use /tmp for Vercel/Serverless environments
-    reports_dir = '/tmp' if os.environ.get('VERCEL') or os.environ.get('AWS_LAMBDA_FUNCTION_NAME') else os.path.join('static', 'reports')
+    attendance = db.get_attendance_history(start_date=start_str, end_date=end_str)
     
     filename = f"Weekly_Report_{start_str}_to_{end_str}.csv"
+    reports_dir = '/tmp' if os.environ.get('VERCEL') or os.environ.get('AWS_LAMBDA_FUNCTION_NAME') else os.path.join('static', 'reports')
     filepath = os.path.join(reports_dir, filename)
     
-    # Ensure directory exists (if not /tmp which always exists)
     if reports_dir != '/tmp':
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
     
-    # Fetch Data: Branch-wise summary
     branches = ['CSM', 'CSD', 'CSE-A', 'CSE-B', 'CSE-C', 'CSE-D', 'CIVIL', 'MECH', 'ECE', 'EEE']
     
     try:
@@ -880,9 +828,10 @@ def generate_weekly_report():
             writer.writerow(['Branch', 'Total Records', 'Present', 'Absent', 'Percentage (%)'])
             
             for b in branches:
-                total = cur.execute("SELECT COUNT(*) FROM attendance WHERE branch = ? AND date >= ? AND date <= ?", (b, start_str, end_str)).fetchone()[0]
+                b_records = [r for r in attendance if r.get('branch', '').upper() == b]
+                total = len(b_records)
                 if total > 0:
-                    present = cur.execute("SELECT COUNT(*) FROM attendance WHERE branch = ? AND status='PRESENT' AND date >= ? AND date <= ?", (b, start_str, end_str)).fetchone()[0]
+                    present = sum(1 for r in b_records if r.get('status') == 'PRESENT')
                     absent = total - present
                     pct = round((present/total)*100, 2)
                     writer.writerow([b, total, present, absent, pct])
@@ -893,21 +842,23 @@ def generate_weekly_report():
             writer.writerow(['--- Defaulters List (< 75% Overall) ---'])
             writer.writerow(['Roll No', 'Name', 'Branch', 'Total Classes', 'Attended', 'Percentage (%)'])
             
-            # This part is heavy but accurate
-            students = cur.execute("SELECT DISTINCT roll, name, branch FROM attendance").fetchall()
-            for s in students:
-                res = cur.execute("SELECT COUNT(*), SUM(CASE WHEN status='PRESENT' THEN 1 ELSE 0 END) FROM attendance WHERE roll = ?", (s['roll'],)).fetchone()
-                s_total = res[0]
-                s_present = res[1] or 0
-                
-                if s_total > 0:
-                    s_pct = round((s_present/s_total)*100, 2)
-                    if s_pct < 75:
-                        writer.writerow([s['roll'], s['name'], s['branch'], s_total, s_present, s_pct])
+            # Simple aggregation for defaulters
+            student_stats = {}
+            for r in attendance:
+                roll = r.get('roll')
+                if roll not in student_stats:
+                    student_stats[roll] = {'name': r.get('name'), 'branch': r.get('branch'), 'total': 0, 'present': 0}
+                student_stats[roll]['total'] += 1
+                if r.get('status') == 'PRESENT':
+                    student_stats[roll]['present'] += 1
+            
+            for roll, s in student_stats.items():
+                s_pct = round((s['present']/s['total'])*100, 2)
+                if s_pct < 75:
+                    writer.writerow([roll, s['name'], s['branch'], s['total'], s['present'], s_pct])
     except Exception as e:
         print(f"Error generating report: {e}")
                     
-    conn.close()
     return filename
 
 @app.route('/analytics')
@@ -921,42 +872,42 @@ def api_analytics():
     if 'user_id' not in session or session.get('role') != 'admin':
         return jsonify({'error': 'Unauthorized'}), 401
         
-    conn = get_db_connection()
-    cur = conn.cursor()
+    # Get attendance for last 7 days from Firebase
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=7)
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str = end_date.strftime("%Y-%m-%d")
     
-    # 1. Attendance Trends (Last 7 Days)
+    attendance = db.get_attendance_history(start_date=start_str, end_date=end_str)
+    
     dates = []
     present_counts = []
     absent_counts = []
     
     for i in range(6, -1, -1):
         d = (datetime.now() - timedelta(days=i)).strftime('%Y-%m-%d')
-        # Counts
-        p = cur.execute("SELECT COUNT(*) FROM attendance WHERE date = ? AND status = 'PRESENT'", (d,)).fetchone()[0]
-        a = cur.execute("SELECT COUNT(*) FROM attendance WHERE date = ? AND status = 'ABSENT'", (d,)).fetchone()[0]
+        day_records = [r for r in attendance if r.get('date') == d]
+        p = sum(1 for r in day_records if r.get('status') == 'PRESENT')
+        # Absent tracking is harder in real-time unless we have a daily absent record
+        # but for this system, we'll use 0 or calculate from daily master
+        a = sum(1 for r in day_records if r.get('status') == 'ABSENT')
         dates.append(d)
         present_counts.append(p)
         absent_counts.append(a)
         
-    # 2. Branch Performance (Dynamic)
-    branch_rows = cur.execute("SELECT DISTINCT branch FROM students WHERE branch IS NOT NULL AND branch != ''").fetchall()
-    branches = sorted([r[0] for r in branch_rows])
-    if not branches:
-        branches = ['CSM', 'CSD', 'CSE-A', 'CSE-B', 'CSE-C', 'CSE-D', 'CIVIL', 'MECH', 'ECE', 'EEE']
-        
+    # Branch Performance
+    branches = ['CSM', 'CSD', 'CSE-A', 'CSE-B', 'CSE-C', 'CSE-D', 'CIVIL', 'MECH', 'ECE', 'EEE']
     branch_data = []
     for b in branches:
-        # Using LOWER for case-insensitivity consistency
-        total = cur.execute("SELECT COUNT(*) FROM attendance WHERE LOWER(branch) = LOWER(?)", (b,)).fetchone()[0]
+        b_records = [r for r in attendance if r.get('branch', '').upper() == b]
+        total = len(b_records)
         if total == 0:
             branch_data.append(0)
         else:
-            present = cur.execute("SELECT COUNT(*) FROM attendance WHERE LOWER(branch) = LOWER(?) AND status = 'PRESENT'", (b,)).fetchone()[0]
+            present = sum(1 for r in b_records if r.get('status') == 'PRESENT')
             pct = round((present / total) * 100, 1)
             branch_data.append(pct)
             
-    conn.close()
-    
     return jsonify({
         'trends': {
             'labels': dates,
@@ -974,13 +925,10 @@ def class_records():
     if 'user_id' not in session or session.get('role') != 'admin':
         return redirect(url_for('login'))
         
-    conn = get_db_connection()
     selected_branch = request.args.get('branch')
     selected_group = request.args.get('group')
     
     records = []
-    
-    # Stats for Today
     today_str = datetime.now().strftime("%Y-%m-%d")
     total_strength = 0
     present_count = 0
@@ -989,31 +937,26 @@ def class_records():
     
     if selected_branch:
         # Fetch records for this branch (History)
-        records = conn.execute("SELECT * FROM attendance WHERE branch = ? ORDER BY date DESC, time DESC", (selected_branch,)).fetchall()
+        records = db.get_attendance_history(branch=selected_branch)
         
         # Calculate Daily Report (Today)
-        # 1. Total Students in Master List
-        master_students = conn.execute("SELECT * FROM students WHERE branch = ?", (selected_branch,)).fetchall()
+        master_students = db.get_all_students(branch=selected_branch)
         total_strength = len(master_students)
         
-        # 2. Present Today (Only count 'PRESENT' status)jk
-        present_records = conn.execute("SELECT roll FROM attendance WHERE branch = ? AND date = ? AND status = 'PRESENT'", (selected_branch, today_str)).fetchall()
-        present_rolls = {r['roll'] for r in present_records}
+        # Present Today
+        present_records = [r for r in records if r.get('date') == today_str and r.get('status') == 'PRESENT']
+        present_rolls = {r.get('roll') for r in present_records}
         present_count = len(present_rolls)
         
         if total_strength > 0:
-            # 3. Absentees
             absent_count = max(0, total_strength - present_count)
             for s in master_students:
-                if s['roll'] not in present_rolls:
+                if s.get('roll') not in present_rolls:
                     absentees.append(s)
         
-    conn.close()
-    
     # All branches
     all_branches = ["CAI", "CSM", "CSD", "CSE-A", "CSE-B", "CSE-C", "CSE-D", "CIVIL", "MECH", "ECE", "EEE"]
     
-    # Filter if group is selected
     visible_branches = all_branches
     if selected_group == 'CSE':
         visible_branches = [b for b in all_branches if b in ['CAI', 'CSM', 'CSD', 'CSE-A', 'CSE-B', 'CSE-C', 'CSE-D']]
@@ -1035,22 +978,21 @@ def settings():
     if 'user_id' not in session or session.get('role') != 'admin':
         return redirect(url_for('login'))
         
-    conn = get_db_connection()
-    config = conn.execute("SELECT * FROM semester_config").fetchone()
-    raw_holidays = conn.execute("SELECT * FROM holidays ORDER BY date").fetchall()
+    config = db.get_semester_config()
+    raw_holidays = db.get_holidays()
     
-    # Simple Grouping logic for UI
+    # Simple Grouping logic for UI (Same as before but using Firestore data)
     from itertools import groupby
     grouped_holidays = []
-    for desc, items in groupby(raw_holidays, lambda x: x['description']):
+    for desc, items in groupby(raw_holidays, lambda x: x.get('description')):
         item_list = list(items)
         if len(item_list) > 1:
             start_h = item_list[0]
             end_h = item_list[-1]
             grouped_holidays.append({
-                'id': start_h['id'], # For deletion (might need better logic but this works for now)
+                'id': start_h['id'],
                 'ids': [i['id'] for i in item_list],
-                'date_display': f"{start_h['date']} to {end_h['date']}",
+                'date_display': f"{start_h.get('date')} to {end_h.get('date')}",
                 'description': desc
             })
         else:
@@ -1058,11 +1000,10 @@ def settings():
             grouped_holidays.append({
                 'id': h['id'],
                 'ids': [h['id']],
-                'date_display': h['date'],
+                'date_display': h.get('date'),
                 'description': desc
             })
             
-    conn.close()
     return render_template('settings.html', config=config, holidays=grouped_holidays)
 
 @app.route('/update_semester_dates', methods=['POST'])
@@ -1073,20 +1014,10 @@ def update_semester_dates():
     start_date = request.form['start_date']
     end_date = request.form['end_date']
     
-    conn = get_db_connection()
-    row = conn.execute("SELECT id FROM semester_config LIMIT 1").fetchone()
-    
-    if not row:
-         conn.execute('''INSERT INTO semester_config (start_date, end_date) 
-                         VALUES (?, ?)''', (start_date, end_date))
-    else:
-        cfg_id = row['id'] if hasattr(row, 'id') else row[0]
-        conn.execute('''UPDATE semester_config 
-                        SET start_date = ?, end_date = ?
-                        WHERE id = ?''', 
-                     (start_date, end_date, cfg_id))
-    conn.commit()
-    conn.close()
+    db.update_semester_config({
+        'start_date': start_date,
+        'end_date': end_date
+    })
     
     flash("Semester dates updated!", "success")
     return redirect(url_for('settings'))
@@ -1096,7 +1027,7 @@ def update_geofencing():
     if 'user_id' not in session or session.get('role') != 'admin':
         return redirect(url_for('login'))
 
-    geo_enabled = 1 if 'geo_enabled' in request.form else 0
+    geo_enabled = 'geo_enabled' in request.form
     import re
     def clean_coord(val):
         if not val: return 0.0
@@ -1106,23 +1037,14 @@ def update_geofencing():
 
     college_lat = clean_coord(request.form.get('college_lat'))
     college_lng = clean_coord(request.form.get('college_lng'))
-    geo_radius = request.form.get('geo_radius', 200)
+    geo_radius = int(request.form.get('geo_radius', 200))
     
-    conn = get_db_connection()
-    row = conn.execute("SELECT id FROM semester_config LIMIT 1").fetchone()
-    
-    if not row:
-         conn.execute('''INSERT INTO semester_config (geo_enabled, college_lat, college_lng, geo_radius) 
-                         VALUES (?, ?, ?, ?)''',
-                         (geo_enabled, college_lat, college_lng, geo_radius))
-    else:
-        cfg_id = row['id'] if hasattr(row, 'id') else row[0]
-        conn.execute('''UPDATE semester_config 
-                        SET geo_enabled = ?, college_lat = ?, college_lng = ?, geo_radius = ?
-                        WHERE id = ?''', 
-                     (geo_enabled, college_lat, college_lng, geo_radius, cfg_id))
-    conn.commit()
-    conn.close()
+    db.update_semester_config({
+        'geo_enabled': geo_enabled,
+        'college_lat': college_lat,
+        'college_lng': college_lng,
+        'geo_radius': geo_radius
+    })
     
     flash("Geofencing settings updated!", "success")
     return redirect(url_for('settings'))
@@ -1132,8 +1054,7 @@ def update_sms_config():
     if 'user_id' not in session or session.get('role') != 'admin':
         return redirect(url_for('login'))
         
-    # Explicitly cast to integer (1/0) for PostgreSQL compatibility
-    sms_enabled = 1 if 'sms_enabled' in request.form else 0
+    sms_enabled = 'sms_enabled' in request.form
     sms_sid = request.form.get('sms_sid', '').strip()
     sms_auth_token = request.form.get('sms_auth_token', '').strip()
     sms_from_number = request.form.get('sms_from_number', '').strip()
@@ -1144,16 +1065,14 @@ def update_sms_config():
     except ValueError:
         sms_threshold = 75
         
-    print(f"[DEBUG] Updating SMS Config: Enabled={sms_enabled}, SID={sms_sid}, Token={'*' * len(sms_auth_token)}")
+    db.update_semester_config({
+        'sms_enabled': sms_enabled,
+        'sms_sid': sms_sid,
+        'sms_auth_token': sms_auth_token,
+        'sms_from_number': sms_from_number,
+        'sms_threshold': sms_threshold
+    })
     
-    conn = get_db_connection()
-    # Update all rows (standardizing as there should only be one config row)
-    conn.execute('''UPDATE semester_config 
-                    SET sms_enabled = ?, sms_sid = ?, sms_auth_token = ?, 
-                        sms_from_number = ?, sms_threshold = ?''',
-                 (sms_enabled, sms_sid, sms_auth_token, sms_from_number, sms_threshold))
-    conn.commit()
-    conn.close()
     flash('SMS Configuration updated successfully!', 'success')
     return redirect(url_for('settings'))
 
@@ -1162,9 +1081,7 @@ def sms_logs():
     if 'user_id' not in session or session.get('role') != 'admin':
         return redirect(url_for('login'))
         
-    conn = get_db_connection()
-    logs = conn.execute("SELECT * FROM sms_logs ORDER BY timestamp DESC LIMIT 100").fetchall()
-    conn.close()
+    logs = db.get_sms_logs()
     return render_template('sms_logs.html', logs=logs)
 
 
@@ -1172,15 +1089,12 @@ def sms_logs():
 
 
 
-@app.route('/delete_holiday/<int:id>', methods=['POST'])
+@app.route('/delete_holiday/<id>', methods=['POST'])
 def delete_holiday(id):
     if 'user_id' not in session or session.get('role') != 'admin':
         return jsonify({'success': False, 'message': 'Unauthorized'}), 403
         
-    conn = get_db_connection()
-    conn.execute("DELETE FROM holidays WHERE id = ?", (id,))
-    conn.commit()
-    conn.close()
+    db.delete_holiday(id)
     return jsonify({'success': True})
 
 @app.route('/delete_holidays_bulk', methods=['POST'])
@@ -1190,14 +1104,8 @@ def delete_holidays_bulk():
         
     data = request.json
     ids = data.get('ids', [])
-    if not ids:
-        return jsonify({'success': False, 'message': 'No IDs provided'}), 400
-        
-    conn = get_db_connection()
-    # Batch delete
-    conn.execute(f"DELETE FROM holidays WHERE id IN ({','.join(['?']*len(ids))})", ids)
-    conn.commit()
-    conn.close()
+    for holiday_id in ids:
+        db.delete_holiday(holiday_id)
     return jsonify({'success': True})
 
 def calculate_working_days(start_str, end_str, holidays, include_future=False):
@@ -1235,15 +1143,12 @@ def calculate_working_days(start_str, end_str, holidays, include_future=False):
     working_days = total_days - sundays - holiday_count
     return max(0, working_days)
 
-@app.route('/delete_record/<int:id>', methods=['POST'])
+@app.route('/delete_record/<id>', methods=['POST'])
 def delete_record(id):
     if 'user_id' not in session or session.get('role') != 'admin':
         return jsonify({'success': False, 'message': 'Unauthorized'}), 403
         
-    conn = get_db_connection()
-    conn.execute('DELETE FROM attendance WHERE id = ?', (id,))
-    conn.commit()
-    conn.close()
+    db.delete_attendance_record(id)
     return jsonify({'success': True})
 
 @app.route('/upload_students', methods=['POST'])
@@ -1264,8 +1169,6 @@ def upload_students():
         try:
             stream = io.StringIO(file.stream.read().decode("UTF8"), newline=None)
             csv_input = csv.reader(stream)
-            
-            # Skip header if present (heuristic: check if first row has "roll")
             data = list(csv_input)
             if not data:
                 flash('Empty CSV', 'danger')
@@ -1276,37 +1179,22 @@ def upload_students():
             if 'roll' in header or 'roll no' in header or 'name' in header:
                 start_idx = 1
                 
-            count = 0
-            conn = get_db_connection()
-            
-            # Check for "Replace All" mode
+            # Clear old students if requested
             if 'replace_all' in request.form:
-                conn.execute("DELETE FROM students")
+                db.delete_all_students()
             
+            count = 0
             for i in range(start_idx, len(data)):
                 row = data[i]
                 if len(row) >= 3:
-                     # Expected format: Roll, Name, Branch, Parent Phone (Optional)
                      roll = row[0].strip()
                      name = row[1].strip()
                      branch = row[2].strip()
                      p_phone = row[3].strip() if len(row) > 3 else None
                      
-                     if conn.is_postgres:
-                         conn.execute("""
-                            INSERT INTO students (roll, name, branch, parent_email, parent_phone) VALUES (?, ?, ?, ?, ?)
-                            ON CONFLICT(roll) DO UPDATE SET
-                            name=EXCLUDED.name,
-                            branch=EXCLUDED.branch,
-                            parent_email=EXCLUDED.parent_email,
-                            parent_phone=EXCLUDED.parent_phone
-                         """, (roll, name, branch, None, p_phone))
-                     else:
-                         conn.execute("REPLACE INTO students (roll, name, branch, parent_email, parent_phone) VALUES (?, ?, ?, ?, ?)", (roll, name, branch, None, p_phone))
+                     db.add_student_profile(roll, name, branch, p_phone)
                      count += 1
             
-            conn.commit()
-            conn.close()
             flash(f'Successfully imported {count} students!', 'success')
         except Exception as e:
             flash(f'Error processing file: {str(e)}', 'danger')
@@ -1316,46 +1204,22 @@ def upload_students():
 @app.route('/add_student_manual', methods=['POST'])
 def add_student_manual():
     if 'user_id' not in session or session.get('role') != 'admin':
-        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
         
     data = request.json
-    data = request.json
-    print(f"DEBUG: Received manual add data: {data}", flush=True)
-    
     roll = data.get('roll')
     name = data.get('name')
     branch = data.get('branch')
     p_phone = data.get('parent_phone')
     
     if not all([roll, name, branch]):
-        print("DEBUG: Missing fields", flush=True)
         return jsonify({'success': False, 'message': 'Missing fields'})
         
-    conn = get_db_connection()
     try:
-        print(f"DEBUG: Executing REPLACE for {roll} with phone {p_phone}", flush=True)
-        # Use INSERT OR REPLACE to ensure upsert behavior
-        if conn.is_postgres:
-            conn.execute("""
-                INSERT INTO students (roll, name, branch, parent_phone) VALUES (?, ?, ?, ?)
-                ON CONFLICT(roll) DO UPDATE SET
-                name=EXCLUDED.name,
-                branch=EXCLUDED.branch,
-                parent_phone=EXCLUDED.parent_phone
-            """, (roll, name, branch, p_phone))
-        else:
-            conn.execute("INSERT OR REPLACE INTO students (roll, name, branch, parent_phone) VALUES (?, ?, ?, ?)", 
-                         (roll, name, branch, p_phone))
-        conn.commit()
-        print("DEBUG: Commit successful", flush=True)
-        success = True
-        msg = "Student saved successfully"
+        db.add_student_profile(roll, name, branch, p_phone)
+        return jsonify({'success': True, 'message': "Student saved successfully"})
     except Exception as e:
-        print(f"DEBUG: Error saving student: {e}", flush=True)
-        success = False
-        msg = str(e)
-    conn.close()
-    return jsonify({'success': success, 'message': msg})
+        return jsonify({'success': False, 'message': str(e)})
 
 def send_sms(to_phone, message):
     if not to_phone:
@@ -1372,68 +1236,49 @@ def notify_absent():
         
     data = request.json
     target = data.get('target') # 'single' or 'all'
-    
-    conn = get_db_connection()
     today_str = datetime.now().strftime("%Y-%m-%d")
-    
     students_to_notify = []
     
     if target == 'single':
         roll = data.get('roll')
-        student = conn.execute("SELECT * FROM students WHERE roll = ?", (roll,)).fetchone()
+        student = db.get_student_by_roll_no(roll)
         if student:
             students_to_notify.append(student)
             
     elif target == 'branch':
         branch = data.get('branch')
-        # Get all students of branch
-        all_students = conn.execute("SELECT * FROM students WHERE branch = ?", (branch,)).fetchall()
-        # Get present rolls
-        present = conn.execute("SELECT roll FROM attendance WHERE branch = ? AND date = ?", (branch, today_str)).fetchall()
-        present_rolls = {r['roll'] for r in present}
+        all_students = db.get_all_students(branch=branch)
+        # Get present rolls from Firebase
+        present = db.get_attendance_history(branch=branch, start_date=today_str, end_date=today_str)
+        present_rolls = {r.get('roll') for r in present if r.get('status') == 'PRESENT'}
         
         for s in all_students:
-            if s['roll'] not in present_rolls:
+            if s.get('roll') not in present_rolls:
                 students_to_notify.append(s)
                 
-    # Fetch Gateway Config
-    config = conn.execute("SELECT * FROM semester_config").fetchone()
-    
-    if not config or not config['sms_enabled']:
-        conn.close()
+    config = db.get_semester_config()
+    if not config.get('sms_enabled'):
         return jsonify({'success': False, 'message': 'SMS Not Enabled in Settings', 'sent': 0, 'total': 0, 'errors': []})
         
-    sms_handler = SMSHandler(config['sms_sid'], config['sms_auth_token'], config['sms_from_number'])
-    
+    sms_handler = SMSHandler(config.get('sms_sid'), config.get('sms_auth_token'), config.get('sms_from_number'))
     sent_count = 0
     errors = []
     
     for s in students_to_notify:
-        phone = s['parent_phone']
+        phone = s.get('parent_phone')
         if phone:
-            # We determine subject/threshold context if possible, otherwise generic
-            # For manual notification, stick to generic or require context
             now_time = datetime.now().strftime("%I:%M %p")
             subject_text = f" for '{data.get('subject', 'Classes')}'" 
-            msg = f"[Chaitanya Engineering College] Absent Alert: {s['name']} ({s['roll']}) was absent{subject_text} on {today_str} (Reported: {now_time})."
+            msg = f"[Chaitanya Engineering College] Absent Alert: {s.get('name')} ({s.get('roll')}) was absent{subject_text} on {today_str} (Reported: {now_time})."
             
             success, status = sms_handler.send_sms(phone, msg)
             if success:
                 sent_count += 1
-                # Log it
-                conn.execute("INSERT INTO sms_logs (roll, phone, message, status) VALUES (?, ?, ?, ?)", 
-                             (s['roll'], phone, msg, 'SENT'))
+                db.log_sms(s.get('roll'), phone, msg, 'SENT')
             else:
-                errors.append(f"{s['roll']}: {status}")
-                conn.execute("INSERT INTO sms_logs (roll, phone, message, status, error_message) VALUES (?, ?, ?, ?, ?)", 
-                             (s['roll'], phone, msg, 'FAILED', status))
+                errors.append(f"{s.get('roll')}: {status}")
+                db.log_sms(s.get('roll'), phone, msg, 'FAILED', status)
 
-            
-    conn.commit()
-
-            
-    conn.close()
-    
     return jsonify({
         'success': True, 
         'sent': sent_count, 
@@ -1443,7 +1288,6 @@ def notify_absent():
 
 @app.route('/add_holiday', methods=['POST'])
 def add_holiday():
-    print("DEBUG: Entered add_holiday route", flush=True)
     if 'user_id' not in session or session.get('role') != 'admin':
         return jsonify({'success': False, 'message': 'Unauthorized'}), 403
         
@@ -1452,42 +1296,25 @@ def add_holiday():
     end_date_str = data.get('end_date') # Optional
     desc = data.get('description')
     
-    print(f"DEBUG DATA: Start={start_date_str}, End={end_date_str}, Desc={desc}", flush=True)
-    
     if not start_date_str or not desc:
-        print("DEBUG: Missing data", flush=True)
         return jsonify({'success': False, 'message': 'Missing data'}), 400
         
-    conn = get_db_connection()
     try:
         start_dt = datetime.strptime(start_date_str, "%Y-%m-%d")
-        
         if end_date_str:
             end_dt = datetime.strptime(end_date_str, "%Y-%m-%d")
         else:
             end_dt = start_dt
             
-        # Iterate and insert each day
         current_dt = start_dt
         while current_dt <= end_dt:
             date_str = current_dt.strftime("%Y-%m-%d")
-            # Check for generic duplicate on that date
-            existing = conn.execute("SELECT id FROM holidays WHERE date = ?", (date_str,)).fetchone()
-            if not existing:
-                print(f"DEBUG: Inserting {date_str}", flush=True)
-                conn.execute('INSERT INTO holidays (date, description) VALUES (?, ?)', (date_str, desc))
-            else:
-                print(f"DEBUG: Skipping duplicate {date_str}", flush=True)
+            db.add_holiday(date_str, desc)
             current_dt += timedelta(days=1)
             
-        conn.commit()
-        print("DEBUG: Commit successful", flush=True)
         return jsonify({'success': True})
     except Exception as e:
-        print(f"DEBUG EXCEPTION: {e}", flush=True)
         return jsonify({'success': False, 'message': str(e)}), 500
-    finally:
-        conn.close()
 
 @app.route('/api/test_sms', methods=['POST'])
 def test_sms_route():
@@ -1517,10 +1344,7 @@ def delete_students():
     if 'user_id' not in session or session.get('role') != 'admin':
         return jsonify({'success': False, 'message': 'Unauthorized'}), 403
         
-    conn = get_db_connection()
-    conn.execute("DELETE FROM students")
-    conn.commit()
-    conn.close()
+    db.delete_all_students()
     
     flash("All student records deleted successfully.", "success")
     return redirect(url_for('settings'))
@@ -1530,21 +1354,24 @@ def export_csv():
     if 'user_id' not in session or session.get('role') != 'admin':
         return redirect(url_for('login'))
         
-    conn = get_db_connection()
-    # Apply same filters if needed, but for now export all or add params
-    # Simplest: export all
-    cursor = conn.execute("SELECT * FROM attendance ORDER BY date DESC, time DESC")
-    rows = cursor.fetchall()
+    records = db.get_attendance_history()
     
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(['ID', 'Roll', 'Name', 'Subject', 'Branch', 'Date', 'Time'])
+    writer.writerow(['ID', 'Roll', 'Name', 'Subject', 'Branch', 'Date', 'Time', 'Status'])
     
-    for row in rows:
-        writer.writerow(list(row))
+    for row in records:
+        writer.writerow([
+            row.get('id'),
+            row.get('roll'),
+            row.get('name'),
+            row.get('subject'),
+            row.get('branch'),
+            row.get('date'),
+            row.get('time'),
+            row.get('status')
+        ])
         
-    conn.close()
-    
     output.seek(0)
     return Response(output, mimetype="text/csv", 
                     headers={"Content-Disposition": "attachment;filename=attendance_report.csv"})
@@ -1555,9 +1382,7 @@ def api_active_sessions():
     if 'user_id' not in session or session.get('role') != 'admin':
         return jsonify({'success': False, 'message': 'Unauthorized'}), 401
     
-    conn = get_db_connection()
-    active_sessions = conn.execute("SELECT * FROM sessions WHERE is_finalized = ? ORDER BY date DESC, start_time DESC", (False,)).fetchall()
-    conn.close()
+    active_sessions = db.get_active_sessions(finalized=False)
     
     # Convert to list of dicts and check expiration status
     now = datetime.now()
@@ -1565,7 +1390,7 @@ def api_active_sessions():
     
     for s in active_sessions:
         s_dict = dict(s)
-        end_dt_str = f"{s['date']} {s['end_time']}"
+        end_dt_str = f"{s.get('date')} {s.get('end_time')}"
         try:
             end_dt = datetime.strptime(end_dt_str, "%Y-%m-%d %H:%M:%S")
             s_dict['is_expired'] = now > end_dt
@@ -1587,19 +1412,17 @@ def api_force_finalize_all():
     if 'user_id' not in session or session.get('role') != 'admin':
         return jsonify({'success': False, 'message': 'Unauthorized'}), 403
     
-    conn = get_db_connection()
-    active_sessions = conn.execute("SELECT * FROM sessions WHERE is_finalized = ?", (False,)).fetchall()
-    conn.close()
+    active_sessions = db.get_active_sessions(finalized=False)
     
     now = datetime.now()
     expired_sessions = []
     
     for s in active_sessions:
-        end_dt_str = f"{s['date']} {s['end_time']}"
+        end_dt_str = f"{s.get('date')} {s.get('end_time')}"
         try:
             end_dt = datetime.strptime(end_dt_str, "%Y-%m-%d %H:%M:%S")
             if now > end_dt:
-                expired_sessions.append(s['id'])
+                expired_sessions.append(s.get('id'))
         except:
             continue
     
@@ -1610,13 +1433,12 @@ def api_force_finalize_all():
             'finalized_count': 0
         })
     
-    # Finalize each expired session
     finalized_count = 0
     errors = []
     
     for session_id in expired_sessions:
         try:
-            result = finalize_session_logic(session_id)
+            result = finalize_session_core(session_id)
             if result['success'] and not result.get('already_done'):
                 finalized_count += 1
         except Exception as e:
@@ -1643,35 +1465,13 @@ def api_restart_session():
         return jsonify({'success': False, 'message': 'Missing session_id'}), 400
     
     try:
-        conn = get_db_connection()
-        
-        # Check if session exists
-        current_session = conn.execute("SELECT * FROM sessions WHERE id = ?", (session_id,)).fetchone()
-        if not current_session:
-            conn.close()
-            return jsonify({'success': False, 'message': 'Session not found'}), 404
-        
-        # Unfinalize the session
-        conn.execute("UPDATE sessions SET is_finalized = ? WHERE id = ?", (False, session_id))
-        
-        # Optional: Delete ABSENT records from this session to allow re-finalization
-        delete_absents = data.get('delete_absents', True)
-        if delete_absents:
-            conn.execute("DELETE FROM attendance WHERE session_id = ? AND status = 'ABSENT'", (session_id,))
-        
-        conn.commit()
-        conn.close()
-        
-        print(f"[Session Restart] Session {session_id} has been restarted successfully")
-        
+        db.restart_session(session_id, delete_absents=data.get('delete_absents', True))
         return jsonify({
             'success': True,
             'message': 'Session restarted successfully. It is now active again.',
             'session_id': session_id
         })
     except Exception as e:
-        print(f"[Session Restart Error] {e}")
-        traceback.print_exc()
         return jsonify({'success': False, 'message': f'Error restarting session: {str(e)}'}), 500
 
 @app.route('/api/clear_all_sessions', methods=['POST'])
@@ -1681,23 +1481,14 @@ def api_clear_all_sessions():
         return jsonify({'success': False, 'message': 'Unauthorized'}), 403
     
     try:
-        conn = get_db_connection()
+        count = db.finalize_all_sessions()
         
-        # Get count of active sessions before clearing
-        count_result = conn.execute("SELECT COUNT(*) FROM sessions WHERE is_finalized = ?", (False,)).fetchone()
-        active_count = count_result[0] if count_result else 0
-        
-        # Mark all active sessions as finalized
-        conn.execute("UPDATE sessions SET is_finalized = ? WHERE is_finalized = ?", (True, False))
-        conn.commit()
-        conn.close()
-        
-        print(f"[Clear All Sessions] Cleared {active_count} active session(s)")
+        print(f"[Clear All Sessions] Cleared {count} active session(s)")
         
         return jsonify({
             'success': True,
-            'message': f'All {active_count} active session(s) have been cleared',
-            'cleared_count': active_count
+            'message': f'All {count} active session(s) have been cleared',
+            'cleared_count': count
         })
     except Exception as e:
         print(f"[Clear All Sessions Error] {e}")
@@ -1717,22 +1508,7 @@ def api_delete_session():
         return jsonify({'success': False, 'message': 'Missing session_id'}), 400
     
     try:
-        conn = get_db_connection()
-        
-        # Check if session exists
-        current_session = conn.execute("SELECT * FROM sessions WHERE id = ?", (session_id,)).fetchone()
-        if not current_session:
-            conn.close()
-            return jsonify({'success': False, 'message': 'Session not found'}), 404
-        
-        # Delete all attendance records for this session
-        conn.execute("DELETE FROM attendance WHERE session_id = ?", (session_id,))
-        
-        # Delete the session itself
-        conn.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
-        
-        conn.commit()
-        conn.close()
+        db.delete_session(session_id)
         
         print(f"[Session Delete] Session {session_id} and its attendance records deleted")
         
@@ -1770,130 +1546,78 @@ def finalize_session_core(session_id):
     """
     print(f"[FINALIZE] Starting finalization for session {session_id}")
     
-    conn = None
     try:
-        conn = get_db_connection()
-        
-        # Get session details
-        sess = conn.execute("SELECT * FROM sessions WHERE id = ?", (session_id,)).fetchone()
-        
-        if not sess:
-            print(f"[FINALIZE ERROR] Session {session_id} not found")
-            if conn:
-                conn.close()
+        # Get session details from Firebase
+        sess_doc = db.get_db().collection('sessions').document(session_id).get()
+        if not sess_doc.exists:
             return {'success': False, 'message': 'Session not found'}
         
-        if sess['is_finalized']:
-            print(f"[FINALIZE SKIP] Session {session_id} already finalized")
-            if conn:
-                conn.close()
+        sess = sess_doc.to_dict()
+        if sess.get('is_finalized'):
             return {'success': True, 'message': 'Session already finalized', 'already_done': True, 'absent_count': 0}
         
-        branch = sess['branch'].strip().upper()
-        subject = sess['subject']
-        date = sess['date']
-        
-        print(f"[FINALIZE] Session {session_id}: {subject} - {branch} on {date}")
+        branch = sess.get('branch', '').strip().upper()
+        subject = sess.get('subject')
+        date = sess.get('date')
         
         # Get all students in this branch
-        all_students = conn.execute(
-            "SELECT roll, name FROM students WHERE UPPER(TRIM(branch)) = ?", 
-            (branch,)
-        ).fetchall()
-        
+        all_students = db.get_all_students(branch=branch)
         if not all_students:
-            print(f"[FINALIZE WARNING] No students found in branch {branch}")
-            # Still mark as finalized even if no students
-            conn.execute("UPDATE sessions SET is_finalized = ? WHERE id = ?", (True, session_id))
-            conn.commit()
-            conn.close()
+            db.get_db().collection('sessions').document(session_id).update({'is_finalized': True})
             return {'success': True, 'message': 'Session finalized (no students in branch)', 'absent_count': 0}
         
-        all_rolls = {s['roll'] for s in all_students}
-        print(f"[FINALIZE] Total students in {branch}: {len(all_rolls)}")
+        all_rolls = {s.get('roll') for s in all_students}
         
-        # Get students who marked attendance (PRESENT)
-        present_records = conn.execute(
-            "SELECT roll FROM attendance WHERE session_id = ? AND status = 'PRESENT'",
-            (session_id,)
-        ).fetchall()
-        present_rolls = {r['roll'] for r in present_records}
-        print(f"[FINALIZE] Students present: {len(present_rolls)}")
+        # Get present students
+        present_attendance = db.get_attendance_history(subject=subject, start_date=date, end_date=date)
+        present_rolls = {r.get('roll') for r in present_attendance if r.get('session_id') == session_id and r.get('status') == 'PRESENT'}
         
         # Calculate absentees
         absent_rolls = all_rolls - present_rolls
-        print(f"[FINALIZE] Students absent: {len(absent_rolls)}")
-        
-        # Create student map for names
-        student_map = {s['roll']: s['name'] for s in all_students}
         
         # Insert absent records
         now_time = datetime.now().strftime("%H:%M:%S")
-        absent_data = []
-        
         for roll in absent_rolls:
-            absent_data.append((
-                roll,
-                student_map.get(roll, 'Unknown'),
-                subject,
-                branch,
-                date,
-                now_time,
-                session_id,
-                'ABSENT'
-            ))
-        
-        if absent_data:
-            conn.executemany('''
-                INSERT INTO attendance (roll, name, subject, branch, date, time, session_id, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ''', absent_data)
-            print(f"[FINALIZE] Inserted {len(absent_data)} ABSENT records")
-        
+            student = next((s for s in all_students if s.get('roll') == roll), {})
+            db.mark_attendance(
+                session_id, 
+                roll, 
+                status='ABSENT',
+                name=student.get('name'),
+                subject=subject,
+                branch=branch,
+                date=date,
+                time=now_time
+            )
+            
         # Mark session as finalized
-        conn.execute("UPDATE sessions SET is_finalized = ? WHERE id = ?", (True, session_id))
-        conn.commit()
+        db.get_db().collection('sessions').document(session_id).update({'is_finalized': True})
         
-        print(f"[FINALIZE SUCCESS] Session {session_id} finalized. {len(absent_data)} absent")
-        
-        conn.close()
-        
-        return {
-            'success': True,
-            'message': f'Session finalized. {len(absent_data)} students marked absent.',
-            'absent_count': len(absent_data)
-        }
+        return {'success': True, 'message': 'Session finalized successfully', 'absent_count': len(absent_rolls)}
         
     except Exception as e:
-        print(f"[FINALIZE ERROR] Exception during finalization: {e}")
+        print(f"[FINALIZE ERROR] {e}")
         traceback.print_exc()
-        if conn:
-            try:
-                conn.close()
-            except:
-                pass
-        return {'success': False, 'message': f'Finalization failed: {str(e)}'}
+        return {'success': False, 'message': str(e)}
+        
+# Alias for compatibility if needed elsewhere
+finalize_session_logic = finalize_session_core
 
 
 def auto_finalizer_thread():
     """
-    Background thread that auto-finalizes expired sessions.
-    Runs every 30 seconds.
+    Background thread that auto-finalizes expired sessions using Firestore.
+    Runs every 60 seconds.
     """
-    print("[AUTO-FINALIZER] Thread started. Checking every 30 seconds...")
+    print("[AUTO-FINALIZER] Thread started. Checking every 60 seconds...")
     
     while True:
         try:
-            # Use a fresh DB connection for each check
-            conn = get_db_connection()
-            active_sessions = conn.execute(
-                "SELECT * FROM sessions WHERE is_finalized = ? ORDER BY date DESC, start_time DESC",
-                (False,)
-            ).fetchall()
-            conn.close()
+            # Get active sessions from Firebase
+            active_sessions = db.get_active_sessions(finalized=False)
             
             if not active_sessions:
-                time.sleep(30)
+                time.sleep(60)
                 continue
             
             now = datetime.now()
@@ -1901,34 +1625,33 @@ def auto_finalizer_thread():
             
             for sess in active_sessions:
                 try:
-                    # Parse end time
-                    end_datetime_str = f"{sess['date']} {sess['end_time']}"
-                    end_dt = datetime.strptime(end_datetime_str, "%Y-%m-%d %H:%M:%S")
+                    # Session data in Firebase uses timestamps (if created by our new code)
+                    # or date/time strings (if created by interim code)
+                    # Let's handle both
                     
-                    # Check if expired
-                    if now > end_dt:
-                        print(f"[AUTO-FINALIZER] Session {sess['id']} expired. Finalizing...")
-                        
-                        result = finalize_session_core(sess['id'])
-                        
-                        if result['success'] and not result.get('already_done'):
+                    if sess.get('end_time'):
+                        # If and end_time timestamp exists
+                        if now.timestamp() > sess.get('end_time'):
+                             db.finalize_session(sess['id'])
+                             finalized_count += 1
+                    elif sess.get('date') and sess.get('end_time_str'):
+                        # Fallback for old sessions with string dates
+                        end_dt_str = f"{sess['date']} {sess.get('end_time_str')}"
+                        end_dt = datetime.strptime(end_dt_str, "%Y-%m-%d %H:%M:%S")
+                        if now > end_dt:
+                            finalize_session_core(sess['id'])
                             finalized_count += 1
-                            print(f"[AUTO-FINALIZER] ✓ Finalized session {sess['id']}")
-                            
-                except ValueError as ve:
-                    print(f"[AUTO-FINALIZER] Date parse error for session {sess['id']}: {ve}")
                 except Exception as e:
-                    print(f"[AUTO-FINALIZER] Error finalizing session {sess['id']}: {e}")
-                    traceback.print_exc()
+                    print(f"[AUTO-FINALIZER] Error finalizing {sess.get('id')}: {e}")
             
             if finalized_count > 0:
                 print(f"[AUTO-FINALIZER] ✓ Auto-finalized {finalized_count} session(s)")
             
         except Exception as e:
-            print(f"[AUTO-FINALIZER] Critical error in main loop: {e}")
+            print(f"[AUTO-FINALIZER] Critical error: {e}")
             traceback.print_exc()
         
-        time.sleep(30)
+        time.sleep(60)
 
 def weekly_report_thread():
     import time
