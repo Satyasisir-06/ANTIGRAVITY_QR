@@ -225,6 +225,7 @@ def login():
         user = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
         conn.close()
         
+        
         if user and check_password_hash(user['password'], password):
             session['user_id'] = user['id']
             session['username'] = user['username']
@@ -232,17 +233,40 @@ def login():
             session['role'] = user_role
             
             print(f"[LOGIN DEBUG] User: {user['username']}, Role (DB): {user['role']}, Role (Session): {user_role}")
+            print(f"[LOGIN DEBUG] Session data: {dict(session)}")
             
             if user_role == 'admin':
+                print(f"[LOGIN DEBUG] Redirecting to admin_dashboard")
                 return redirect(url_for('admin_dashboard'))
             elif user_role == 'teacher':
+                print(f"[LOGIN DEBUG] Redirecting to teacher_dashboard")
+                flash(f"Login successful! Welcome {username}", "success")
                 return redirect(url_for('teacher_dashboard'))
             else:
+                print(f"[LOGIN DEBUG] Redirecting to student_dashboard")
                 return redirect(url_for('student_dashboard'))
         else:
-            flash("Invalid credentials", "danger")
+            print(f"[LOGIN DEBUG] Login failed for username: {username}")
+            flash("Invalid username or password", "danger")
             
     return render_template('login.html')
+
+@app.route('/debug/force_teacher_login/<username>')
+def debug_force_teacher_login(username):
+    """EMERGENCY DEBUG ROUTE - Forces login as teacher to test dashboard"""
+    conn = get_db_connection()
+    user = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
+    conn.close()
+    
+    if not user:
+        return f"User {username} not found in database"
+    
+    # Force login
+    session['user_id'] = user['id']
+    session['username'] = user['username']
+    session['role'] = 'teacher'
+    
+    return redirect(url_for('teacher_dashboard'))
 
 @app.route('/teacher/login')
 def teacher_login():
