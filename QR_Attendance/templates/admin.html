@@ -245,31 +245,19 @@
 
             <div style="grid-column: 1 / -1; margin: 2rem auto 0; max-width: 600px; width: 100%; text-align: center;"
                 class="glass-card">
-                <!-- Manual Entry Code (Already Present) -->
-                <h2><i class="fas fa-edit"></i> Manual Entry</h2>
-                <form id="manualForm" onsubmit="manualAttendance(event)">
+                <h2><i class="fas fa-user-plus"></i> Manual Teacher Registration</h2>
+                <form id="createTeacherForm" onsubmit="createTeacherManual(event)">
                     <div class="responsive-grid" style="gap: 10px; margin-bottom: 10px;">
-                        <input type="text" id="m_roll" placeholder="Roll No" required>
-                        <input type="text" id="m_name" placeholder="Name" required>
+                        <input type="text" id="t_id" placeholder="Teacher ID (e.g. T001)" required>
+                        <input type="text" id="t_name" placeholder="Full Name" required>
                     </div>
                     <div class="responsive-grid" style="gap: 10px;">
-                        <input type="text" id="m_subject" placeholder="Subject" required>
-                        <select id="m_branch" required>
-                            <option value="CAI">CAI</option>
-                            <option value="CSM">CSM</option>
-                            <option value="CSD">CSD</option>
-                            <option value="CSE-A">CSE-A</option>
-                            <option value="CSE-B">CSE-B</option>
-                            <option value="CSE-C">CSE-C</option>
-                            <option value="CSE-D">CSE-D</option>
-                            <option value="CIVIL">CIVIL</option>
-                            <option value="MECH">MECH</option>
-                            <option value="ECE">ECE</option>
-                            <option value="EEE">EEE</option>
-                        </select>
+                        <input type="email" id="t_email" placeholder="Email (Optional)">
+                        <input type="password" id="t_password" placeholder="Password" required>
                     </div>
-                    <button type="submit" class="secondary" style="margin-top: 10px;">Mark Present</button>
-                    <p id="manualMsg" style="margin-top:5px; text-align: center;"></p>
+                    <button type="submit" class="primary" style="margin-top: 10px; width: 100%;">Create Teacher
+                        Account</button>
+                    <p id="teacherMsg" style="margin-top:5px; text-align: center;"></p>
                 </form>
             </div>
         </div>
@@ -536,8 +524,49 @@
         }
 
         // Initialize display
-        loadTeachers();
-        loadTeacherHistory();
+        // Create Teacher Manual
+        async function createTeacherManual(e) {
+            e.preventDefault();
+
+            const btn = e.target.querySelector('button');
+            const originalText = btn.innerHTML;
+            const msg = document.getElementById('teacherMsg');
+
+            const teacher_id = document.getElementById('t_id').value;
+            const name = document.getElementById('t_name').value;
+            const email = document.getElementById('t_email').value;
+            const password = document.getElementById('t_password').value;
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+            msg.innerText = '';
+
+            try {
+                const res = await fetch('/admin/create_teacher', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ teacher_id, name, email, password })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    msg.style.color = '#2ecc71';
+                    msg.innerText = '✓ ' + data.message;
+                    e.target.reset();
+                    loadTeachers(); // Refresh list
+                } else {
+                    msg.style.color = '#e74c3c';
+                    msg.innerText = 'Error: ' + data.message;
+                }
+            } catch (err) {
+                msg.style.color = '#e74c3c';
+                msg.innerText = 'Network Error';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
     </script>
 </body>
 

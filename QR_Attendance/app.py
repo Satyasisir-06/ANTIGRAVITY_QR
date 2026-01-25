@@ -248,8 +248,9 @@ def teacher_login():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.form['username'] # This should be the Roll No
+        username = request.form['username'] # This should be the Roll No or Teacher ID
         password = request.form['password']
+        role = request.form.get('role', 'student') # Default to student
         
         if not username or not password:
             flash("Username and Password required", "danger")
@@ -258,7 +259,25 @@ def register():
         conn = get_db_connection()
         try:
             hashed_pw = generate_password_hash(password)
-            conn.execute('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', (username, hashed_pw, 'student'))
+            conn.execute('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', (username, hashed_pw, role))
+            
+            # If creating a teacher account, we also need to create a profile entry
+            if role == 'teacher':
+                # Get the new user ID
+                new_user = conn.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
+                user_db_id = new_user['id']
+                
+                # Check if profile exists (from CSV seed), if so link it, else create new
+                existing_profile = conn.execute("SELECT id FROM teachers WHERE teacher_id = ?", (username,)).fetchone()
+                
+                if existing_profile:
+                    conn.execute("UPDATE teachers SET user_id = ? WHERE id = ?", (user_db_id, existing_profile['id']))
+                else:
+                    # Create new dummy profile (Teacher Name will likely be updated later or needs to be asked)
+                    # For self-registration, we'll just use Username as Name initially
+                    conn.execute("INSERT INTO teachers (teacher_id, name, user_id) VALUES (?, ?, ?)", 
+                                 (username, username, user_db_id))
+            
             conn.commit()
             flash("Registration Successful! Please Login.", "success")
             conn.close()
@@ -2350,6 +2369,57 @@ def admin_system_setup():
     except Exception as e:
         import traceback
         return jsonify({'success': False, 'message': str(e), 'trace': traceback.format_exc()})
+
+@app.route('/admin/create_teacher', methods=['POST'])
+@admin_required
+def create_teacher_manual():
+    """Manual teacher creation by Admin"""
+    try:
+        data = request.json
+        teacher_id = data.get('teacher_id')
+        name = data.get('name')
+        email = data.get('email')
+        password = data.get('password')
+        
+        if not all([teacher_id, name, password]):
+            return jsonify({'success': False, 'message': 'Missing required fields'})
+            
+        conn = get_db_connection()
+        
+        # 1. Check if user already exists
+        existing_user = conn.execute("SELECT id FROM users WHERE username = ?", (teacher_id,)).fetchone()
+        if existing_user:
+            conn.close()
+            return jsonify({'success': False, 'message': 'User ID/Username already exists'})
+            
+        # 2. Check if teacher profile already exists
+        existing_teacher = conn.execute("SELECT id FROM teachers WHERE teacher_id = ?", (teacher_id,)).fetchone()
+        if existing_teacher:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Teacher profile already exists'})
+            
+        # 3. Create User Account
+        hashed_pw = generate_password_hash(password)
+        conn.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", 
+                     (teacher_id, hashed_pw, 'teacher'))
+        
+        # Get the new user ID
+        new_user = conn.execute("SELECT id FROM users WHERE username = ?", (teacher_id,)).fetchone()
+        user_db_id = new_user['id']
+        
+        # 4. Create Teacher Profile linked to User
+        conn.execute("INSERT INTO teachers (teacher_id, name, email, user_id) VALUES (?, ?, ?, ?)",
+                     (teacher_id, name, email, user_db_id))
+                     
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': f'Teacher {name} created successfully'})
+        
+    except Exception as e:
+        print(f"[CREATE TEACHER ERROR] {e}")
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)})
 
 @app.route('/admin/upload_timetable', methods=['POST'])
 @admin_required
