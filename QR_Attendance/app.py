@@ -168,8 +168,14 @@ def init_db():
 # ... (omitting lines for brevity, target content handles matching) ...
 
 # Initialize DB on start
-# Removed global init_db() call to prevent double initialization and slow startup
-# It is called in if __name__ == '__main__' or should be handled by WSGI entry point explicitly
+# We MUST call init_db() here for Vercel/Serverless deployments where the main block isn't executed.
+# This ensures tables (including 'teachers') are created on cold start.
+try:
+    print("[STARTUP] Initializing Database...")
+    init_db()
+except Exception as e:
+    print(f"[STARTUP ERROR] Database initialization failed: {e}")
+    traceback.print_exc()
 
 @app.route('/')
 def index():
