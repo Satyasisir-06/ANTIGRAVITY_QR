@@ -228,11 +228,14 @@ def login():
         if user and check_password_hash(user['password'], password):
             session['user_id'] = user['id']
             session['username'] = user['username']
-            session['role'] = user['role']
+            user_role = user['role'].lower() if user['role'] else 'student'
+            session['role'] = user_role
             
-            if user['role'] == 'admin':
+            print(f"[LOGIN DEBUG] User: {user['username']}, Role (DB): {user['role']}, Role (Session): {user_role}")
+            
+            if user_role == 'admin':
                 return redirect(url_for('admin_dashboard'))
-            elif user['role'] == 'teacher':
+            elif user_role == 'teacher':
                 return redirect(url_for('teacher_dashboard'))
             else:
                 return redirect(url_for('student_dashboard'))
