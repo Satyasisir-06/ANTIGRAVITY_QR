@@ -97,6 +97,33 @@ def init_db():
                           ('admin', hashed_pw, 'admin'))
                 conn.commit()
             
+            # Auto-seed Teachers if empty
+            teacher_count = conn.execute("SELECT COUNT(*) FROM teachers").fetchone()[0]
+            if teacher_count == 0 and os.path.exists('sample_timetable.csv'):
+                print("[INIT] Seeding Teacher Data from CSV...")
+                with open('sample_timetable.csv', 'rb') as f:
+                    success, result = parse_timetable_csv(f)
+                    if success:
+                        insert_teachers_and_subjects(result['teachers'], result['subjects'])
+                        
+                        # Create Users for Teachers
+                        for t in result['teachers']:
+                            t_user = conn.execute("SELECT id FROM users WHERE username = ?", (t['teacher_id'],)).fetchone()
+                            if not t_user:
+                                t_pw = generate_password_hash('teacher123')
+                                conn.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", 
+                                          (t['teacher_id'], t_pw, 'teacher'))
+                        conn.commit()
+                        
+                        # Link profiles
+                        conn.execute("""
+                            UPDATE teachers 
+                            SET user_id = (SELECT id FROM users WHERE username = teachers.teacher_id)
+                            WHERE user_id IS NULL
+                        """)
+                        conn.commit()
+                        print("[INIT] Teacher Data Seeded Successfully.")
+                        
             # Simple check for semester_config
             config = conn.execute("SELECT COUNT(*) FROM semester_config").fetchone()[0]
             if config == 0:
