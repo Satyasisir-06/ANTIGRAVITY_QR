@@ -27,11 +27,28 @@ app.secret_key = os.environ.get('SECRET_KEY', 'super_secret_key_for_qr_attendanc
 # Vercel/Serverless configuration for SocketIO
 # We force threading mode regardless of installed packages to avoid eventlet/gevent issues on Vercel
 is_vercel = 'VERCEL' in os.environ or os.environ.get('VERCEL_ENV')
+
 if is_vercel:
-    print("[INIT] Running on Vercel mode. Forcing threading mode and disabling background tasks.")
-    socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading', manage_session=False)
+    print("[INIT] Running on Vercel mode. DISABLING SocketIO (Serverless Incompatible).")
+    # Create a dummy class that does nothing, so the app doesn't crash on emit() calls
+    class MockSocketIO:
+        def __init__(self, app=None, **kwargs):
+            if app:
+                self.init_app(app)
+        def init_app(self, app):
+            pass
+        def run(self, app, **kwargs):
+            pass
+        def emit(self, event, data, **kwargs):
+            print(f"[MOCK SOCKET] Emitting {event}: {data}")
+        def on(self, event):
+            def decorator(f):
+                return f
+            return decorator
+            
+    socketio = MockSocketIO(app)
 else:
-    # For local dev, let it auto-detect (usually threading or eventlet if installed)
+    # For local dev, using full SocketIO
     socketio = SocketIO(app, cors_allowed_origins="*")
 
 @app.errorhandler(500)
