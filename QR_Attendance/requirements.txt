@@ -4,4 +4,3 @@ firebase-admin
 requests
 qrcode[pil]
 Pillow
-gunicorn

@@ -1,19 +1,14 @@
 {
-    "version": 2,
-    "builds": [
+    "rewrites": [
         {
-            "src": "app.py",
-            "use": "@vercel/python",
-            "config": {
-                "maxLambdaSize": "15mb",
-                "memory": 1024
-            }
+            "source": "/(.*)",
+            "destination": "/app.py"
         }
     ],
-    "routes": [
-        {
-            "src": "/(.*)",
-            "dest": "app.py"
+    "functions": {
+        "app.py": {
+            "memory": 1024,
+            "maxDuration": 10
         }
-    ]
+    }
 }
