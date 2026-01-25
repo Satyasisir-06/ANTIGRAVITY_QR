@@ -2137,6 +2137,48 @@ def weekly_report_thread():
 
 # ==================== TEACHER ROUTES ====================
 
+@app.route('/debug/teacher_dashboard_no_auth')
+def debug_teacher_dashboard_no_auth():
+    """EMERGENCY: Teacher dashboard WITHOUT authentication - for debugging"""
+    try:
+        # Force set session for testing
+        if 'user_id' not in session:
+            return "ERROR: No session. Try /debug/force_teacher_login/CEC25867 first"
+        
+        print(f"[DEBUG DASHBOARD] Session: {dict(session)}")
+        
+        # Get teacher info
+        teacher = get_teacher_by_user_id(session['user_id'])
+        if not teacher:
+            return f"ERROR: No teacher profile for user_id={session['user_id']}"
+        
+        # Get today's subjects
+        from datetime import datetime
+        today = datetime.now().strftime('%A')
+        today_subjects = get_teacher_subjects(teacher['id'], today)
+        
+        # Get all unique subjects
+        all_subjects = get_teacher_unique_subjects(teacher['id'])
+        
+        # Get active sessions
+        conn = get_db_connection()
+        active_sessions = conn.execute('''
+            SELECT * FROM sessions 
+            WHERE teacher_id = ? AND is_finalized = 0
+            ORDER BY start_time DESC
+        ''', (teacher['id'],)).fetchall()
+        conn.close()
+        
+        return render_template('teacher.html',
+                             teacher=teacher,
+                             today_subjects=today_subjects,
+                             all_subjects=all_subjects,
+                             active_sessions=active_sessions,
+                             server_now=int(time.time()))
+    except Exception as e:
+        import traceback
+        return f"ERROR: {e}<br><br>{traceback.format_exc()}"
+
 @app.route('/teacher')
 @teacher_required
 def teacher_dashboard():
