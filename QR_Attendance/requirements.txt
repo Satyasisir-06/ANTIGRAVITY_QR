@@ -1,7 +1,7 @@
 Flask==3.0.0
 flask-socketio
 eventlet
-psycopg2-binary
+firebase-admin
 requests
 qrcode[pil]
 Pillow

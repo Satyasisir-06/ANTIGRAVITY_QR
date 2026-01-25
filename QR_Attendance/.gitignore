@@ -4,3 +4,4 @@ attendance.db
 venv/
 .env
 .DS_Store
+firebase-credentials.json
