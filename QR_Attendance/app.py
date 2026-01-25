@@ -1923,47 +1923,7 @@ def weekly_report_thread():
 
 # ==================== TEACHER ROUTES ====================
 
-@app.route('/debug/teacher_dashboard_no_auth')
-def debug_teacher_dashboard_no_auth():
-    """EMERGENCY: Teacher dashboard WITHOUT authentication - for debugging"""
-    try:
-        # Force set session for testing
-        if 'user_id' not in session:
-            return "ERROR: No session. Try /debug/force_teacher_login/CEC25867 first"
-        
-        print(f"[DEBUG DASHBOARD] Session: {dict(session)}")
-        
-        # Get teacher info
-        teacher = get_teacher_by_user_id(session['user_id'])
-        if not teacher:
-            return f"ERROR: No teacher profile for user_id={session['user_id']}"
-        
-        # Get today's subjects
-        from datetime import datetime
-        today = datetime.now().strftime('%A')
-        today_subjects = get_teacher_subjects(teacher['id'], today)
-        
-        # Get all unique subjects
-        all_subjects = get_teacher_unique_subjects(teacher['id'])
-        
-        # Get active sessions
-        conn = get_db_connection()
-        active_sessions = conn.execute('''
-            SELECT * FROM sessions 
-            WHERE teacher_id = ? AND is_finalized = 0
-            ORDER BY start_time DESC
-        ''', (teacher['id'],)).fetchall()
-        conn.close()
-        
-        return render_template('teacher.html',
-                             teacher=teacher,
-                             today_subjects=today_subjects,
-                             all_subjects=all_subjects,
-                             active_sessions=active_sessions,
-                             server_now=int(time.time()))
-    except Exception as e:
-        import traceback
-        return f"ERROR: {e}<br><br>{traceback.format_exc()}"
+
 
 @app.route('/teacher')
 @teacher_required
@@ -2113,129 +2073,24 @@ def teacher_finalize_session():
 @admin_required
 def get_teachers():
     """Get list of teachers with their subject counts for admin dashboard"""
-    try:
-        conn = get_db_connection()
-        teachers = conn.execute('''
-            SELECT t.id, t.teacher_id, t.name, t.email, 
-                   (SELECT COUNT(*) FROM teacher_subjects WHERE teacher_id = t.id) as subject_count
-            FROM teachers t
-            ORDER BY t.name
-        ''').fetchall()
-        
-        teacher_list = []
-        for t in teachers:
-            teacher_list.append({
-                'id': t['id'],
-                'teacher_id': t['teacher_id'],
-                'name': t['name'],
-                'email': t['email'],
-                'subject_count': t['subject_count']
-            })
-        
-        conn.close()
-        return jsonify({'success': True, 'teachers': teacher_list})
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)})
+    # TODO: Implement Firebase version
+    return jsonify({'success': True, 'teachers': []})
 
 @app.route('/admin/teacher_session_history')
 @admin_required
 def teacher_session_history():
     """Get history of all teacher-created sessions (Teacher Attendance)"""
-    try:
-        conn = get_db_connection()
-        # Join with teachers to get names
-        sessions = conn.execute('''
-            SELECT s.*, t.name as teacher_name, 
-                   (SELECT COUNT(*) FROM attendance 
-                    WHERE subject = s.subject AND branch = s.branch AND date = s.date) as student_count
-            FROM sessions s
-            JOIN teachers t ON s.teacher_id = t.id
-            WHERE s.is_finalized = 1
-            ORDER BY s.date DESC, s.start_time DESC
-            LIMIT 100
-        ''').fetchall()
-        
-        history = []
-        for s in sessions:
-            history.append({
-                'id': s['id'],
-                'teacher_name': s['teacher_name'],
-                'subject': s['subject'],
-                'branch': s['branch'],
-                'date': s['date'],
-                'start_time': s['start_time'],
-                'end_time': s['end_time'],
-                'student_count': s['student_count'],
-                'class_type': s['class_type']
-            })
-            
-        conn.close()
-        return jsonify({'success': True, 'history': history})
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)})
+    # TODO: Implement Firebase version
+    return jsonify({'success': True, 'history': []})
 
 @app.route('/admin/system_setup')
 @admin_required
 def admin_system_setup():
     """Admin-only route to run initial teacher data setup from local CSV"""
-    try:
-        from migrate_teacher_system import migrate_database
-        # Run migration first to ensure tables exist
-        migrate_database()
-        
-        if not os.path.exists('sample_timetable.csv'):
-            return jsonify({'success': False, 'message': 'sample_timetable.csv not found on server'})
-            
-        with open('sample_timetable.csv', 'rb') as f:
-            success, result = parse_timetable_csv(f)
-            
-        if not success:
-            return jsonify({'success': False, 'message': f"CSV Error: {result}"})
-            
-        teachers_data = result['teachers']
-        subjects_data = result['subjects']
-        
-        success, message, details = insert_teachers_and_subjects(teachers_data, subjects_data)
-        
-        if not success:
-            return jsonify({'success': False, 'message': f"DB Error: {message}"})
-            
-        # 3. Create User Accounts for Teachers and Link them
-        conn = get_db_connection()
-        created_users = 0
-        
-        for t in teachers_data:
-            teacher_id = t['teacher_id']
-            # Check if user exists
-            user = conn.execute("SELECT id FROM users WHERE username = ?", (teacher_id,)).fetchone()
-            if not user:
-                # Create user with default password 'teacher123'
-                hashed_pw = generate_password_hash('teacher123')
-                conn.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", 
-                          (teacher_id, hashed_pw, 'teacher'))
-                created_users += 1
-        
-        conn.commit()
-            
-        # Link all profiles to users (including newly created ones)
-        res = conn.execute("""
-            UPDATE teachers 
-            SET user_id = (SELECT id FROM users WHERE username = teachers.teacher_id)
-            WHERE user_id IS NULL
-        """)
-        linked_count = res.rowcount()
-        conn.commit()
-        conn.close()
-        
-        return jsonify({
-            'success': True, 
-            'message': f"{message} | Created {created_users} users | Linked {linked_count} profiles.",
-            'details': details
-        })
-        
-    except Exception as e:
-        import traceback
-        return jsonify({'success': False, 'message': str(e), 'trace': traceback.format_exc()})
+    return jsonify({
+        'success': False, 
+        'message': 'System setup is disabled during migration.'
+    })
 
 @app.route('/admin/create_teacher', methods=['POST'])
 @admin_required
@@ -2251,82 +2106,34 @@ def create_teacher_manual():
         if not all([teacher_id, name, password]):
             return jsonify({'success': False, 'message': 'Missing required fields'})
             
-        conn = get_db_connection()
+        # Create in Firebase
+        # 1. Create User
+        db.create_user(teacher_id, password, 'teacher', email)
         
-        # 1. Check if user already exists
-        existing_user = conn.execute("SELECT id FROM users WHERE username = ?", (teacher_id,)).fetchone()
-        if existing_user:
-            conn.close()
-            return jsonify({'success': False, 'message': 'User ID/Username already exists'})
-            
-        # 2. Check if teacher profile already exists
-        existing_teacher = conn.execute("SELECT id FROM teachers WHERE teacher_id = ?", (teacher_id,)).fetchone()
-        if existing_teacher:
-            conn.close()
-            return jsonify({'success': False, 'message': 'Teacher profile already exists'})
-            
-        # 3. Create User Account
-        hashed_pw = generate_password_hash(password)
-        conn.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", 
-                     (teacher_id, hashed_pw, 'teacher'))
-        
-        # Get the new user ID
-        new_user = conn.execute("SELECT id FROM users WHERE username = ?", (teacher_id,)).fetchone()
-        user_db_id = new_user['id']
-        
-        # 4. Create Teacher Profile linked to User
-        conn.execute("INSERT INTO teachers (teacher_id, name, email, user_id) VALUES (?, ?, ?, ?)",
-                     (teacher_id, name, email, user_db_id))
-                     
-        conn.commit()
-        conn.close()
+        # 2. Create Profile
+        db.create_teacher(
+            teacher_id=teacher_id,
+            name=name,
+            username=teacher_id,
+            email=email
+        )
         
         return jsonify({'success': True, 'message': f'Teacher {name} created successfully'})
         
     except Exception as e:
         print(f"[CREATE TEACHER ERROR] {e}")
-        traceback.print_exc()
         return jsonify({'success': False, 'message': str(e)})
 
 @app.route('/admin/upload_timetable', methods=['POST'])
 @admin_required
 def upload_timetable():
     """Admin uploads teacher timetable CSV"""
-    try:
-        if 'timetable_file' not in request.files:
-            return jsonify({'success': False, 'message': 'No file uploaded'})
-        
-        file = request.files['timetable_file']
-        
-        if file.filename == '':
-            return jsonify({'success': False, 'message': 'No file selected'})
-        
-        if not file.filename.endswith('.csv'):
-            return jsonify({'success': False, 'message': 'Only CSV files are allowed'})
-        
-        # Parse CSV
-        success, result = parse_timetable_csv(file.stream)
-        
-        if not success:
-            return jsonify({'success': False, 'message': result})
-        
-        # Insert into database
-        success, message, details = insert_teachers_and_subjects(
-            result['teachers'], 
-            result['subjects']
-        )
-        
-        if success:
-            print(f"[TIMETABLE UPLOAD] {message}")
-            print(f"[TIMETABLE UPLOAD] Details: {details}")
-            return jsonify({'success': True, 'message': message, 'details': details})
-        else:
-            return jsonify({'success': False, 'message': message})
-            
-    except Exception as e:
-        print(f"[TIMETABLE UPLOAD ERROR] {e}")
-        traceback.print_exc()
-        return jsonify({'success': False, 'message': str(e)})
+    # TODO: Implement Firebase version of batch upload
+    # For now, return a feature not available message
+    return jsonify({
+        'success': False, 
+        'message': 'Bulk upload feature is currently disabled during system migration. Please add teachers manually or contact support.'
+    })
 
 @app.route('/success')
 def success_page():
