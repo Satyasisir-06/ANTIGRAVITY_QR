@@ -208,6 +208,10 @@ def login():
             
     return render_template('login.html')
 
+@app.route('/teacher/login')
+def teacher_login():
+    return render_template('login.html', extra_title="Teacher Login")
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
