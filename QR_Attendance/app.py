@@ -25,11 +25,13 @@ app = Flask(__name__,
 app.secret_key = os.environ.get('SECRET_KEY', 'super_secret_key_for_qr_attendance_system')
 
 # Vercel/Serverless configuration for SocketIO
-is_vercel = 'VERCEL' in os.environ
+# We force threading mode regardless of installed packages to avoid eventlet/gevent issues on Vercel
+is_vercel = 'VERCEL' in os.environ or os.environ.get('VERCEL_ENV')
 if is_vercel:
     print("[INIT] Running on Vercel mode. Forcing threading mode and disabling background tasks.")
     socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading', manage_session=False)
 else:
+    # For local dev, let it auto-detect (usually threading or eventlet if installed)
     socketio = SocketIO(app, cors_allowed_origins="*")
 
 @app.errorhandler(500)
@@ -63,11 +65,14 @@ def haversine(lat1, lon1, lat2, lon2):
     return d
 
 # Initialize Firebase on start
+# We wrap this in a way that doesn't crash the whole app if config is missing
+# (so we can at least see a 500 error page with details instead of a hard crash)
 try:
     print("[STARTUP] Initializing Firebase...")
     db.initialize_firebase()
 except Exception as e:
     print(f"[STARTUP ERROR] Firebase initialization failed: {e}")
+    # Don't re-raise, let the app start so logging works
     traceback.print_exc()
 
 @app.route('/')

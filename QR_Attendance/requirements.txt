@@ -1,8 +1,6 @@
 Flask==3.0.0
 flask-socketio
-eventlet
 firebase-admin
 requests
 qrcode[pil]
 Pillow
-gunicorn
