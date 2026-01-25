@@ -259,6 +259,11 @@ def register():
             flash("Username and Password required", "danger")
             return redirect(url_for('register'))
 
+        # Capture extra fields for teacher
+        full_name = request.form.get('full_name')
+        email = request.form.get('email')
+        phone = request.form.get('phone')
+
         conn = get_db_connection()
         try:
             hashed_pw = generate_password_hash(password)
@@ -270,16 +275,22 @@ def register():
                 new_user = conn.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
                 user_db_id = new_user['id']
                 
-                # Check if profile exists (from CSV seed), if so link it, else create new
+                # Check if profile exists (from CSV seed)
                 existing_profile = conn.execute("SELECT id FROM teachers WHERE teacher_id = ?", (username,)).fetchone()
                 
                 if existing_profile:
-                    conn.execute("UPDATE teachers SET user_id = ? WHERE id = ?", (user_db_id, existing_profile['id']))
+                    # Link it, but also UPDATE the details if provided (since user input is fresher than CSV)
+                    conn.execute("""
+                        UPDATE teachers 
+                        SET user_id = ?, name = COALESCE(?, name), email = COALESCE(?, email), phone = COALESCE(?, phone)
+                        WHERE id = ?
+                    """, (user_db_id, full_name, email, phone, existing_profile['id']))
                 else:
-                    # Create new dummy profile (Teacher Name will likely be updated later or needs to be asked)
-                    # For self-registration, we'll just use Username as Name initially
-                    conn.execute("INSERT INTO teachers (teacher_id, name, user_id) VALUES (?, ?, ?)", 
-                                 (username, username, user_db_id))
+                    # Create new profile with provided details
+                    # Fallback to username if name not provided (should be required by frontend though)
+                    teacher_name = full_name if full_name else "Teacher " + username
+                    conn.execute("INSERT INTO teachers (teacher_id, name, email, phone, user_id) VALUES (?, ?, ?, ?, ?)", 
+                                 (username, teacher_name, email, phone, user_db_id))
             
             conn.commit()
             flash("Registration Successful! Please Login.", "success")
