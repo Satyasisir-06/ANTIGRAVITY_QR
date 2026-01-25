@@ -2232,7 +2232,7 @@ def teacher_dashboard():
         ''', (teacher['id'],)).fetchall()
         conn.close()
         
-        return render_template('teacher.html',
+        return render_template('teacher_simple.html',
                              teacher=teacher,
                              today_subjects=today_subjects,
                              all_subjects=all_subjects,
@@ -2243,6 +2243,74 @@ def teacher_dashboard():
         traceback.print_exc()
         flash('Error loading dashboard', 'error')
         return redirect(url_for('logout'))
+
+@app.route('/teacher/add_subject', methods=['POST'])
+@teacher_required
+def teacher_add_subject():
+    """Teacher adds their own subject/schedule"""
+    try:
+        teacher = get_teacher_by_user_id(session['user_id'])
+        if not teacher:
+            flash('Teacher profile not found', 'error')
+            return redirect(url_for('teacher_dashboard'))
+        
+        subject = request.form.get('subject')
+        branch = request.form.get('branch')
+        day_of_week = request.form.get('day_of_week')
+        time_slot = request.form.get('time_slot')
+        
+        if not all([subject, branch, day_of_week, time_slot]):
+            flash('All fields are required', 'error')
+            return redirect(url_for('teacher_dashboard'))
+        
+        conn = get_db_connection()
+        conn.execute("""
+            INSERT INTO teacher_subjects (teacher_id, subject, branch, day_of_week, time_slot, semester)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (teacher['id'], subject, branch, day_of_week, time_slot, '2025-Spring'))
+        conn.commit()
+        conn.close()
+        
+        flash(f'Successfully added {subject} - {branch}', 'success')
+        return redirect(url_for('teacher_dashboard'))
+    except Exception as e:
+        print(f"[ADD SUBJECT ERROR] {e}")
+        flash('Error adding subject', 'error')
+        return redirect(url_for('teacher_dashboard'))
+
+@app.route('/teacher/delete_subject', methods=['POST'])
+@teacher_required
+def teacher_delete_subject():
+    """Teacher deletes their own subject"""
+    try:
+        teacher = get_teacher_by_user_id(session['user_id'])
+        if not teacher:
+            flash('Teacher profile not found', 'error')
+            return redirect(url_for('teacher_dashboard'))
+        
+        subject_id = request.form.get('subject_id')
+        
+        conn = get_db_connection()
+        # Verify the subject belongs to this teacher
+        subject = conn.execute("""
+            SELECT * FROM teacher_subjects 
+            WHERE id = ? AND teacher_id = ?
+        """, (subject_id, teacher['id'])).fetchone()
+        
+        if subject:
+            conn.execute("DELETE FROM teacher_subjects WHERE id = ?", (subject_id,))
+            conn.commit()
+            flash('Subject deleted successfully', 'success')
+        else:
+            flash('Subject not found or access denied', 'error')
+        
+        conn.close()
+        return redirect(url_for('teacher_dashboard'))
+    except Exception as e:
+        print(f"[DELETE SUBJECT ERROR] {e}")
+        flash('Error deleting subject', 'error')
+        return redirect(url_for('teacher_dashboard'))
+
 
 @app.route('/teacher/start_session', methods=['POST'])
 @teacher_required

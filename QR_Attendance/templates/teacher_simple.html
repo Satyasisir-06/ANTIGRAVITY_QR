@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard | QR Attendance</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container-wide glass-container animate-pop">
+        <nav class="navbar">
+            <div class="brand"><i class="fas fa-chalkboard-teacher"></i> Teacher Dashboard</div>
+            <div class="nav-links">
+                <a href="/logout" style="color: var(--danger-color);"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
+        </nav>
+
+        <div style="padding: 2rem;">
+            <h1>Welcome, {{ teacher.name }}!</h1>
+            <p>ID: {{ teacher.teacher_id }} | Email: {{ teacher.email or 'Not set' }}</p>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }}"
+                style="padding: 15px; margin: 10px 0; border-radius: 8px; {% if category == 'success' %}background: rgba(46, 204, 113, 0.2); border: 1px solid #2ecc71; color: #27ae60;{% else %}background: rgba(231, 76, 60, 0.2); border: 1px solid #e74c3c; color: #c0392b;{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            {% if not all_subjects %}
+            <!-- First-time setup message -->
+            <div class="glass-card"
+                style="margin-top: 2rem; background: linear-gradient(135deg, rgba(161, 140, 209, 0.2), rgba(251, 194, 235, 0.2)); border: 2px solid #a18cd1;">
+                <h2><i class="fas fa-hand-sparkles"></i> Welcome! Let's Set Up Your Profile</h2>
+                <p style="font-size: 1.1rem; margin: 15px 0;">You haven't added any subjects yet. Add your teaching
+                    schedule below to start taking attendance!</p>
+            </div>
+            {% endif %}
+
+            <!-- Add Subject Form -->
+            <div class="glass-card" style="margin-top: 2rem;">
+                <h2><i class="fas fa-plus-circle"></i> Add New Subject</h2>
+                <form method="POST" action="/teacher/add_subject">
+                    <div class="responsive-grid" style="gap: 15px;">
+                        <div class="form-group">
+                            <label>Subject Name</label>
+                            <input type="text" name="subject" placeholder="e.g., Python Programming" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Branch/Class</label>
+                            <input type="text" name="branch" placeholder="e.g., CSE-A, CSM" required>
+                        </div>
+                    </div>
+                    <div class="responsive-grid" style="gap: 15px;">
+                        <div class="form-group">
+                            <label>Day of Week</label>
+                            <select name="day_of_week" required>
+                                <option value="Monday">Monday</option>
+                                <option value="Tuesday">Tuesday</option>
+                                <option value="Wednesday">Wednesday</option>
+                                <option value="Thursday">Thursday</option>
+                                <option value="Friday">Friday</option>
+                                <option value="Saturday">Saturday</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Time Slot</label>
+                            <input type="text" name="time_slot" placeholder="e.g., 09:00-10:00" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="primary" style="margin-top: 10px;">
+                        <i class="fas fa-save"></i> Add Subject
+                    </button>
+                </form>
+            </div>
+
+            <!-- Current Subjects -->
+            {% if all_subjects %}
+            <div class="glass-card" style="margin-top: 2rem;">
+                <h2><i class="fas fa-book"></i> My Subjects</h2>
+                <div style="display: grid; gap: 10px;">
+                    {% for subject in all_subjects %}
+                    <div
+                        style="padding: 15px; background: rgba(161, 140, 209, 0.1); border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong style="font-size: 1.1rem;">{{ subject.subject }}</strong><br>
+                            <small>{{ subject.branch }} | {{ subject.day_of_week }} {{ subject.time_slot }}</small>
+                        </div>
+                        <form method="POST" action="/teacher/delete_subject" style="display: inline;">
+                            <input type="hidden" name="subject_id" value="{{ subject.id }}">
+                            <button type="submit" class="danger" style="padding: 8px 15px;">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Today's Classes -->
+            {% if today_subjects %}
+            <div class="glass-card" style="margin-top: 2rem;">
+                <h2><i class="fas fa-calendar-day"></i> Today's Classes</h2>
+                <ul style="list-style: none; padding: 0;">
+                    {% for subject in today_subjects %}
+                    <li style="padding: 10px; margin: 5px 0; background: rgba(46, 204, 113, 0.1); border-radius: 8px;">
+                        <strong>{{ subject.subject }}</strong> - {{ subject.branch }}<br>
+                        <small>{{ subject.time_slot }}</small>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Start Session (only show if they have subjects) -->
+            {% if all_subjects %}
+            <div class="glass-card" style="margin-top: 2rem;">
+                <h2><i class="fas fa-play-circle"></i> Start New Session</h2>
+                <form method="POST" action="/teacher/start_session">
+                    <div class="form-group">
+                        <label>Select Subject</label>
+                        <select name="subject" required>
+                            {% for subj in all_subjects %}
+                            <option value="{{ subj.subject }}">{{ subj.subject }} - {{ subj.branch }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <input type="hidden" name="branch" value="">
+                    <div class="form-group">
+                        <label>Class Type</label>
+                        <select name="class_type" required>
+                            <option value="Lecture">Lecture (1 hour)</option>
+                            <option value="Lab">Lab (3 hours)</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="primary">
+                        <i class="fas fa-qrcode"></i> Start Session
+                    </button>
+                </form>
+            </div>
+
+            <!-- Active Sessions -->
+            <div class="glass-card" style="margin-top: 2rem;">
+                <h2><i class="fas fa-running"></i> Active Sessions</h2>
+                {% if active_sessions %}
+                {% for session in active_sessions %}
+                <div style="padding: 15px; margin: 10px 0; background: rgba(52, 152, 219, 0.1); border-radius: 8px;">
+                    <h3>{{ session.subject }} - {{ session.branch }}</h3>
+                    <p>Started: {{ session.start_time }} | Ends: {{ session.end_time }}</p>
+                    <form method="POST" action="/teacher/finalize_session" style="display: inline;">
+                        <input type="hidden" name="session_id" value="{{ session.id }}">
+                        <button type="submit" class="danger">
+                            <i class="fas fa-stop"></i> Finalize
+                        </button>
+                    </form>
+                </div>
+                {% endfor %}
+                {% else %}
+                <p>No active sessions.</p>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+
+</html>
