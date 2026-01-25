@@ -2110,8 +2110,33 @@ def teacher_dashboard():
         # Get teacher info
         teacher = get_teacher_by_user_id(session['user_id'])
         if not teacher:
-            flash('Teacher profile not found. Please contact admin.', 'error')
-            return redirect(url_for('logout'))
+            # AUTO-HEAL: Create profile if missing
+            print(f"[TEACHER DASHBOARD] Profile missing for user {session['user_id']}. Creating default profile.")
+            conn = get_db_connection()
+            try:
+                # Check if teacher_id exists (via username matches teacher_id) but not linked
+                username = session.get('username')
+                existing = conn.execute("SELECT * FROM teachers WHERE teacher_id = ?", (username,)).fetchone()
+                
+                if existing:
+                    conn.execute("UPDATE teachers SET user_id = ? WHERE id = ?", (session['user_id'], existing['id']))
+                    print(f"[AUTO-HEAL] Linked existing teacher profile for {username}")
+                else:
+                    conn.execute("INSERT INTO teachers (teacher_id, name, user_id) VALUES (?, ?, ?)", 
+                                 (username, "Teacher " + username, session['user_id']))
+                    print(f"[AUTO-HEAL] Created new teacher profile for {username}")
+                conn.commit()
+            except Exception as e:
+                print(f"[AUTO-HEAL ERROR] {e}")
+            finally:
+                conn.close()
+            
+            # Retry fetching
+            teacher = get_teacher_by_user_id(session['user_id'])
+            
+            if not teacher:
+                 flash('Error creating teacher profile. Contact admin.', 'error')
+                 return redirect(url_for('logout'))
         
         # Get today's subjects
         from datetime import datetime
