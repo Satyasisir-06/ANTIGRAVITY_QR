@@ -1,8 +1,9 @@
 Flask==3.0.0
 flask-socketio
-psycopg2-binary
+firebase-admin
 requests
 qrcode[pil]
 Pillow
 gunicorn
-# eventlet removed for Vercel compatibility
+psycopg2-binary
+python-dotenv

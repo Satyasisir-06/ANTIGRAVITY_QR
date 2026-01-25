@@ -33,11 +33,5 @@ ENV/
 # Credentials / Secrets
 .env
 sms_credentials.json
-
-# IDEs
-.vscode/
-.idea/
-
-# OS
-.DS_Store
-Thumbs.db
+firebase-credentials.json
+**/firebase-credentials.json

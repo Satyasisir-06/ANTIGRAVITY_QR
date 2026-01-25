@@ -1,9 +1,16 @@
 {
     "version": 2,
-    "rewrites": [
+    "functions": {
+        "api/index.py": {
+            "runtime": "python3.11",
+            "memory": 3008,
+            "maxDuration": 60
+        }
+    },
+    "routes": [
         {
-            "source": "/(.*)",
-            "destination": "main.py"
+            "src": "/(.*)",
+            "dest": "api/index.py"
         }
     ],
     "env": {
