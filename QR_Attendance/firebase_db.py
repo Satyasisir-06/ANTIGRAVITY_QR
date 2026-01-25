@@ -14,27 +14,38 @@ def initialize_firebase():
     """Initialize Firebase Admin SDK"""
     try:
         # Check if already initialized
-        firebase_admin.get_app()
-        print("[FIREBASE] Already initialized")
-    except ValueError:
-        # Initialize from environment variable or service account file
-        firebase_config = os.getenv('FIREBASE_CONFIG')
-        
-        if firebase_config:
-            # Parse JSON config from environment variable
-            cred_dict = json.loads(firebase_config)
-            cred = credentials.Certificate(cred_dict)
-        elif os.path.exists('firebase-credentials.json'):
-            # Use service account file if exists
-            cred = credentials.Certificate('firebase-credentials.json')
+        if not firebase_admin._apps:
+            # Initialize from environment variable or service account file
+            firebase_config = os.getenv('FIREBASE_CONFIG')
+            
+            if firebase_config:
+                # Parse JSON config from environment variable
+                try:
+                    cred_dict = json.loads(firebase_config)
+                    cred = credentials.Certificate(cred_dict)
+                    print("[FIREBASE] Loading credentials from FIREBASE_CONFIG env")
+                except json.JSONDecodeError as e:
+                    print(f"[FIREBASE ERROR] Invalid JSON in FIREBASE_CONFIG: {e}")
+                    raise e
+            elif os.path.exists('firebase-credentials.json'):
+                # Use service account file if exists
+                print("[FIREBASE] Loading credentials from local file")
+                cred = credentials.Certificate('firebase-credentials.json')
+            else:
+                # For local development, use default credentials
+                print("[FIREBASE] No credentials found. Using default google application credentials.")
+                # This might fail on Vercel if no GOOGLE_APPLICATION_CREDENTIALS env var
+                firebase_admin.initialize_app()
+                return firestore.client()
+            
+            firebase_admin.initialize_app(cred)
+            print("[FIREBASE] Initialized successfully")
         else:
-            # For local development, use default credentials
-            print("[FIREBASE] No credentials found, using default")
-            firebase_admin.initialize_app()
-            return firestore.client()
-        
-        firebase_admin.initialize_app(cred)
-        print("[FIREBASE] Initialized successfully")
+            print("[FIREBASE] Already initialized")
+    
+    except Exception as e:
+        print(f"[FIREBASE CRITICAL INIT ERROR] {e}")
+        raise e
     
     return firestore.client()
 

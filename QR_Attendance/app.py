@@ -81,16 +81,18 @@ def haversine(lat1, lon1, lat2, lon2):
     d = R * c
     return d
 
-# Initialize Firebase on start
-# We wrap this in a way that doesn't crash the whole app if config is missing
-# (so we can at least see a 500 error page with details instead of a hard crash)
-try:
-    print("[STARTUP] Initializing Firebase...")
-    db.initialize_firebase()
-except Exception as e:
-    print(f"[STARTUP ERROR] Firebase initialization failed: {e}")
-    # Don't re-raise, let the app start so logging works
-    traceback.print_exc()
+# Start Firebase lazily
+@app.before_request
+def init_firebase_lazy():
+    if not getattr(app, '_firebase_initialized', False):
+        try:
+            print("[LAZY INIT] Initializing Firebase...")
+            db.initialize_firebase()
+            app._firebase_initialized = True
+        except Exception as e:
+            print(f"[LAZY INIT ERROR] {e}")
+            # We don't raise here, we let the route handle it if DB is missing
+
 
 @app.route('/')
 def index():
