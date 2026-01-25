@@ -27,16 +27,24 @@ def initialize_firebase():
                 except json.JSONDecodeError as e:
                     print(f"[FIREBASE ERROR] Invalid JSON in FIREBASE_CONFIG: {e}")
                     raise e
+            elif os.path.exists('QR_Attendance/firebase-credentials.json'):
+                # Use service account file if exists (check QR_Attendance folder)
+                print("[FIREBASE] Loading credentials from QR_Attendance/firebase-credentials.json")
+                cred = credentials.Certificate('QR_Attendance/firebase-credentials.json')
             elif os.path.exists('firebase-credentials.json'):
-                # Use service account file if exists
+                # Use service account file if exists (local path)
                 print("[FIREBASE] Loading credentials from local file")
                 cred = credentials.Certificate('firebase-credentials.json')
             else:
-                # For local development, use default credentials
-                print("[FIREBASE] No credentials found. Using default google application credentials.")
-                # This might fail on Vercel if no GOOGLE_APPLICATION_CREDENTIALS env var
-                firebase_admin.initialize_app()
-                return firestore.client()
+                # For Vercel/production, try GOOGLE_APPLICATION_CREDENTIALS env var
+                google_creds = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+                if google_creds:
+                    print("[FIREBASE] Loading credentials from GOOGLE_APPLICATION_CREDENTIALS env")
+                    cred = credentials.Certificate(google_creds)
+                else:
+                    print("[FIREBASE] ERROR - No credentials found!")
+                    print("[FIREBASE] Please set FIREBASE_CONFIG or GOOGLE_APPLICATION_CREDENTIALS env variable")
+                    raise ValueError("Firebase credentials not configured. Set FIREBASE_CONFIG environment variable.")
             
             firebase_admin.initialize_app(cred)
             print("[FIREBASE] Initialized successfully")
@@ -45,6 +53,8 @@ def initialize_firebase():
     
     except Exception as e:
         print(f"[FIREBASE CRITICAL INIT ERROR] {e}")
+        import traceback
+        traceback.print_exc()
         raise e
     
     return firestore.client()
