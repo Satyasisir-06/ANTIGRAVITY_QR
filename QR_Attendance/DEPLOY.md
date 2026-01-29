@@ -1,64 +1,69 @@
-# Deployment Guide - QR Attendance System (Render - FREE)
+# Deployment Guide - QR Attendance (Google Cloud Run - FREE)
 
-## Quick Deploy to Render
+## Prerequisites
+1. Google Cloud account (use same account as Firebase)
+2. Google Cloud CLI installed
+3. Docker (optional, Cloud Run can build from source)
 
-### Step 1: Push to GitHub
+---
+
+## Quick Deploy to Cloud Run
+
+### Step 1: Install Google Cloud CLI
+Download from: https://cloud.google.com/sdk/docs/install
+
+### Step 2: Login & Set Project
 ```bash
-git add .
-git commit -m "Add Render deployment configuration"
-git push origin main
+gcloud auth login
+gcloud config set project YOUR_FIREBASE_PROJECT_ID
 ```
 
-### Step 2: Deploy on Render
-1. Go to [render.com](https://render.com) → Sign up with GitHub
-2. Click **"New +"** → **"Web Service"**
-3. Connect your GitHub repo
-4. Configure:
-   - **Name:** qr-attendance
-   - **Runtime:** Go
-   - **Build Command:** `go build -o main .`
-   - **Start Command:** `./main`
-5. Click **"Create Web Service"**
-
-### Step 3: Set Environment Variable
-In Render Dashboard → Your Service → **Environment**:
-
-```
-FIREBASE_CONFIG = <your firebase-credentials.json as single line>
+### Step 3: Enable APIs
+```bash
+gcloud services enable run.googleapis.com
+gcloud services enable cloudbuild.googleapis.com
 ```
 
-**To minify your Firebase JSON (PowerShell):**
-```powershell
-(Get-Content firebase-credentials.json -Raw) -replace '\s+', ' '
+### Step 4: Deploy
+```bash
+cd QR_Attendance
+gcloud run deploy qr-attendance \
+  --source . \
+  --region asia-south1 \
+  --allow-unauthenticated \
+  --port 8080
 ```
 
-### Step 4: Add Custom Domain (Namecheap)
+Cloud Run will build and deploy automatically!
 
-**In Render:**
-1. Go to your service → **Settings** → **Custom Domains**
-2. Click **"Add Custom Domain"** → Enter your domain
-3. Render shows DNS records to add
+---
 
-**In Namecheap:**
-1. Domain List → Manage → **Advanced DNS**
-2. Add the records Render provides (usually a CNAME)
+## Add Custom Domain (Namecheap)
+
+### In Cloud Console:
+1. Go to [Cloud Run Console](https://console.cloud.google.com/run)
+2. Select your service → **Domain Mappings** → **Add Mapping**
+3. Verify domain ownership
+4. Get the DNS records to add
+
+### In Namecheap:
+1. Advanced DNS → Add the records Cloud Run provides
+2. Wait 5-30 minutes for DNS propagation
 
 ---
 
 ## Free Tier Limits
 
-| Resource | Free Tier |
+| Resource | Free/Month |
 |----------|-----------|
-| Hours | 750/month (enough for 24/7) |
-| Bandwidth | 100 GB/month |
-| Build Minutes | 500/month |
-
-⚠️ **Note:** Free tier apps spin down after 15 mins of inactivity. First request after sleep takes ~30 seconds.
+| Requests | 2 million |
+| CPU | 180,000 vCPU-seconds |
+| Memory | 360,000 GB-seconds |
+| Egress | 1 GB (NA) |
 
 ---
 
 ## Your URLs
-
-- **Render URL:** `https://qr-attendance.onrender.com`
+- **Cloud Run URL:** `https://qr-attendance-xxxxx.run.app`
 - **Custom Domain:** `https://yourdomain.com`
 - **Teacher QR:** `https://yourdomain.com/teacher-attendance`

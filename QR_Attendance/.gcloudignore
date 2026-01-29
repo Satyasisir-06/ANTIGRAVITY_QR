@@ -1,0 +1,16 @@
+.git
+.gitignore
+*.md
+*.exe
+*.db
+*.log
+*.txt
+*.pyc
+__pycache__
+.env
+firebase-credentials.json
+venv/
+.venv/
+node_modules/
+render.yaml
+railway.json
