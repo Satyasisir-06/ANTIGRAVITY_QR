@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>View Attendance | QR Attendance</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=2">
+    <link rel="stylesheet" href="/static/style.css?v=2">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 
@@ -14,10 +14,7 @@
         <nav class="navbar">
             <div class="brand"><i class="fas fa-table"></i> Attendance Records</div>
             <div class="nav-links">
-                <a href="/admin" data-tooltip="Dashboard"><i class="fas fa-arrow-left"></i></a>
-                <a href="/admin/corrections" data-tooltip="Corrections"><i class="fas fa-clipboard-check"></i></a>
-                <a href="/analytics" data-tooltip="Analytics"><i class="fas fa-chart-line"></i></a>
-                <a href="/reports" data-tooltip="Reports"><i class="fas fa-file-invoice"></i></a>
+                <a href="/teacher" data-tooltip="Dashboard"><i class="fas fa-arrow-left"></i></a>
                 <a href="/logout" style="color: var(--danger-color);" data-tooltip="Logout"><i
                         class="fas fa-sign-out-alt"></i></a>
             </div>
@@ -28,29 +25,29 @@
             style="display: flex; gap: 10px; margin-bottom: 2rem; flex-wrap: wrap;">
             <div style="flex: 1;">
                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Subject</label>
-                <input type="text" name="subject" placeholder="Filter by Subject"
-                    value="{{ request.args.get('subject', '') }}">
+                <input type="text" name="subject" placeholder="Filter by Subject" value="{{ .f_subject }}">
             </div>
             <div style="flex: 1;">
                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Branch</label>
                 <select name="branch">
                     <option value="">All Branches</option>
-                    <option value="CAI" {% if request.args.get('branch')=='CAI' %}selected{% endif %}>CAI</option>
-                    <option value="CSM" {% if request.args.get('branch')=='CSM' %}selected{% endif %}>CSM</option>
-                    <option value="CSD" {% if request.args.get('branch')=='CSD' %}selected{% endif %}>CSD</option>
-                    <option value="CSE-A" {% if request.args.get('branch')=='CSE-A' %}selected{% endif %}>CSE-A</option>
-                    <option value="CSE-B" {% if request.args.get('branch')=='CSE-B' %}selected{% endif %}>CSE-B</option>
-                    <option value="CSE-C" {% if request.args.get('branch')=='CSE-C' %}selected{% endif %}>CSE-C</option>
-                    <option value="CSE-D" {% if request.args.get('branch')=='CSE-D' %}selected{% endif %}>CSE-D</option>
-                    <option value="CIVIL" {% if request.args.get('branch')=='CIVIL' %}selected{% endif %}>CIVIL</option>
-                    <option value="MECH" {% if request.args.get('branch')=='MECH' %}selected{% endif %}>MECH</option>
-                    <option value="ECE" {% if request.args.get('branch')=='ECE' %}selected{% endif %}>ECE</option>
-                    <option value="EEE" {% if request.args.get('branch')=='EEE' %}selected{% endif %}>EEE</option>
+                    {{ $sel := .f_branch }}
+                    <option value="CAI" {{ if eq $sel "CAI" }}selected{{ end }}>CAI</option>
+                    <option value="CSM" {{ if eq $sel "CSM" }}selected{{ end }}>CSM</option>
+                    <option value="CSD" {{ if eq $sel "CSD" }}selected{{ end }}>CSD</option>
+                    <option value="CSE-A" {{ if eq $sel "CSE-A" }}selected{{ end }}>CSE-A</option>
+                    <option value="CSE-B" {{ if eq $sel "CSE-B" }}selected{{ end }}>CSE-B</option>
+                    <option value="CSE-C" {{ if eq $sel "CSE-C" }}selected{{ end }}>CSE-C</option>
+                    <option value="CSE-D" {{ if eq $sel "CSE-D" }}selected{{ end }}>CSE-D</option>
+                    <option value="CIVIL" {{ if eq $sel "CIVIL" }}selected{{ end }}>CIVIL</option>
+                    <option value="MECH" {{ if eq $sel "MECH" }}selected{{ end }}>MECH</option>
+                    <option value="ECE" {{ if eq $sel "ECE" }}selected{{ end }}>ECE</option>
+                    <option value="EEE" {{ if eq $sel "EEE" }}selected{{ end }}>EEE</option>
                 </select>
             </div>
             <div style="flex: 1;">
                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Date</label>
-                <input type="date" name="date" value="{{ request.args.get('date', '') }}">
+                <input type="date" name="date" value="{{ .f_date }}">
             </div>
             <button type="submit" style="width: auto; padding: 0 30px;">Filter</button>
             <a href="/view_attendance" style="padding: 12px; color: var(--text-color);">Clear</a>
@@ -67,70 +64,53 @@
                         <th>Date</th>
                         <th>Time</th>
                         <th>Status</th>
-                        {% if session.role == 'admin' %}
-                        <th>Action</th>
-                        {% endif %}
                     </tr>
                 </thead>
                 <tbody>
-                    {% for row in records %}
-                    <tr id="row-{{ row.id }}">
-                        <td data-label="Roll No">{{ row.roll }}</td>
-                        <td data-label="Name">{{ row.name }}</td>
-                        <td data-label="Subject">{{ row.subject }}</td>
-                        <td data-label="Branch">{{ row.branch }}</td>
-                        <td data-label="Date">{{ row.date }}</td>
-                        <td data-label="Time">{{ row.time }}</td>
+                    {{ if .records }}
+                    {{ range .records }}
+                    <tr id="row-{{ .ID }}">
+                        <td data-label="Roll No">{{ .Roll }}</td>
+                        <td data-label="Name">{{ .Name }}</td>
+                        <td data-label="Subject">{{ .Subject }}</td>
+                        <td data-label="Branch">{{ .Branch }}</td>
+                        <td data-label="Date">{{ .Date }}</td>
+                        <td data-label="Time">{{ .Time }}</td>
                         <td data-label="Status">
-                            {% if row.status == 'PRESENT' %}
+                            {{ if eq .Status "PRESENT" }}
                             <span class="status-present"><i class="fas fa-check-circle"></i> Present</span>
-                            {% else %}
+                            {{ else }}
                             <span class="status-absent"><i class="fas fa-times-circle"></i> Absent</span>
-                            {% endif %}
+                            {{ end }}
                         </td>
-                        {% if session.role == 'admin' %}
-                        <td data-label="Action">
-                            <button class="danger" style="padding: 5px 10px; width: auto; font-size: 0.8rem;"
-                                onclick="deleteRecord({{ row.id }})">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
-                        {% endif %}
                     </tr>
-                    {% else %}
+                    {{ end }}
+                    {{ else }}
                     <tr>
-                        <td colspan="9" style="text-align: center;">No records found.</td>
+                        <td colspan="7" style="text-align: center;">No records found.</td>
                     </tr>
-                    {% endfor %}
+                    {{ end }}
                 </tbody>
             </table>
         </div>
 
         <!-- Pagination Controls -->
-        {% if total_pages > 1 %}
+        {{ if gt .total_pages 1 }}
         <div class="pagination">
-            <a href="{{ url_for('view_attendance', page=page-1, subject=f_subject, branch=f_branch, date=f_date) }}"
-                class="page-btn {% if page == 1 %}disabled{% endif %}">
+            <a href="/view_attendance?page={{ .prev_page }}&subject={{ .f_subject }}&branch={{ .f_branch }}&date={{ .f_date }}"
+                class="page-btn {{ if eq .page 1 }}disabled{{ end }}">
                 <i class="fas fa-chevron-left"></i> Prev
             </a>
 
-            {% for p in range(1, total_pages + 1) %}
-            {% if p == 1 or p == total_pages or (p >= page - 1 and p <= page + 1) %} <a
-                href="{{ url_for('view_attendance', page=p, subject=f_subject, branch=f_branch, date=f_date) }}"
-                class="page-btn {% if p == page %}active{% endif %}">
-                {{ p }}
-                </a>
-                {% elif (p == 2 and page > 3) or (p == total_pages - 1 and page < total_pages - 2) %} <span
-                    class="pagination-ellipsis">...</span>
-                    {% endif %}
-                    {% endfor %}
+            <!-- simplified pagination for now -->
+            <span style="padding: 10px;">Page {{ .page }} of {{ .total_pages }}</span>
 
-                    <a href="{{ url_for('view_attendance', page=page+1, subject=f_subject, branch=f_branch, date=f_date) }}"
-                        class="page-btn {% if page == total_pages %}disabled{% endif %}">
-                        Next <i class="fas fa-chevron-right"></i>
-                    </a>
+            <a href="/view_attendance?page={{ .next_page }}&subject={{ .f_subject }}&branch={{ .f_branch }}&date={{ .f_date }}"
+                class="page-btn {{ if eq .page .total_pages }}disabled{{ end }}">
+                Next <i class="fas fa-chevron-right"></i>
+            </a>
         </div>
-        {% endif %}
+        {{ end }}
     </div>
 
     <script>

@@ -5,8 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Weekly Reports | QR Attendance</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=2">
+    <link rel="stylesheet" href="/static/style.css?v=2">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <style>
         .report-item {
             background: rgba(255, 255, 255, 0.9);
@@ -43,6 +46,46 @@
             padding: 40px;
             color: #666;
         }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-pdf {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-pdf:hover {
+            opacity: 0.9;
+        }
+
+        .btn-csv {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-csv:hover {
+            opacity: 0.9;
+        }
     </style>
 </head>
 
@@ -53,6 +96,9 @@
             <div class="nav-links">
                 <a href="/admin" data-tooltip="Dashboard"><i class="fas fa-arrow-left"></i></a>
                 <a href="/admin/corrections" data-tooltip="Corrections"><i class="fas fa-clipboard-check"></i></a>
+                <button onclick="toggleDarkMode()" class="theme-toggle-btn" data-tooltip="Toggle Theme">
+                    <i id="theme-icon" class="fas fa-moon"></i>
+                </button>
                 <button onclick="generateNewReport()" class="primary" id="genBtn"
                     style="width: auto; padding: 8px 15px;" data-tooltip="Generate Latest">
                     <i class="fas fa-magic"></i>
@@ -61,30 +107,38 @@
         </nav>
 
         <div style="margin-top: 2rem;">
-            <p style="color: #666; margin-bottom: 20px;">
-                <i class="fas fa-info-circle"></i> Reports are automatically generated every Monday at 12:01 AM.
-                You can also manually generate one using the button above.
-            </p>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
+                <p style="color: #666; margin: 0;">
+                    <i class="fas fa-info-circle"></i> Reports are automatically generated every Monday at 12:01 AM.
+                </p>
+                <button onclick="exportAllToPDF()" class="btn-pdf" style="width: auto;">
+                    <i class="fas fa-file-pdf"></i> Export All to PDF
+                </button>
+            </div>
 
             <div id="reports-list">
-                {% if reports %}
-                {% for r in reports %}
-                <div class="report-item card">
+                {{ if .reports }}
+                {{ range .reports }}
+                <div class="report-item card" data-filename="{{ . }}">
                     <div class="report-info">
-                        <h3>{{ r }}</h3>
+                        <h3>{{ . }}</h3>
                     </div>
-                    <a href="{{ url_for('static', filename='reports/' + r) }}" download class="secondary"
-                        style="width: auto; padding: 8px 20px; text-decoration: none;">
-                        <i class="fas fa-download"></i> Download CSV
-                    </a>
+                    <div class="btn-group">
+                        <button onclick="downloadAsPDF('{{ . }}')" class="btn-pdf">
+                            <i class="fas fa-file-pdf"></i> PDF
+                        </button>
+                        <a href="/static/reports/{{ . }}" download class="btn-csv">
+                            <i class="fas fa-file-csv"></i> CSV
+                        </a>
+                    </div>
                 </div>
-                {% endfor %}
-                {% else %}
+                {{ end }}
+                {{ else }}
                 <div class="empty-state">
                     <i class="fas fa-folder-open fa-3x" style="margin-bottom: 15px; opacity: 0.3;"></i>
                     <p>No reports generated yet.</p>
                 </div>
-                {% endif %}
+                {{ end }}
             </div>
         </div>
     </div>
@@ -108,6 +162,152 @@
             }
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-magic"></i> Generate Latest';
+        }
+
+        async function downloadAsPDF(filename) {
+            try {
+                // Fetch CSV data
+                const response = await fetch('/static/reports/' + filename);
+                const csvText = await response.text();
+                
+                // Parse CSV
+                const rows = csvText.split('\n').map(row => row.split(','));
+                const headers = rows[0];
+                const data = rows.slice(1).filter(row => row.length > 1);
+                
+                // Create PDF
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('l', 'mm', 'a4'); // Landscape
+                
+                // Add college header
+                doc.setFontSize(18);
+                doc.setTextColor(102, 126, 234);
+                doc.text('Chaitanya Engineering College', doc.internal.pageSize.width / 2, 15, { align: 'center' });
+                
+                doc.setFontSize(12);
+                doc.setTextColor(100);
+                doc.text('QR Attendance System - Weekly Report', doc.internal.pageSize.width / 2, 22, { align: 'center' });
+                
+                doc.setFontSize(10);
+                doc.setTextColor(150);
+                doc.text(filename.replace('.csv', ''), doc.internal.pageSize.width / 2, 28, { align: 'center' });
+                
+                // Add table
+                doc.autoTable({
+                    head: [headers],
+                    body: data,
+                    startY: 35,
+                    styles: {
+                        fontSize: 8,
+                        cellPadding: 2,
+                    },
+                    headStyles: {
+                        fillColor: [102, 126, 234],
+                        textColor: 255,
+                        fontStyle: 'bold'
+                    },
+                    alternateRowStyles: {
+                        fillColor: [245, 245, 250]
+                    },
+                    margin: { top: 35 }
+                });
+                
+                // Add footer
+                const pageCount = doc.internal.getNumberOfPages();
+                for (let i = 1; i <= pageCount; i++) {
+                    doc.setPage(i);
+                    doc.setFontSize(8);
+                    doc.setTextColor(150);
+                    doc.text(
+                        'Generated on ' + new Date().toLocaleString() + ' | Page ' + i + ' of ' + pageCount,
+                        doc.internal.pageSize.width / 2,
+                        doc.internal.pageSize.height - 10,
+                        { align: 'center' }
+                    );
+                }
+                
+                // Download
+                doc.save(filename.replace('.csv', '.pdf'));
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                alert('Error generating PDF. Please try again.');
+            }
+        }
+
+        async function exportAllToPDF() {
+            const reportItems = document.querySelectorAll('.report-item');
+            if (reportItems.length === 0) {
+                alert('No reports to export');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('l', 'mm', 'a4');
+            let isFirstPage = true;
+
+            for (const item of reportItems) {
+                const filename = item.dataset.filename;
+                if (!filename) continue;
+
+                try {
+                    const response = await fetch('/static/reports/' + filename);
+                    const csvText = await response.text();
+                    
+                    const rows = csvText.split('\n').map(row => row.split(','));
+                    const headers = rows[0];
+                    const data = rows.slice(1).filter(row => row.length > 1);
+                    
+                    if (!isFirstPage) {
+                        doc.addPage();
+                    }
+                    isFirstPage = false;
+
+                    // Add header for each report
+                    doc.setFontSize(14);
+                    doc.setTextColor(102, 126, 234);
+                    doc.text('Chaitanya Engineering College', doc.internal.pageSize.width / 2, 15, { align: 'center' });
+                    
+                    doc.setFontSize(10);
+                    doc.setTextColor(100);
+                    doc.text(filename.replace('.csv', ''), doc.internal.pageSize.width / 2, 22, { align: 'center' });
+                    
+                    doc.autoTable({
+                        head: [headers],
+                        body: data,
+                        startY: 28,
+                        styles: { fontSize: 7, cellPadding: 1.5 },
+                        headStyles: { fillColor: [102, 126, 234], textColor: 255, fontStyle: 'bold' },
+                        alternateRowStyles: { fillColor: [245, 245, 250] },
+                        margin: { top: 28 }
+                    });
+                } catch (error) {
+                    console.error('Error processing ' + filename, error);
+                }
+            }
+
+            doc.save('All_Reports_' + new Date().toISOString().split('T')[0] + '.pdf');
+        }
+
+        // Dark mode toggle
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const icon = document.getElementById('theme-icon');
+            if (document.body.classList.contains('dark-mode')) {
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+                localStorage.setItem('darkMode', 'true');
+            } else {
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+                localStorage.setItem('darkMode', 'false');
+            }
+        }
+
+        // Load saved theme
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+            document.getElementById('theme-icon').classList.remove('fa-moon');
+            document.getElementById('theme-icon').classList.add('fa-sun');
         }
     </script>
 </body>

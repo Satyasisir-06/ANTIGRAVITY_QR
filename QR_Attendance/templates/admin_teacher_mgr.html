@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Attendance Manager</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg-dark: #0f172a;
+            --card-dark: #1e293b;
+            --text-light: #f1f5f9;
+            --text-gray: #94a3b8;
+            --border: #334155;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+        }
+
+        .back-link {
+            color: var(--text-gray);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .back-link:hover {
+            color: white;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-gray);
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: 0.2s;
+        }
+
+        .tab-btn.active {
+            color: white;
+            border-bottom-color: var(--primary);
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Cards & Tables */
+        .card {
+            background: var(--card-dark);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            color: var(--text-gray);
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        td {
+            color: var(--text-light);
+        }
+
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .badge-present {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .badge-pending {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+
+        .badge-rejected {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        /* Issue Actions */
+        .action-btn {
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.85rem;
+            margin-right: 0.5rem;
+        }
+
+        .btn-approve {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-reject {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-light);
+            border: 1px solid var(--border);
+        }
+
+        .btn-reject:hover {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--card-dark);
+            padding: 1rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .stat-title {
+            font-size: 0.85rem;
+            color: var(--text-gray);
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: white;
+            margin-top: 0.5rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-gray);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <a href="/admin" class="back-link">← Back to Dashboard</a>
+                <h1 style="margin-top: 0.5rem;">Teacher Attendance Admin</h1>
+            </div>
+            <div style="text-align: right; color: var(--text-gray);">
+                Date: <span style="color: white; font-weight: 500;">{{ .today }}</span>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-title">Present Today</div>
+                <div class="stat-value">{{ len .attendance }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Pending Issues</div>
+                <div class="stat-value">{{ len .issues }}</div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('daily')">Daily Log</button>
+            <button class="tab-btn" onclick="switchTab('issues')">Issues & Requests</button>
+            <button class="tab-btn" onclick="switchTab('history')">History</button>
+        </div>
+
+        <!-- Tab 1: Daily Log -->
+        <div id="daily" class="tab-content active">
+            <div class="card">
+                <h3>Attendance Log ({{ .today }})</h3>
+                {{ if .attendance }}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Teacher</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                            <th>Method</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ range .attendance }}
+                        <tr>
+                            <td>
+                                <div>{{ .Name }}</div>
+                                <div style="font-size: 0.8rem; color: #64748b;">{{ .TeacherID }}</div>
+                            </td>
+                            <td>{{ .Time }}</td>
+                            <td><span class="badge badge-present">{{ .Status }}</span></td>
+                            <td>QR / Auto</td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+                {{ else }}
+                <div class="empty-state">No attendance marked today yet.</div>
+                {{ end }}
+            </div>
+        </div>
+
+        <!-- Tab 2: Issues -->
+        <div id="issues" class="tab-content">
+            <div class="card">
+                <h3>Pending Requests</h3>
+                {{ if .issues }}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Teacher</th>
+                            <th>Reason</th>
+                            <th>Proof</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ range .issues }}
+                        <tr id="issue-{{ .ID }}">
+                            <td>{{ .Date }}</td>
+                            <td>{{ .Name }}</td>
+                            <td>{{ .Reason }}</td>
+                            <td>
+                                {{ if .ProofURL }}
+                                <a href="{{ .ProofURL }}" target="_blank" style="color: var(--primary);">View</a>
+                                {{ else }}
+                                -
+                                {{ end }}
+                            </td>
+                            <td>
+                                <button class="action-btn btn-approve"
+                                    onclick="handleIssue('{{ .ID }}', 'APPROVE')">Approve</button>
+                                <button class="action-btn btn-reject"
+                                    onclick="handleIssue('{{ .ID }}', 'REJECT')">Reject</button>
+                            </td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+                {{ else }}
+                <div class="empty-state">No pending requests.</div>
+                {{ end }}
+            </div>
+        </div>
+
+        <!-- Tab 3: History -->
+        <div id="history" class="tab-content">
+            <div class="card">
+                <h3>Recent Activity (Last 50)</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Teacher</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ range .history }}
+                        <tr>
+                            <td>{{ .Date }}</td>
+                            <td>{{ .Name }}</td>
+                            <td>{{ .Time }}</td>
+                            <td><span class="badge badge-present">{{ .Status }}</span></td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tabId) {
+            // Hide all
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+            // Show target
+            document.getElementById(tabId).classList.add('active');
+
+            // Activate btn - Need logic to find correct button, simple hack:
+            const btns = document.querySelectorAll('.tab-btn');
+            if (tabId === 'daily') btns[0].classList.add('active');
+            if (tabId === 'issues') btns[1].classList.add('active');
+            if (tabId === 'history') btns[2].classList.add('active');
+        }
+
+        async function handleIssue(id, action) {
+            if (!confirm(`Are you sure you want to ${action} this request?`)) return;
+
+            try {
+                const response = await fetch('/admin/teacher-issue', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        issue_id: id,
+                        action: action,
+                        remarks: "Processed via Admin Panel"
+                    })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    // Remove row
+                    document.getElementById('issue-' + id).remove();
+                    // Update counter (optional, requires reload or dom manip)
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (e) {
+                alert('Network Error');
+            }
+        }
+    </script>
+</body>
+
+</html>

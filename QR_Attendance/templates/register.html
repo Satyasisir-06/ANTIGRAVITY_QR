@@ -3,10 +3,49 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Student Registration | QR Attendance</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="/static/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Mobile-first form styles */
+        @media (max-width: 576px) {
+            body {
+                padding: 10px !important;
+            }
+
+            .glass-container {
+                padding: 1.25rem !important;
+                margin: 5px;
+                border-radius: 16px;
+            }
+
+            h1 {
+                font-size: 1.5rem !important;
+            }
+
+            .form-group input,
+            .form-group select {
+                font-size: 16px !important; /* Prevent iOS zoom */
+                padding: 14px 14px 14px 40px !important;
+            }
+
+            button[type="submit"] {
+                padding: 14px 20px !important;
+                font-size: 1rem !important;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .glass-container {
+                padding: 1rem !important;
+            }
+
+            h1 {
+                font-size: 1.3rem !important;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -14,31 +53,26 @@
         <div style="text-align: center; margin-bottom: 1.5rem;">
             <i class="fas fa-user-plus fa-3x"
                 style="color: white; margin-bottom: 10px; background: linear-gradient(135deg, #a18cd1, #fbc2eb); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
-            <h1>Student Sign Up</h1>
-            <p>Create your account to view attendance</p>
+            <h1>Sign Up</h1>
+            <p>Create your account to get started</p>
         </div>
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        {% for category, message in messages %}
+        {{ if .error }}
         <div
             style="padding: 10px; border-radius: 8px; margin-bottom: 1rem; background: rgba(255, 107, 107, 0.2); border: 1px solid rgba(255, 107, 107, 0.5); color: #c0392b; text-align: center;">
-            {{ message }}
+            {{ .error }}
         </div>
-        {% endfor %}
-        {% endif %}
-        {% endwith %}
+        {{ end }}
 
         <form action="/register" method="POST">
             <div class="form-group">
-                <label>Roll Number (Username)</label>
+                <label id="usernameLabel">Roll Number (User ID)</label>
                 <div style="position: relative;">
                     <i class="fas fa-id-card" style="position: absolute; left: 15px; top: 15px; color: #a18cd1;"></i>
-                    <input type="text" name="username" placeholder="e.g. 21A91A05H7" style="padding-left: 40px;"
+                    <input type="text" name="username" id="usernameInput" placeholder="e.g. 21A91A05H7" style="padding-left: 40px;"
                         required>
                 </div>
-                <small style="display: block; margin-top: 5px; opacity: 0.7;">This must match the Roll No used for
-                    attendance.</small>
+                <small id="usernameHint" style="display: block; margin-top: 5px; opacity: 0.7;">This will be your login ID and must match the Roll No used for attendance.</small>
             </div>
 
             <div class="form-group">
@@ -51,6 +85,69 @@
                         <option value="student">Student</option>
                         <option value="teacher">Teacher</option>
                     </select>
+                </div>
+            </div>
+
+            <!-- Student Extras (Shown by default) -->
+            <div id="studentFields">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <div style="position: relative;">
+                        <i class="fas fa-user" style="position: absolute; left: 15px; top: 15px; color: #a18cd1;"></i>
+                        <input type="text" name="student_name" id="studentNameInput" placeholder="Your Full Name"
+                            style="padding-left: 40px;" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Email ID</label>
+                    <div style="position: relative;">
+                        <i class="fas fa-envelope"
+                            style="position: absolute; left: 15px; top: 15px; color: #a18cd1;"></i>
+                        <input type="email" name="student_email" id="studentEmailInput" placeholder="yourname@college.edu"
+                            style="padding-left: 40px;" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Branch</label>
+                    <div style="position: relative;">
+                        <i class="fas fa-code-branch" style="position: absolute; left: 15px; top: 15px; color: #a18cd1;"></i>
+                        <select name="student_branch" id="studentBranchInput"
+                            style="padding-left: 40px; width: 100%; border: 1px solid #ddd; border-radius: 8px; padding-top: 12px; padding-bottom: 12px; outline: none;"
+                            required>
+                            <option value="">Select Branch</option>
+                            <optgroup label="Computer Science (CSE)">
+                                <option value="CSE-A">CSE-A</option>
+                                <option value="CSE-B">CSE-B</option>
+                                <option value="CSE-C">CSE-C</option>
+                                <option value="CSE-D">CSE-D</option>
+                            </optgroup>
+                            <optgroup label="Artificial Intelligence">
+                                <option value="CAI">CAI - Computers & AI</option>
+                                <option value="CSM">CSM - CS & Machine Learning</option>
+                                <option value="CSD">CSD - CS & Data Science</option>
+                            </optgroup>
+                            <optgroup label="Electronics & Communication (ECE)">
+                                <option value="ECE">ECE</option>
+                                <option value="ECE-A">ECE-A</option>
+                                <option value="ECE-B">ECE-B</option>
+                            </optgroup>
+                            <optgroup label="Electrical (EEE)">
+                                <option value="EEE">EEE</option>
+                                <option value="EEE-A">EEE-A</option>
+                                <option value="EEE-B">EEE-B</option>
+                            </optgroup>
+                            <optgroup label="Mechanical">
+                                <option value="MECH">MECH</option>
+                                <option value="MECH-A">MECH-A</option>
+                                <option value="MECH-B">MECH-B</option>
+                            </optgroup>
+                            <optgroup label="Civil">
+                                <option value="CIVIL">CIVIL</option>
+                                <option value="CIVIL-A">CIVIL-A</option>
+                                <option value="CIVIL-B">CIVIL-B</option>
+                            </optgroup>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -99,21 +196,45 @@
             <script>
                 function toggleTeacherFields() {
                     const role = document.getElementById('roleSelect').value;
-                    const fields = document.getElementById('teacherFields');
-                    const nameInput = document.getElementById('fullNameInput');
-                    const emailInput = document.getElementById('emailInput');
+                    const teacherFields = document.getElementById('teacherFields');
+                    const studentFields = document.getElementById('studentFields');
+                    const teacherNameInput = document.getElementById('fullNameInput');
+                    const teacherEmailInput = document.getElementById('emailInput');
+                    const studentNameInput = document.getElementById('studentNameInput');
+                    const studentEmailInput = document.getElementById('studentEmailInput');
+                    const studentBranchInput = document.getElementById('studentBranchInput');
+                    const usernameLabel = document.getElementById('usernameLabel');
+                    const usernameInput = document.getElementById('usernameInput');
+                    const usernameHint = document.getElementById('usernameHint');
 
                     if (role === 'teacher') {
-                        fields.style.display = 'block';
-                        nameInput.required = true;
-                        // Email is critical for admins but let's make it required for teachers
-                        emailInput.required = true;
+                        teacherFields.style.display = 'block';
+                        studentFields.style.display = 'none';
+                        teacherNameInput.required = true;
+                        teacherEmailInput.required = true;
+                        studentNameInput.required = false;
+                        studentEmailInput.required = false;
+                        studentBranchInput.required = false;
+                        // Update username field for teacher
+                        usernameLabel.textContent = 'Teacher ID (User ID)';
+                        usernameInput.placeholder = 'e.g. T001 or EMP123';
+                        usernameHint.textContent = 'This will be your login ID. Choose a unique Teacher ID.';
                     } else {
-                        fields.style.display = 'none';
-                        nameInput.required = false;
-                        emailInput.required = false;
+                        teacherFields.style.display = 'none';
+                        studentFields.style.display = 'block';
+                        teacherNameInput.required = false;
+                        teacherEmailInput.required = false;
+                        studentNameInput.required = true;
+                        studentEmailInput.required = true;
+                        studentBranchInput.required = true;
+                        // Update username field for student
+                        usernameLabel.textContent = 'Roll Number (User ID)';
+                        usernameInput.placeholder = 'e.g. 21A91A05H7';
+                        usernameHint.textContent = 'This will be your login ID and must match the Roll No used for attendance.';
                     }
                 }
+                // Initialize on page load
+                document.addEventListener('DOMContentLoaded', toggleTeacherFields);
             </script>
 
             <button type="submit">Register <i class="fas fa-check-circle"></i></button>
@@ -124,7 +245,7 @@
                     Here</a></p>
         </div>
     </div>
-    <script src="{{ url_for('static', filename='backjs.js') }}"></script>
+    <script src="/static/backjs.js"></script>
 </body>
 
 </html>

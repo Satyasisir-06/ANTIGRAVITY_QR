@@ -5,170 +5,1729 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Teacher Dashboard | QR Attendance</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="/static/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .profile-section {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background: var(--glass-bg);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            overflow: hidden;
+            border: 3px solid rgba(255,255,255,0.5);
+            box-shadow: 0 5px 20px rgba(161, 140, 209, 0.4);
+            flex-shrink: 0;
+        }
+
+        .profile-avatar:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 30px rgba(161, 140, 209, 0.6);
+        }
+
+        .profile-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .profile-details {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .profile-details h2 {
+            margin: 0 0 5px 0;
+            font-size: 1.4rem;
+            color: var(--text-color);
+        }
+
+        .profile-details .info-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin: 3px 0;
+        }
+
+        .profile-details .info-row i {
+            width: 16px;
+            color: #a18cd1;
+        }
+
+        .profile-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .profile-actions button {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            border: 2px solid #a18cd1;
+            background: rgba(161, 140, 209, 0.25);
+            color: #7c5db5;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            box-shadow: 0 2px 8px rgba(161, 140, 209, 0.3);
+        }
+
+        .profile-actions button:hover {
+            background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(161, 140, 209, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .mini-stat {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 1rem;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .mini-stat .icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            font-size: 1.2rem;
+        }
+
+        .mini-stat .number {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-color);
+        }
+
+        .mini-stat .label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .section-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            margin-bottom: 1.5rem;
+        }
+
+        .section-card h3 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            color: var(--text-color);
+        }
+
+        .section-card h3 i {
+            color: #a18cd1;
+        }
+
+        .subject-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .subject-item {
+            background: rgba(161, 140, 209, 0.1);
+            border: 1px solid rgba(161, 140, 209, 0.2);
+            border-radius: 12px;
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .subject-item:hover {
+            background: rgba(161, 140, 209, 0.2);
+            transform: translateX(5px);
+        }
+
+        .subject-item .subject-info strong {
+            display: block;
+            color: var(--text-color);
+        }
+
+        .subject-item .subject-info small {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+        }
+
+        .subject-item .delete-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            border: none;
+            background: rgba(231, 76, 60, 0.1);
+            color: #e74c3c;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .subject-item .delete-btn:hover {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .add-subject-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            align-items: end;
+        }
+
+        .add-subject-form .form-group {
+            margin-bottom: 0;
+        }
+
+        .add-subject-form input, .add-subject-form select {
+            padding: 10px 12px;
+            font-size: 0.9rem;
+        }
+
+        .add-subject-form button {
+            height: 42px;
+            padding: 0 20px;
+        }
+
+        .session-card {
+            background: linear-gradient(135deg, rgba(46, 204, 113, 0.1), rgba(39, 174, 96, 0.05));
+            border: 1px solid rgba(46, 204, 113, 0.3);
+            border-left: 4px solid #2ecc71;
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .session-card.active {
+            animation: pulse-border 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-border {
+            0%, 100% { border-left-color: #2ecc71; }
+            50% { border-left-color: #27ae60; }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal.active { display: flex; }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 1.5rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .modal-header h3 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0;
+            color: #333;
+        }
+
+        .modal-close {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            border: 2px solid #e74c3c;
+            background: rgba(231, 76, 60, 0.15);
+            color: #e74c3c;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .modal-close:hover {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .dark-mode .modal-content {
+            background: #1e1e2f;
+            color: #fff;
+        }
+
+        .dark-mode .modal-close {
+            background: #2d2d44;
+            color: #fff;
+        }
+
+        .dark-mode .modal-header {
+            border-bottom-color: #333;
+        }
+
+        .dark-mode .modal-header h3 {
+            color: #fff;
+        }
+
+        .dark-mode .profile-actions button {
+            background: rgba(161, 140, 209, 0.3);
+            border-color: #a18cd1;
+            color: #c9b8e8;
+        }
+
+        .dark-mode .tt-modal-content button {
+            color: #333;
+        }
+
+        /* Timetable Styles */
+        .timetable-container {
+            overflow-x: auto;
+            margin-top: 1rem;
+        }
+
+        .timetable {
+            width: 100%;
+            min-width: 800px;
+            border-collapse: separate;
+            border-spacing: 3px;
+        }
+
+        .timetable th {
+            background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%);
+            color: white;
+            padding: 12px 8px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.85rem;
+            border-radius: 8px;
+        }
+
+        .timetable td {
+            background: rgba(161, 140, 209, 0.05);
+            border: 1px solid rgba(161, 140, 209, 0.2);
+            padding: 8px;
+            text-align: center;
+            min-height: 60px;
+            vertical-align: middle;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .timetable td:hover:not(.lunch-break):not(.lab-cell) {
+            background: rgba(161, 140, 209, 0.15);
+            transform: scale(1.02);
+            box-shadow: 0 2px 10px rgba(161, 140, 209, 0.3);
+        }
+
+        .timetable td.time-col {
+            background: rgba(161, 140, 209, 0.1);
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: #666;
+            cursor: default;
+            min-width: 80px;
+        }
+
+        .timetable td.lunch-break {
+            background: linear-gradient(135deg, rgba(241, 196, 15, 0.2), rgba(243, 156, 18, 0.2));
+            color: #b8860b;
+            font-weight: 600;
+            cursor: not-allowed;
+            border: 1px solid rgba(241, 196, 15, 0.4);
+        }
+
+        .timetable td.has-class {
+            background: linear-gradient(135deg, rgba(46, 204, 113, 0.15), rgba(39, 174, 96, 0.1));
+            border: 1px solid rgba(46, 204, 113, 0.4);
+        }
+
+        .timetable td.lab-cell {
+            background: linear-gradient(135deg, rgba(52, 152, 219, 0.2), rgba(41, 128, 185, 0.15));
+            border: 1px solid rgba(52, 152, 219, 0.4);
+        }
+
+        .timetable td.lab-start {
+            border-radius: 8px 8px 0 0;
+        }
+
+        .timetable td.lab-middle {
+            border-radius: 0;
+            border-top: none;
+            border-bottom: none;
+        }
+
+        .timetable td.lab-end {
+            border-radius: 0 0 8px 8px;
+            border-top: none;
+        }
+
+        .class-entry {
+            padding: 4px;
+        }
+
+        .class-entry .subject-name {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #333;
+            margin-bottom: 2px;
+        }
+
+        .class-entry .class-name {
+            font-size: 0.75rem;
+            color: #666;
+            background: rgba(255,255,255,0.5);
+            padding: 2px 6px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .class-entry .lab-badge {
+            font-size: 0.65rem;
+            background: #3498db;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-top: 3px;
+        }
+
+        .class-delete-btn {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(231, 76, 60, 0.8);
+            color: white;
+            font-size: 10px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .timetable td:hover .class-delete-btn {
+            opacity: 1;
+        }
+
+        .timetable-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .timetable-actions button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tt-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .tt-modal.active { display: flex; }
+
+        .tt-modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            max-width: 400px;
+            width: 90%;
+            animation: slideUp 0.3s ease;
+        }
+
+        .dark-mode .tt-modal-content {
+            background: #1e1e2f;
+            color: #fff;
+        }
+
+        .dark-mode .timetable td {
+            background: rgba(161, 140, 209, 0.1);
+            color: #ddd;
+        }
+
+        .dark-mode .timetable td.time-col {
+            color: #aaa;
+        }
+
+        .dark-mode .class-entry .subject-name {
+            color: #fff;
+        }
+
+        .dark-mode .class-entry .class-name {
+            background: rgba(0,0,0,0.3);
+            color: #ddd;
+        }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 576px) {
+            .navbar {
+                flex-direction: column;
+                gap: 12px;
+                padding: 10px 0;
+            }
+
+            .navbar .brand {
+                font-size: 1rem;
+            }
+
+            .nav-links {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 8px !important;
+                width: 100%;
+            }
+
+            .nav-links button,
+            .nav-links a {
+                padding: 8px 12px !important;
+                font-size: 0.8rem !important;
+            }
+
+            /* Profile section */
+            .profile-section {
+                flex-direction: column;
+                text-align: center;
+                padding: 1rem;
+                gap: 1rem;
+            }
+
+            .profile-avatar {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
+            }
+
+            .profile-details {
+                min-width: auto;
+            }
+
+            .profile-details h2 {
+                font-size: 1.2rem;
+            }
+
+            .profile-details .info-row {
+                justify-content: center;
+                font-size: 0.8rem;
+            }
+
+            .profile-actions {
+                justify-content: center;
+            }
+
+            .profile-actions button {
+                width: 38px;
+                height: 38px;
+            }
+
+            /* Stats grid */
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 8px !important;
+            }
+
+            .stat-card {
+                padding: 12px !important;
+            }
+
+            .stat-card h3 {
+                font-size: 0.7rem !important;
+            }
+
+            .stat-num {
+                font-size: 1.3rem !important;
+            }
+
+            /* Section cards */
+            .section-card {
+                padding: 12px !important;
+            }
+
+            .section-card h3 {
+                font-size: 0.95rem;
+            }
+
+            /* Session cards */
+            .session-card {
+                flex-direction: column !important;
+                gap: 10px;
+                padding: 12px !important;
+            }
+
+            .session-card > div {
+                width: 100%;
+            }
+
+            .session-card > div:last-child {
+                flex-direction: row !important;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .session-card > div:last-child a,
+            .session-card > div:last-child button {
+                flex: 1;
+                min-width: 80px;
+                text-align: center;
+                padding: 10px 8px !important;
+                font-size: 0.75rem !important;
+            }
+
+            /* Countdown timer */
+            .session-timer {
+                font-size: 0.85rem !important;
+            }
+
+            /* Timetable */
+            .timetable-wrapper {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .timetable {
+                font-size: 0.65rem !important;
+            }
+
+            .timetable th,
+            .timetable td {
+                padding: 4px 3px !important;
+                min-width: 50px;
+            }
+
+            .class-entry .subject-name {
+                font-size: 0.65rem !important;
+            }
+
+            .class-entry .class-name {
+                font-size: 0.5rem !important;
+                padding: 1px 3px !important;
+            }
+
+            /* Modal content */
+            .modal-content,
+            .tt-modal-content {
+                width: 95% !important;
+                padding: 1rem !important;
+                max-height: 85vh;
+                overflow-y: auto;
+            }
+
+            /* Action buttons grid */
+            .action-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 8px !important;
+            }
+
+            .action-card {
+                padding: 12px !important;
+            }
+
+            .action-card h4 {
+                font-size: 0.8rem !important;
+            }
+
+            .action-card p {
+                font-size: 0.7rem !important;
+            }
+
+            /* Start session modal */
+            .start-session-form input,
+            .start-session-form select {
+                font-size: 16px !important; /* Prevent iOS zoom */
+            }
+        }
+
+        @media (max-width: 360px) {
+            .nav-links {
+                gap: 5px !important;
+            }
+
+            .profile-avatar {
+                width: 50px;
+                height: 50px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr !important;
+            }
+
+            .action-grid {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
+        /* Touch friendly */
+        @media (hover: none) and (pointer: coarse) {
+            button, a, .action-card {
+                min-height: 44px;
+            }
+        }
+    </style>
 </head>
 
 <body>
     <div class="container-wide glass-container animate-pop">
         <nav class="navbar">
-            <div class="brand"><i class="fas fa-chalkboard-teacher"></i> Teacher Dashboard</div>
+            <div class="brand"><i class="fas fa-chalkboard-teacher"></i> Teacher Portal</div>
             <div class="nav-links">
-                <a href="/logout" style="color: var(--danger-color);"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                <button onclick="toggleDarkMode()" style="width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); border-radius: 50%; color: var(--text-color); cursor: pointer;">
+                    <i id="theme-icon" class="fas fa-moon"></i>
+                </button>
+                <a href="/view_attendance" title="View Attendance"><i class="fas fa-list"></i></a>
+                <a href="/logout" style="color: var(--danger-color);" title="Logout"><i class="fas fa-sign-out-alt"></i></a>
             </div>
         </nav>
 
-        <div style="padding: 2rem;">
-            <h1>Welcome, {{ teacher.name }}!</h1>
-            <p>ID: {{ teacher.teacher_id }} | Email: {{ teacher.email or 'Not set' }}</p>
-
-            {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-            {% for category, message in messages %}
-            <div class="alert alert-{{ category }}"
-                style="padding: 15px; margin: 10px 0; border-radius: 8px; {% if category == 'success' %}background: rgba(46, 204, 113, 0.2); border: 1px solid #2ecc71; color: #27ae60;{% else %}background: rgba(231, 76, 60, 0.2); border: 1px solid #e74c3c; color: #c0392b;{% endif %}">
-                {{ message }}
+        <!-- Profile Section -->
+        <div class="profile-section">
+            <div class="profile-avatar" onclick="openModal('profileModal')">
+                {{ if .teacher.ProfilePic }}
+                <img src="{{ .teacher.ProfilePic }}" alt="Profile">
+                {{ else }}
+                <i class="fas fa-user-tie"></i>
+                {{ end }}
             </div>
-            {% endfor %}
-            {% endif %}
-            {% endwith %}
-
-            {% if not all_subjects %}
-            <!-- First-time setup message -->
-            <div class="glass-card"
-                style="margin-top: 2rem; background: linear-gradient(135deg, rgba(161, 140, 209, 0.2), rgba(251, 194, 235, 0.2)); border: 2px solid #a18cd1;">
-                <h2><i class="fas fa-hand-sparkles"></i> Welcome! Let's Set Up Your Profile</h2>
-                <p style="font-size: 1.1rem; margin: 15px 0;">You haven't added any subjects yet. Add your teaching
-                    schedule below to start taking attendance!</p>
+            <div class="profile-details">
+                <h2>{{ .teacher.Name }}</h2>
+                <div class="info-row"><i class="fas fa-id-badge"></i> {{ .teacher.TeacherID }}</div>
+                <div class="info-row"><i class="fas fa-envelope"></i> {{ if .teacher.Email }}{{ .teacher.Email }}{{ else }}<span style="opacity:0.5">Add email</span>{{ end }}</div>
+                <div class="info-row"><i class="fas fa-phone"></i> {{ if .teacher.Phone }}{{ .teacher.Phone }}{{ else }}<span style="opacity:0.5">Add phone</span>{{ end }}</div>
             </div>
-            {% endif %}
-
-            <!-- Add Subject Form -->
-            <div class="glass-card" style="margin-top: 2rem;">
-                <h2><i class="fas fa-plus-circle"></i> Add New Subject</h2>
-                <form method="POST" action="/teacher/add_subject">
-                    <div class="responsive-grid" style="gap: 15px;">
-                        <div class="form-group">
-                            <label>Subject Name</label>
-                            <input type="text" name="subject" placeholder="e.g., Python Programming" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Branch/Class</label>
-                            <input type="text" name="branch" placeholder="e.g., CSE-A, CSM" required>
-                        </div>
-                    </div>
-                    <div class="responsive-grid" style="gap: 15px;">
-                        <div class="form-group">
-                            <label>Day of Week</label>
-                            <select name="day_of_week" required>
-                                <option value="Monday">Monday</option>
-                                <option value="Tuesday">Tuesday</option>
-                                <option value="Wednesday">Wednesday</option>
-                                <option value="Thursday">Thursday</option>
-                                <option value="Friday">Friday</option>
-                                <option value="Saturday">Saturday</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Time Slot</label>
-                            <input type="text" name="time_slot" placeholder="e.g., 09:00-10:00" required>
-                        </div>
-                    </div>
-                    <button type="submit" class="primary" style="margin-top: 10px;">
-                        <i class="fas fa-save"></i> Add Subject
-                    </button>
-                </form>
+            <div class="profile-actions">
+                <button onclick="openModal('profileModal')" title="Edit Profile">
+                    <i class="fas fa-user-edit"></i>
+                </button>
+                <button onclick="openModal('settingsModal')" title="My Subjects">
+                    <i class="fas fa-cog"></i>
+                </button>
             </div>
+        </div>
 
-            <!-- Current Subjects -->
-            {% if all_subjects %}
-            <div class="glass-card" style="margin-top: 2rem;">
-                <h2><i class="fas fa-book"></i> My Subjects</h2>
-                <div style="display: grid; gap: 10px;">
-                    {% for subject in all_subjects %}
-                    <div
-                        style="padding: 15px; background: rgba(161, 140, 209, 0.1); border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <strong style="font-size: 1.1rem;">{{ subject.subject }}</strong><br>
-                            <small>{{ subject.branch }} | {{ subject.day_of_week }} {{ subject.time_slot }}</small>
-                        </div>
-                        <form method="POST" action="/teacher/delete_subject" style="display: inline;">
-                            <input type="hidden" name="subject_id" value="{{ subject.id }}">
-                            <button type="submit" class="danger" style="padding: 8px 15px;">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </form>
-                    </div>
-                    {% endfor %}
+        <!-- Stats Row -->
+        <div class="stats-row">
+            <div class="mini-stat">
+                <div class="icon" style="background: rgba(161, 140, 209, 0.2); color: #a18cd1;">
+                    <i class="fas fa-book"></i>
                 </div>
+                <div class="number">{{ len .all_subjects }}</div>
+                <div class="label">Subjects</div>
             </div>
-            {% endif %}
-
-            <!-- Today's Classes -->
-            {% if today_subjects %}
-            <div class="glass-card" style="margin-top: 2rem;">
-                <h2><i class="fas fa-calendar-day"></i> Today's Classes</h2>
-                <ul style="list-style: none; padding: 0;">
-                    {% for subject in today_subjects %}
-                    <li style="padding: 10px; margin: 5px 0; background: rgba(46, 204, 113, 0.1); border-radius: 8px;">
-                        <strong>{{ subject.subject }}</strong> - {{ subject.branch }}<br>
-                        <small>{{ subject.time_slot }}</small>
-                    </li>
-                    {% endfor %}
-                </ul>
+            <div class="mini-stat">
+                <div class="icon" style="background: rgba(46, 204, 113, 0.2); color: #2ecc71;">
+                    <i class="fas fa-broadcast-tower"></i>
+                </div>
+                <div class="number">{{ len .active_sessions }}</div>
+                <div class="label">Active</div>
             </div>
-            {% endif %}
+            <div class="mini-stat">
+                <div class="icon" style="background: rgba(52, 152, 219, 0.2); color: #3498db;">
+                    <i class="fas fa-calendar-day"></i>
+                </div>
+                <div class="number">{{ if .today_subjects }}{{ len .today_subjects }}{{ else }}0{{ end }}</div>
+                <div class="label">Today</div>
+            </div>
+            <div class="mini-stat" onclick="openModal('timetableModal')" style="cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div class="icon" style="background: rgba(155, 89, 182, 0.2); color: #9b59b6;">
+                    <i class="fas fa-calendar-alt"></i>
+                </div>
+                <div class="number" style="font-size: 1rem;"><i class="fas fa-table"></i></div>
+                <div class="label">Timetable</div>
+            </div>
+        </div>
 
-            <!-- Start Session (only show if they have subjects) -->
-            {% if all_subjects %}
-            <div class="glass-card" style="margin-top: 2rem;">
-                <h2><i class="fas fa-play-circle"></i> Start New Session</h2>
-                <form method="POST" action="/teacher/start_session">
-                    <div class="form-group">
-                        <label>Select Subject</label>
-                        <select name="subject" required>
-                            {% for subj in all_subjects %}
-                            <option value="{{ subj.subject }}">{{ subj.subject }} - {{ subj.branch }}</option>
-                            {% endfor %}
-                        </select>
+        {{ if .error }}
+        <div style="padding: 12px 15px; margin-bottom: 1rem; border-radius: 12px; background: rgba(231, 76, 60, 0.15); border: 1px solid rgba(231, 76, 60, 0.3); color: #c0392b; display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-exclamation-circle"></i> {{ .error }}
+        </div>
+        {{ end }}
+        {{ if .success }}
+        <div style="padding: 12px 15px; margin-bottom: 1rem; border-radius: 12px; background: rgba(46, 204, 113, 0.15); border: 1px solid rgba(46, 204, 113, 0.3); color: #27ae60; display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-check-circle"></i> {{ .success }}
+        </div>
+        {{ end }}
+
+        <!-- Start Session -->
+        {{ if .all_subjects }}
+        <div class="section-card">
+            <h3><i class="fas fa-play-circle" style="color: #2ecc71 !important;"></i> Start New Session</h3>
+            <form method="POST" action="/teacher/start_session" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: end;">
+                <div class="form-group" style="flex: 2; min-width: 200px; margin-bottom: 0;">
+                    <select name="subject" required>
+                        <option value="">Select Subject</option>
+                        {{ range .all_subjects }}
+                        <option value="{{ .Subject }}">{{ .Subject }} - {{ .Branch }}</option>
+                        {{ end }}
+                    </select>
+                </div>
+                <div class="form-group" style="flex: 1; min-width: 150px; margin-bottom: 0;">
+                    <select name="class_type" required>
+                        <option value="Lecture">Lecture (1hr)</option>
+                        <option value="Lab">Lab (3hrs)</option>
+                    </select>
+                </div>
+                <button type="submit" style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); color: white; border: none; padding: 12px 25px; border-radius: 10px; font-weight: 600; cursor: pointer; height: 46px;">
+                    <i class="fas fa-qrcode"></i> Start
+                </button>
+            </form>
+        </div>
+        {{ else }}
+        <!-- No subjects - prompt to add -->
+        <div class="section-card" style="text-align: center; padding: 2rem;">
+            <i class="fas fa-book-open" style="font-size: 3rem; color: #a18cd1; margin-bottom: 1rem;"></i>
+            <h3 style="margin-bottom: 0.5rem;">No Subjects Yet</h3>
+            <p style="color: var(--text-muted); margin-bottom: 1rem;">Add your subjects to start taking attendance</p>
+            <button onclick="openModal('settingsModal')" style="background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); color: white; border: none; padding: 12px 25px; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                <i class="fas fa-plus"></i> Add Subject
+            </button>
+        </div>
+        {{ end }}
+
+        <!-- Active Sessions -->
+        <div class="section-card">
+            <h3><i class="fas fa-broadcast-tower" style="color: #e74c3c !important;"></i> Active Sessions</h3>
+            {{ if .active_sessions }}
+            {{ range .active_sessions }}
+            <div class="session-card active" data-end-time="{{ .EndTime }}">
+                <div style="flex: 1;">
+                    <strong style="font-size: 1.1rem;">{{ .Subject }}</strong>
+                    <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 3px;">
+                        <i class="fas fa-code-branch"></i> {{ .Branch }} &nbsp;•&nbsp; 
+                        <i class="fas fa-flask"></i> {{ .ClassType }}
                     </div>
-                    <input type="hidden" name="branch" value="">
-                    <div class="form-group">
-                        <label>Class Type</label>
-                        <select name="class_type" required>
-                            <option value="Lecture">Lecture (1 hour)</option>
-                            <option value="Lab">Lab (3 hours)</option>
-                        </select>
+                    <div style="font-size: 0.8rem; margin-top: 8px; display: flex; align-items: center; gap: 8px;">
+                        <span style="background: rgba(231, 76, 60, 0.15); color: #e74c3c; padding: 4px 10px; border-radius: 20px; font-weight: 600;">
+                            <i class="fas fa-hourglass-half"></i> <span class="time-remaining" data-end="{{ .EndTime }}">--:--</span>
+                        </span>
+                        <span style="color: #888;">remaining</span>
                     </div>
-                    <button type="submit" class="primary">
-                        <i class="fas fa-qrcode"></i> Start Session
-                    </button>
-                </form>
-            </div>
-
-            <!-- Active Sessions -->
-            <div class="glass-card" style="margin-top: 2rem;">
-                <h2><i class="fas fa-running"></i> Active Sessions</h2>
-                {% if active_sessions %}
-                {% for session in active_sessions %}
-                <div style="padding: 15px; margin: 10px 0; background: rgba(52, 152, 219, 0.1); border-radius: 8px;">
-                    <h3>{{ session.subject }} - {{ session.branch }}</h3>
-                    <p>Started: {{ session.start_time }} | Ends: {{ session.end_time }}</p>
-                    <form method="POST" action="/teacher/finalize_session" style="display: inline;">
-                        <input type="hidden" name="session_id" value="{{ session.id }}">
-                        <button type="submit" class="danger">
-                            <i class="fas fa-stop"></i> Finalize
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <a href="/qr_display?token={{ .QRToken }}" style="background: #3498db; color: white; padding: 8px 16px; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 0.9rem; text-align: center;">
+                        <i class="fas fa-qrcode"></i> Show QR
+                    </a>
+                    <form method="POST" action="/teacher/finalize_session" style="margin: 0;">
+                        <input type="hidden" name="session_id" value="{{ .ID }}">
+                        <button type="submit" style="background: #e74c3c; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 0.9rem; width: 100%;" title="End early (for interruptions)">
+                            <i class="fas fa-stop"></i> End Early
                         </button>
                     </form>
                 </div>
-                {% endfor %}
-                {% else %}
-                <p>No active sessions.</p>
-                {% endif %}
             </div>
-            {% endif %}
+            {{ end }}
+            <p style="font-size: 0.75rem; color: #888; margin-top: 10px; text-align: center;">
+                <i class="fas fa-info-circle"></i> Sessions auto-end when class time is over. Use "End Early" only for interruptions.
+            </p>
+            {{ else }}
+            <div class="empty-state">
+                <i class="fas fa-inbox"></i>
+                <p>No active sessions</p>
+            </div>
+            {{ end }}
+        </div>
+
+        <!-- Correction Requests Section -->
+        <div class="section-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="margin: 0;"><i class="fas fa-clipboard-check" style="color: #f39c12 !important;"></i> Correction Requests</h3>
+                <button onclick="loadCorrectionRequests()" style="background: rgba(243, 156, 18, 0.1); color: #f39c12; border: 1px solid rgba(243, 156, 18, 0.3); padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.85rem;">
+                    <i class="fas fa-sync"></i> Refresh
+                </button>
+            </div>
+            <div id="correction-requests-list">
+                <div class="empty-state">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading requests...</p>
+                </div>
+            </div>
         </div>
     </div>
+
+    <!-- Correction Action Modal -->
+    <div id="correctionActionModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-clipboard-check" style="color: #f39c12;"></i> Review Request</h3>
+                <button class="modal-close" onclick="closeModal('correctionActionModal')">&times;</button>
+            </div>
+            <div id="correction-details">
+                <!-- Populated by JS -->
+            </div>
+            <div class="form-group" style="margin-top: 1rem;">
+                <label><i class="fas fa-comment"></i> Your Remarks (Optional)</label>
+                <textarea id="correction-remarks" rows="3" placeholder="Add a note for the student..." style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px;"></textarea>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
+                <button onclick="handleCorrectionAction('REJECT')" style="flex: 1; background: rgba(231, 76, 60, 0.1); color: #e74c3c; border: 2px solid #e74c3c; padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                    <i class="fas fa-times"></i> Reject
+                </button>
+                <button onclick="handleCorrectionAction('APPROVE')" style="flex: 1; background: linear-gradient(135deg, #2ecc71, #27ae60); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                    <i class="fas fa-check"></i> Approve
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Edit Modal -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-edit" style="color: #a18cd1;"></i> Edit Profile</h3>
+                <button class="modal-close" onclick="closeModal('profileModal')">&times;</button>
+            </div>
+            <form method="POST" action="/teacher/update_profile" enctype="multipart/form-data">
+                <div style="text-align: center; margin-bottom: 1.5rem;">
+                    <div style="width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, #a18cd1, #fbc2eb); margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden;" onclick="document.getElementById('profilePicInput').click()">
+                        {{ if .teacher.ProfilePic }}
+                        <img src="{{ .teacher.ProfilePic }}" style="width: 100%; height: 100%; object-fit: cover;" id="profilePreview">
+                        {{ else }}
+                        <i class="fas fa-camera" style="font-size: 1.5rem; color: white;" id="cameraIcon"></i>
+                        <img src="" style="width: 100%; height: 100%; object-fit: cover; display: none;" id="profilePreview">
+                        {{ end }}
+                    </div>
+                    <input type="file" id="profilePicInput" name="profile_pic" accept="image/*" style="display: none;" onchange="previewImage(this)">
+                    <small style="color: #888;">Click to change photo</small>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-user"></i> Full Name</label>
+                    <input type="text" name="full_name" value="{{ .teacher.Name }}" placeholder="Your name">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-envelope"></i> Email</label>
+                    <input type="email" name="email" value="{{ .teacher.Email }}" placeholder="email@college.edu">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-phone"></i> Phone</label>
+                    <input type="tel" name="phone" value="{{ .teacher.Phone }}" placeholder="+91 9876543210">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-building"></i> Department</label>
+                    <input type="text" name="department" value="{{ .teacher.Department }}" placeholder="Computer Science">
+                </div>
+                <button type="submit" style="width: 100%; background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); color: white; border: none; padding: 14px; border-radius: 10px; font-weight: 600; cursor: pointer; margin-top: 10px;">
+                    <i class="fas fa-save"></i> Save Changes
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-cog" style="color: #a18cd1;"></i> My Subjects</h3>
+                <button class="modal-close" onclick="closeModal('settingsModal')">&times;</button>
+            </div>
+
+            <p style="color: #666; margin-bottom: 1rem; font-size: 0.9rem;">
+                <i class="fas fa-info-circle"></i> Subjects are managed through the <strong>Timetable</strong>. Click on a timetable cell to add classes.
+            </p>
+
+            <!-- My Subjects List -->
+            <div id="mySubjects-content">
+                {{ if .all_subjects }}
+                <div style="max-height: 400px; overflow-y: auto;">
+                    {{ range .all_subjects }}
+                    <div style="padding: 15px; margin: 10px 0; background: rgba(161, 140, 209, 0.1); border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(161, 140, 209, 0.2);">
+                        <div>
+                            <strong style="color: #333;">{{ .Subject }}</strong><br>
+                            <small style="color: #888;">{{ .Branch }} • {{ .DayOfWeek }} {{ .TimeSlot }}</small>
+                        </div>
+                        <form method="POST" action="/teacher/delete_subject" style="margin: 0;">
+                            <input type="hidden" name="subject_id" value="{{ .ID }}">
+                            <button type="submit" style="background: rgba(231, 76, 60, 0.1); color: #e74c3c; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer;" title="Delete">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </form>
+                    </div>
+                    {{ end }}
+                </div>
+                {{ else }}
+                <div style="text-align: center; padding: 3rem; color: #888;">
+                    <i class="fas fa-calendar-alt" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                    <p>No subjects yet.</p>
+                    <button onclick="closeModal('settingsModal'); openModal('timetableModal');" style="margin-top: 1rem; background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); color: white; border: none; padding: 12px 25px; border-radius: 10px; cursor: pointer; font-weight: 600;">
+                        <i class="fas fa-plus"></i> Add via Timetable
+                    </button>
+                </div>
+                {{ end }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Timetable Modal -->
+    <div id="timetableModal" class="modal">
+        <div class="modal-content" style="max-width: 95%; width: 1200px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-calendar-alt" style="color: #9b59b6;"></i> My Timetable</h3>
+                <button class="modal-close" onclick="closeModal('timetableModal')">&times;</button>
+            </div>
+            
+            <p style="color: #666; margin-bottom: 1rem; font-size: 0.9rem;">
+                <i class="fas fa-info-circle"></i> Click on any cell to add a class. Working hours: 9:00 AM - 4:30 PM
+            </p>
+
+            <div class="timetable-container">
+                <table class="timetable" id="timetable">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Monday</th>
+                            <th>Tuesday</th>
+                            <th>Wednesday</th>
+                            <th>Thursday</th>
+                            <th>Friday</th>
+                            <th>Saturday</th>
+                        </tr>
+                    </thead>
+                    <tbody id="timetable-body">
+                        <!-- Generated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="timetable-actions">
+                <button onclick="clearTimetable()" style="background: rgba(231, 76, 60, 0.1); color: #e74c3c;">
+                    <i class="fas fa-trash-alt"></i> Clear All
+                </button>
+                <button onclick="exportTimetablePDF()" style="background: rgba(52, 152, 219, 0.1); color: #3498db;">
+                    <i class="fas fa-file-pdf"></i> Export PDF
+                </button>
+                <button onclick="location.reload()" style="background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); color: white;">
+                    <i class="fas fa-sync"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Class Modal -->
+    <div id="addClassModal" class="tt-modal">
+        <div class="tt-modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #eee;">
+                <h3 style="margin: 0; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-plus-circle" style="color: #a18cd1;"></i> 
+                    <span id="addClass-title">Add Class</span>
+                </h3>
+                <button onclick="closeAddClassModal()" style="width: 35px; height: 35px; border-radius: 50%; border: none; background: #f0f0f0; cursor: pointer; font-size: 1.1rem;">&times;</button>
+            </div>
+            
+            <div class="form-group">
+                <label><i class="fas fa-book"></i> Subject Name</label>
+                <input type="text" id="tt-subject" placeholder="e.g., Python Programming" required>
+            </div>
+            <div class="form-group">
+                <label><i class="fas fa-code-branch"></i> Class / Section</label>
+                <input type="text" id="tt-class" placeholder="e.g., CSE-A, ECE-B" required>
+            </div>
+            <div class="form-group">
+                <label><i class="fas fa-flask"></i> Class Type</label>
+                <select id="tt-type">
+                    <option value="theory">Theory Class (1 hour)</option>
+                    <option value="lab">Lab Session (3 hours)</option>
+                </select>
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
+                <button onclick="closeAddClassModal()" style="flex: 1; padding: 12px; border: 2px solid #a18cd1; background: rgba(161, 140, 209, 0.1); border-radius: 10px; cursor: pointer; font-weight: 600; color: #7c5db5;">
+                    Cancel
+                </button>
+                <button onclick="saveClass()" style="flex: 1; padding: 12px; border: none; background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); color: white; border-radius: 10px; cursor: pointer; font-weight: 600;">
+                    <i class="fas fa-save"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/backjs.js"></script>
+    <script>
+        function openModal(id) { document.getElementById(id).classList.add('active'); if(id === 'timetableModal') renderTimetable(); }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+        
+        document.querySelectorAll('.modal').forEach(m => {
+            m.addEventListener('click', e => { if(e.target === m) m.classList.remove('active'); });
+        });
+
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('profilePreview');
+                    const icon = document.getElementById('cameraIcon');
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                    if (icon) icon.style.display = 'none';
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const icon = document.getElementById('theme-icon');
+            icon.classList.toggle('fa-moon');
+            icon.classList.toggle('fa-sun');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+        }
+
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+            document.getElementById('theme-icon').classList.replace('fa-moon', 'fa-sun');
+        }
+
+        // ============ TIMETABLE MANAGEMENT ============
+        const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const TIME_SLOTS = [
+            { start: '9:00', end: '10:00', label: '9:00 - 10:00 AM' },
+            { start: '10:00', end: '11:00', label: '10:00 - 11:00 AM' },
+            { start: '11:00', end: '12:00', label: '11:00 AM - 12:00 PM' },
+            { start: '12:00', end: '13:00', label: '12:00 - 1:00 PM' },
+            { start: '13:00', end: '13:45', label: '1:00 - 1:45 PM', isLunch: true },
+            { start: '13:45', end: '14:45', label: '1:45 - 2:45 PM' },
+            { start: '14:45', end: '15:45', label: '2:45 - 3:45 PM' },
+            { start: '15:45', end: '16:30', label: '3:45 - 4:30 PM' }
+        ];
+
+        let currentCell = null;
+        let timetableData = {};
+        let isLoading = false;
+
+        // Load timetable from Backend API
+        async function loadTimetable() {
+            if (isLoading) return;
+            isLoading = true;
+            try {
+                const response = await fetch('/api/timetable');
+                const data = await response.json();
+                timetableData = {};
+                if (data.entries) {
+                    data.entries.forEach(entry => {
+                        const cellKey = entry.cell_key || `${entry.day}_${entry.slot_index}`;
+                        timetableData[cellKey] = {
+                            id: entry.id,
+                            subject: entry.subject,
+                            className: entry.class_name,
+                            type: entry.type,
+                            day: entry.day,
+                            slotIndex: entry.slot_index,
+                            timeSlot: entry.time_slot
+                        };
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading timetable:', error);
+            }
+            isLoading = false;
+        }
+
+        // Render the timetable
+        async function renderTimetable() {
+            await loadTimetable();
+            const tbody = document.getElementById('timetable-body');
+            tbody.innerHTML = '';
+
+            TIME_SLOTS.forEach((slot, slotIndex) => {
+                const row = document.createElement('tr');
+                
+                // Time column
+                const timeCell = document.createElement('td');
+                timeCell.className = 'time-col';
+                timeCell.textContent = slot.label;
+                row.appendChild(timeCell);
+
+                // Day columns
+                DAYS.forEach((day, dayIndex) => {
+                    const cell = document.createElement('td');
+                    const cellKey = `${day}_${slotIndex}`;
+
+                    if (slot.isLunch) {
+                        cell.className = 'lunch-break';
+                        cell.innerHTML = '<i class="fas fa-utensils"></i> Lunch Break';
+                    } else {
+                        // Check if this cell is part of a lab
+                        const labInfo = isPartOfLab(day, slotIndex);
+                        
+                        if (labInfo.isLab && !labInfo.isStart) {
+                            // This cell is part of a lab but not the start
+                            cell.className = 'lab-cell ' + (labInfo.position === 'middle' ? 'lab-middle' : 'lab-end');
+                            cell.style.cursor = 'default';
+                        } else if (timetableData[cellKey]) {
+                            const classData = timetableData[cellKey];
+                            cell.className = classData.type === 'lab' ? 'has-class lab-cell lab-start' : 'has-class';
+                            cell.innerHTML = `
+                                <div class="class-entry">
+                                    <div class="subject-name">${classData.subject}</div>
+                                    <div class="class-name">${classData.className}</div>
+                                    ${classData.type === 'lab' ? '<div class="lab-badge"><i class="fas fa-flask"></i> LAB</div>' : ''}
+                                </div>
+                                <button class="class-delete-btn" onclick="deleteClass('${cellKey}', event)">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            `;
+                        } else {
+                            cell.innerHTML = '<span style="color: #ccc; font-size: 0.8rem;"><i class="fas fa-plus"></i></span>';
+                            cell.onclick = () => openAddClassModal(day, slotIndex);
+                        }
+                    }
+
+                    row.appendChild(cell);
+                });
+
+                tbody.appendChild(row);
+            });
+        }
+
+        // Check if a slot is part of a lab session
+        function isPartOfLab(day, slotIndex) {
+            // Check previous slots for lab starts
+            for (let i = slotIndex - 1; i >= Math.max(0, slotIndex - 2); i--) {
+                const prevKey = `${day}_${i}`;
+                if (timetableData[prevKey] && timetableData[prevKey].type === 'lab') {
+                    // Check if this slot is within the lab's 3-hour span
+                    const labSlots = getLabSlots(i);
+                    if (labSlots.includes(slotIndex)) {
+                        const position = slotIndex === labSlots[1] ? 'middle' : 'end';
+                        return { isLab: true, isStart: false, position };
+                    }
+                }
+            }
+            return { isLab: false, isStart: false };
+        }
+
+        // Get the slots a lab would occupy starting from a given slot
+        function getLabSlots(startSlot) {
+            const slots = [startSlot];
+            let count = 1;
+            for (let i = startSlot + 1; i < TIME_SLOTS.length && count < 3; i++) {
+                if (!TIME_SLOTS[i].isLunch) {
+                    slots.push(i);
+                    count++;
+                }
+            }
+            return slots;
+        }
+
+        // Open add class modal
+        function openAddClassModal(day, slotIndex) {
+            currentCell = { day, slotIndex };
+            document.getElementById('addClass-title').textContent = `Add Class - ${day}, ${TIME_SLOTS[slotIndex].label}`;
+            document.getElementById('tt-subject').value = '';
+            document.getElementById('tt-class').value = '';
+            document.getElementById('tt-type').value = 'theory';
+            document.getElementById('addClassModal').classList.add('active');
+        }
+
+        function closeAddClassModal() {
+            document.getElementById('addClassModal').classList.remove('active');
+            currentCell = null;
+        }
+
+        // Save class to timetable via Backend API
+        async function saveClass() {
+            const subject = document.getElementById('tt-subject').value.trim();
+            const className = document.getElementById('tt-class').value.trim();
+            const type = document.getElementById('tt-type').value;
+
+            if (!subject || !className) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            if (!currentCell) return;
+
+            const { day, slotIndex } = currentCell;
+            const cellKey = `${day}_${slotIndex}`;
+
+            // Check for lab conflicts
+            if (type === 'lab') {
+                const labSlots = getLabSlots(slotIndex);
+                if (labSlots.length < 3) {
+                    alert('Not enough consecutive slots available for a 3-hour lab session');
+                    return;
+                }
+                
+                // Check if any lab slot conflicts with existing classes
+                for (const slot of labSlots) {
+                    const key = `${day}_${slot}`;
+                    if (timetableData[key]) {
+                        alert('Lab session would overlap with an existing class');
+                        return;
+                    }
+                    if (TIME_SLOTS[slot].isLunch) {
+                        alert('Lab session cannot overlap with lunch break');
+                        return;
+                    }
+                }
+            }
+
+            // Save via API
+            try {
+                const response = await fetch('/api/timetable/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        day: day,
+                        slot_index: slotIndex,
+                        subject: subject,
+                        class_name: className,
+                        type: type,
+                        time_slot: TIME_SLOTS[slotIndex].label
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    await renderTimetable();
+                    closeAddClassModal();
+                    showToast('Class added successfully!', 'success');
+                } else {
+                    alert(result.error || 'Failed to save class');
+                }
+            } catch (error) {
+                console.error('Error saving class:', error);
+                alert('Failed to save class. Please try again.');
+            }
+        }
+
+        // Delete a class via Backend API
+        async function deleteClass(cellKey, event) {
+            event.stopPropagation();
+            if (!confirm('Delete this class? This will also remove it from your subjects list.')) return;
+            
+            try {
+                const response = await fetch('/api/timetable/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cell_key: cellKey })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    await renderTimetable();
+                    showToast('Class deleted!', 'info');
+                } else {
+                    alert(result.error || 'Failed to delete class');
+                }
+            } catch (error) {
+                console.error('Error deleting class:', error);
+                alert('Failed to delete class. Please try again.');
+            }
+        }
+
+        // Clear entire timetable via Backend API
+        async function clearTimetable() {
+            if (!confirm('Are you sure you want to clear the entire timetable? This will also remove all subjects. This cannot be undone.')) return;
+            
+            try {
+                const response = await fetch('/api/timetable/clear', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    timetableData = {};
+                    await renderTimetable();
+                    showToast('Timetable cleared!', 'info');
+                } else {
+                    alert(result.error || 'Failed to clear timetable');
+                }
+            } catch (error) {
+                console.error('Error clearing timetable:', error);
+                alert('Failed to clear timetable. Please try again.');
+            }
+        }
+
+        // Toast notification helper
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                padding: 15px 25px;
+                background: ${type === 'success' ? 'linear-gradient(135deg, #2ecc71, #27ae60)' : 'linear-gradient(135deg, #3498db, #2980b9)'};
+                color: white;
+                border-radius: 10px;
+                font-weight: 600;
+                z-index: 9999;
+                animation: slideUp 0.3s ease;
+                box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            `;
+            toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'info-circle'}"></i> ${message}`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // Export timetable as PDF
+        function exportTimetablePDF() {
+            // Simple print-based PDF export
+            const printContent = document.getElementById('timetable').outerHTML;
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>My Timetable</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 20px; }
+                        h1 { text-align: center; color: #a18cd1; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                        th { background: linear-gradient(135deg, #a18cd1, #fbc2eb); color: white; padding: 12px; }
+                        td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+                        .lunch-break { background: #fff3cd; color: #856404; }
+                        .has-class { background: #d4edda; }
+                        .lab-cell { background: #cce5ff; }
+                        .subject-name { font-weight: bold; }
+                        .class-name { font-size: 0.85rem; color: #666; }
+                        .lab-badge { background: #3498db; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; display: inline-block; margin-top: 3px; }
+                        .class-delete-btn { display: none; }
+                        @media print { 
+                            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h1>📅 My Weekly Timetable</h1>
+                    <p style="text-align: center; color: #666;">Generated on ${new Date().toLocaleDateString()}</p>
+                    ${printContent}
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+            setTimeout(() => printWindow.print(), 500);
+        }
+
+        // Session countdown timer
+        function updateSessionTimers() {
+            const timeElements = document.querySelectorAll('.time-remaining');
+            const now = Math.floor(Date.now() / 1000);
+            let hasExpired = false;
+
+            timeElements.forEach(el => {
+                const endTime = parseInt(el.dataset.end);
+                const remaining = endTime - now;
+
+                if (remaining <= 0) {
+                    el.textContent = 'ENDED';
+                    el.parentElement.style.background = 'rgba(40, 167, 69, 0.15)';
+                    el.parentElement.style.color = '#28a745';
+                    hasExpired = true;
+                } else {
+                    const hours = Math.floor(remaining / 3600);
+                    const minutes = Math.floor((remaining % 3600) / 60);
+                    const seconds = remaining % 60;
+                    
+                    if (hours > 0) {
+                        el.textContent = `${hours}h ${minutes}m`;
+                    } else if (minutes > 0) {
+                        el.textContent = `${minutes}m ${seconds}s`;
+                    } else {
+                        el.textContent = `${seconds}s`;
+                    }
+
+                    // Warning color when less than 5 minutes
+                    if (remaining < 300) {
+                        el.parentElement.style.background = 'rgba(231, 76, 60, 0.3)';
+                        el.parentElement.style.animation = 'pulse 1s infinite';
+                    }
+                }
+            });
+
+            // If any session expired, reload page after 2 seconds to refresh
+            if (hasExpired) {
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            }
+        }
+
+        // Update every second
+        setInterval(updateSessionTimers, 1000);
+        updateSessionTimers(); // Initial call
+
+        // Initialize timetable on page load
+        loadTimetable();
+
+        // ==================== CORRECTION REQUESTS ====================
+        let currentCorrectionId = null;
+
+        async function loadCorrectionRequests() {
+            const listDiv = document.getElementById('correction-requests-list');
+            listDiv.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading...</p></div>';
+            
+            try {
+                const res = await fetch('/teacher/correction_requests');
+                const data = await res.json();
+                console.log('Teacher correction requests response:', data);
+                
+                if (data.success && data.requests && data.requests.length > 0) {
+                    const pending = data.requests.filter(r => r.status === 'PENDING');
+                    const handled = data.requests.filter(r => r.status !== 'PENDING');
+                    
+                    let html = '';
+                    
+                    if (pending.length > 0) {
+                        html += `<div style="margin-bottom: 1rem;"><span style="background: #ffc107; color: #000; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">${pending.length} Pending</span></div>`;
+                        pending.forEach(r => {
+                            html += createCorrectionCard(r, true);
+                        });
+                    }
+                    
+                    if (handled.length > 0) {
+                        html += `<div style="margin: 1.5rem 0 1rem; border-top: 1px solid rgba(0,0,0,0.1); padding-top: 1rem;"><span style="color: #888; font-size: 0.85rem;"><i class="fas fa-history"></i> Recent Actions</span></div>`;
+                        handled.slice(0, 5).forEach(r => {
+                            html += createCorrectionCard(r, false);
+                        });
+                    }
+                    
+                    listDiv.innerHTML = html;
+                } else {
+                    listDiv.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-clipboard-check"></i>
+                            <p>No correction requests</p>
+                            <small style="color: #888;">Students will appear here when they request attendance corrections</small>
+                        </div>
+                    `;
+                }
+            } catch (err) {
+                console.error('Error loading teacher correction requests:', err);
+                listDiv.innerHTML = '<div class="empty-state" style="color: #e74c3c;"><i class="fas fa-exclamation-triangle"></i><p>Error loading requests</p></div>';
+            }
+        }
+
+        function createCorrectionCard(r, isPending) {
+            const statusColor = r.status === 'APPROVED' ? '#28a745' : r.status === 'REJECTED' ? '#dc3545' : '#ffc107';
+            const statusIcon = r.status === 'APPROVED' ? 'check-circle' : r.status === 'REJECTED' ? 'times-circle' : 'clock';
+            let createdAt = 'N/A';
+            if (r.created_at) {
+                if (r.created_at.seconds) createdAt = new Date(r.created_at.seconds * 1000).toLocaleDateString();
+                else if (typeof r.created_at === 'string') createdAt = new Date(r.created_at).toLocaleDateString();
+            }
+            
+            return `
+                <div style="background: rgba(0,0,0,0.03); border-radius: 12px; padding: 15px; margin-bottom: 10px; border-left: 4px solid ${statusColor};">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                        <div>
+                            <strong style="color: #333; font-size: 1rem;">${r.student_name || r.roll}</strong>
+                            <span style="background: rgba(102, 126, 234, 0.1); color: #667eea; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; margin-left: 8px;">${r.roll}</span>
+                        </div>
+                        <span style="background: ${statusColor}; color: white; padding: 3px 10px; border-radius: 15px; font-size: 0.7rem; font-weight: 600;">
+                            <i class="fas fa-${statusIcon}"></i> ${r.status}
+                        </span>
+                    </div>
+                    <div style="font-size: 0.85rem; color: #666; margin-bottom: 10px;">
+                        <div style="margin-bottom: 4px;"><i class="fas fa-book" style="width: 18px; color: #a18cd1;"></i> ${r.subject}</div>
+                        <div style="margin-bottom: 4px;"><i class="fas fa-calendar" style="width: 18px; color: #3498db;"></i> Absent: ${r.absent_date}</div>
+                        <div style="margin-bottom: 4px;"><i class="fas fa-comment-alt" style="width: 18px; color: #9b59b6;"></i> ${r.reason ? (r.reason.length > 50 ? r.reason.substring(0, 50) + '...' : r.reason) : 'No reason provided'}</div>
+                        ${r.proof_img ? `<div><i class="fas fa-paperclip" style="width: 18px; color: #e67e22;"></i> <a href="/static/proofs/${r.proof_img}" target="_blank" style="color: #3498db;">View Proof</a></div>` : ''}
+                    </div>
+                    ${isPending ? `
+                        <div style="display: flex; gap: 8px;">
+                            <button class="review-correction-btn" data-id="${r.id}" data-name="${encodeURIComponent(r.student_name || r.roll)}" data-roll="${r.roll}" data-subject="${r.subject}" data-date="${r.absent_date}" data-reason="${encodeURIComponent(r.reason || '')}" data-proof="${r.proof_img || ''}" style="flex: 1; background: linear-gradient(135deg, #f39c12, #e67e22); color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: 500;">
+                                <i class="fas fa-eye"></i> Review
+                            </button>
+                        </div>
+                    ` : `
+                        ${r.teacher_remarks ? `<div style="background: rgba(0,0,0,0.05); padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; color: #555;"><i class="fas fa-quote-left" style="color: #888;"></i> ${r.teacher_remarks}</div>` : ''}
+                    `}
+                </div>
+            `;
+        }
+
+        // Event delegation for review buttons
+        document.getElementById('correction-requests-list').addEventListener('click', function(e) {
+            const btn = e.target.closest('.review-correction-btn');
+            if (btn) {
+                const id = btn.dataset.id;
+                const name = decodeURIComponent(btn.dataset.name);
+                const roll = btn.dataset.roll;
+                const subject = btn.dataset.subject;
+                const date = btn.dataset.date;
+                const reason = decodeURIComponent(btn.dataset.reason);
+                const proof = btn.dataset.proof;
+                openCorrectionAction(id, name, roll, subject, date, reason, proof);
+            }
+        });
+
+        function openCorrectionAction(id, name, roll, subject, date, reason, proof) {
+            currentCorrectionId = id;
+            let proofHtml = '';
+            if (proof) {
+                proofHtml = `<div style="margin: 10px 0;"><i class="fas fa-paperclip" style="color: #e67e22; width: 20px;"></i> <strong>Proof:</strong> <a href="/static/proofs/${proof}" target="_blank" style="color: #3498db; text-decoration: underline;">View Attachment</a></div>`;
+            }
+            document.getElementById('correction-details').innerHTML = `
+                <div style="background: linear-gradient(135deg, rgba(243, 156, 18, 0.1), rgba(230, 126, 34, 0.1)); padding: 15px; border-radius: 12px; margin-bottom: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <div style="width: 45px; height: 45px; background: linear-gradient(135deg, #f39c12, #e67e22); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">
+                            <i class="fas fa-user-graduate"></i>
+                        </div>
+                        <div>
+                            <strong style="font-size: 1.1rem; color: #333;">${name}</strong>
+                            <div style="font-size: 0.85rem; color: #888;">${roll}</div>
+                        </div>
+                    </div>
+                    <div style="font-size: 0.9rem; color: #555;">
+                        <div style="margin: 8px 0;"><i class="fas fa-book" style="color: #a18cd1; width: 20px;"></i> <strong>Subject:</strong> ${subject}</div>
+                        <div style="margin: 8px 0;"><i class="fas fa-calendar-times" style="color: #e74c3c; width: 20px;"></i> <strong>Absent Date:</strong> ${date}</div>
+                        ${proofHtml}
+                        <div style="margin: 8px 0;"><i class="fas fa-comment" style="color: #3498db; width: 20px;"></i> <strong>Reason:</strong></div>
+                        <div style="background: white; padding: 10px; border-radius: 8px; margin-top: 5px; font-style: italic;">"${reason || 'No reason provided'}"</div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('correction-remarks').value = '';
+            openModal('correctionActionModal');
+        }
+
+        async function handleCorrectionAction(action) {
+            if (!currentCorrectionId) return;
+            
+            const remarks = document.getElementById('correction-remarks').value;
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            
+            try {
+                const res = await fetch('/teacher/handle_correction', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        request_id: currentCorrectionId,
+                        action: action,
+                        remarks: remarks
+                    })
+                });
+                
+                const data = await res.json();
+                if (data.success) {
+                    closeModal('correctionActionModal');
+                    showToast(`Request ${action.toLowerCase()}d successfully!`, 'success');
+                    loadCorrectionRequests();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (err) {
+                alert('Network error. Please try again.');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+        // Load correction requests on page load
+        loadCorrectionRequests();
+    </script>
 </body>
 
 </html>

@@ -1,0 +1,17 @@
+[FIREBASE] Using credentials from: firebase-credentials.json
+[FIREBASE] Initialized successfully
+[GIN-debug] [WARNING] Creating an Engine instance with the Logger and Recovery middleware already attached.
+
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+panic: template: scan_session.html:120: unexpected EOF
+
+goroutine 1 [running]:
+html/template.Must(...)
+	C:/Program Files/Go/src/html/template/template.go:368
+github.com/gin-gonic/gin.(*Engine).LoadHTMLGlob(0xc0000a4b60, {0x7ff721407d77, 0xb})
+	C:/Users/ASUS/go/pkg/mod/github.com/gin-gonic/gin@v1.9.1/gin.go:255 +0x2f2
+main.main()
+	E:/antigravity QR/QR_Attendance/main.go:554 +0x3b

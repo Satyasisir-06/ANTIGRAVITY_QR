@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Attendance</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --success: #10b981;
+            --danger: #ef4444;
+            --bg-dark: #0f172a;
+            --card-dark: #1e293b;
+            --text-light: #f1f5f9;
+            --text-gray: #94a3b8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: var(--card-dark);
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .date-display {
+            font-size: 1.25rem;
+            color: var(--text-gray);
+            margin-bottom: 2rem;
+            font-weight: 500;
+        }
+
+        .action-area {
+            margin: 2rem 0;
+        }
+
+        .mark-btn {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            padding: 1.2rem 3rem;
+            font-size: 1.25rem;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+            width: 100%;
+        }
+
+        .mark-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
+        }
+
+        .mark-btn:disabled {
+            background: #334155;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+            color: #94a3b8;
+        }
+
+        .status-message {
+            margin-top: 1rem;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .status-success {
+            color: var(--success);
+        }
+
+        .status-error {
+            color: var(--danger);
+        }
+
+        .issue-section {
+            margin-top: 3rem;
+            border-top: 1px solid #334155;
+            padding-top: 2rem;
+            text-align: left;
+        }
+
+        .issue-toggle {
+            background: none;
+            border: none;
+            color: var(--text-gray);
+            font-size: 0.9rem;
+            text-decoration: underline;
+            cursor: pointer;
+            margin-bottom: 1rem;
+        }
+
+        .issue-form {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .issue-form.visible {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-gray);
+            font-size: 0.9rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.8rem;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+        }
+
+        .submit-issue-btn {
+            background: #334155;
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 12px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: 500;
+            transition: 0.2s;
+        }
+
+        .submit-issue-btn:hover {
+            background: #475569;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Teacher Attendance</h1>
+            <div class="date-display">{{ .date }}</div>
+        </div>
+
+        <div class="action-area">
+            {{ if .already_marked }}
+            <div class="status-message status-success">
+                ✓ Attendance Marked for Today
+            </div>
+            <button class="mark-btn" disabled>Marked</button>
+            {{ else }}
+            <button class="mark-btn" id="markBtn" onclick="markAttendance()">Mark Present</button>
+            <div id="markStatus" class="status-message"></div>
+            {{ end }}
+        </div>
+
+        <div class="issue-section">
+            <button class="issue-toggle" onclick="toggleIssueForm()">Cannot mark? Report an Issue</button>
+
+            <div class="issue-form" id="issueForm">
+                <div class="form-group">
+                    <label>Reason</label>
+                    <select class="form-control" id="issueReason">
+                        <option value="Sick Leave">Sick Leave</option>
+                        <option value="Casual Leave">Casual Leave</option>
+                        <option value="On Duty (OD)">On Duty (OD)</option>
+                        <option value="Device Issue">Device/Network Issue</option>
+                        <option value="Forgot to Scan">Forgot to Scan</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Proof URL (Optional)</label>
+                    <input type="text" class="form-control" id="issueProof" placeholder="Link to document...">
+                </div>
+                <button class="submit-issue-btn" onclick="submitIssue()">Submit Request</button>
+                <div id="issueStatus" class="status-message"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleIssueForm() {
+            document.getElementById('issueForm').classList.toggle('visible');
+        }
+
+        async function markAttendance() {
+            const btn = document.getElementById('markBtn');
+            const status = document.getElementById('markStatus');
+
+            btn.disabled = true;
+            btn.innerText = "Processing...";
+            status.innerText = "";
+
+            try {
+                const response = await fetch('/teacher/mark-attendance', {
+                    method: 'POST'
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    status.innerHTML = `<span class="status-success">✓ ${result.message}</span>`;
+                    btn.innerText = "Marked";
+                    // Confetti or simple reload after delay
+                    setTimeout(() => location.reload(), 2000);
+                } else {
+                    status.innerHTML = `<span class="status-error">✕ ${result.message}</span>`;
+                    btn.disabled = false;
+                    btn.innerText = "Mark Present";
+                }
+            } catch (error) {
+                status.innerHTML = `<span class="status-error">✕ Network Error</span>`;
+                btn.disabled = false;
+                btn.innerText = "Mark Present";
+            }
+        }
+
+        async function submitIssue() {
+            const reason = document.getElementById('issueReason').value;
+            const proof = document.getElementById('issueProof').value;
+            const status = document.getElementById('issueStatus');
+
+            try {
+                const response = await fetch('/teacher/raise-issue', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        date: "{{ .date }}",
+                        reason: reason,
+                        proof_url: proof
+                    })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    status.innerHTML = `<span class="status-success">✓ ${result.message}</span>`;
+                    setTimeout(() => location.reload(), 2000);
+                } else {
+                    status.innerHTML = `<span class="status-error">✕ ${result.message}</span>`;
+                }
+            } catch (e) {
+                status.innerHTML = `<span class="status-error">✕ Error submitting issue</span>`;
+            }
+        }
+    </script>
+</body>
+
+</html>

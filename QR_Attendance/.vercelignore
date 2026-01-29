@@ -1,0 +1,25 @@
+# Vercel Ignore File
+# Exclude Python environment
+.venv
+venv
+env
+__pycache__
+*.pyc
+
+# Exclude Git
+.git
+.gitignore
+
+# Exclude Node modules (if any exist in root)
+node_modules
+
+# Exclude large DBs if they shouldn't be uploaded (use cloud DB instead)
+*.db
+*.sqlite3
+
+# Exclude other potentially large files or logs
+*.log
+push_log.txt
+push_branch_log.txt
+push_error.txt
+push_debug.txt

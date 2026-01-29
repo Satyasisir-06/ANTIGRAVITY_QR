@@ -5,523 +5,1044 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Dashboard | QR Attendance</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=2">
+    <link rel="stylesheet" href="/static/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <style>
+        .calculator-section {
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .calculator-section h3 {
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .calc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .calc-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .calc-input-group label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        .calc-input-group input {
+            padding: 10px 15px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            font-size: 1rem;
+        }
+
+        .calc-result {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        .calc-result h4 {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .calc-result .result-value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .calc-result .result-detail {
+            font-size: 0.85rem;
+            opacity: 0.85;
+            margin-top: 5px;
+        }
+
+        .semester-info {
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .semester-info-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .semester-info-item i {
+            color: #667eea;
+        }
+
+        .attendance-warning {
+            background: rgba(255, 193, 7, 0.15);
+            border: 1px solid rgba(255, 193, 7, 0.4);
+            color: #856404;
+            padding: 1rem;
+            border-radius: 12px;
+            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .attendance-danger {
+            background: rgba(220, 53, 69, 0.15);
+            border: 1px solid rgba(220, 53, 69, 0.4);
+            color: #721c24;
+        }
+
+        .attendance-success {
+            background: rgba(40, 167, 69, 0.15);
+            border: 1px solid rgba(40, 167, 69, 0.4);
+            color: #155724;
+        }
+
+        .tab-container {
+            margin-top: 2rem;
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 1rem;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            border: none;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 576px) {
+            .navbar {
+                flex-direction: column;
+                gap: 12px;
+                padding: 10px 0;
+            }
+
+            .navbar .brand {
+                font-size: 1rem;
+            }
+
+            .nav-links {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 8px !important;
+                width: 100%;
+            }
+
+            .nav-links button,
+            .nav-links a {
+                padding: 8px 12px !important;
+                font-size: 0.8rem !important;
+            }
+
+            /* Hide text on mobile for profile button */
+            .profile-btn .profile-name {
+                display: none !important;
+            }
+
+            .profile-btn {
+                padding: 5px !important;
+            }
+
+            /* Shorter text for report button */
+            .report-btn .btn-text {
+                display: none;
+            }
+
+            .report-btn::after {
+                content: "Report";
+                font-size: 0.75rem;
+            }
+
+            .semester-info {
+                flex-direction: column;
+                gap: 8px;
+                padding: 0.75rem;
+            }
+
+            .semester-info-item {
+                font-size: 0.85rem;
+            }
+
+            .calculator-section {
+                padding: 1rem;
+            }
+
+            .calc-grid {
+                grid-template-columns: 1fr !important;
+                gap: 0.75rem;
+            }
+
+            .calc-result {
+                padding: 1rem;
+            }
+
+            .calc-result .result-value {
+                font-size: 1.5rem;
+            }
+
+            .tab-buttons {
+                flex-wrap: wrap;
+            }
+
+            .tab-btn {
+                padding: 8px 15px;
+                font-size: 0.85rem;
+            }
+
+            /* Profile Modal Mobile */
+            #profileModal > div {
+                padding: 1.25rem !important;
+                width: 95% !important;
+                margin: 10px auto;
+            }
+
+            #profileModal .profile-avatar,
+            #profileModal > div > div:first-child > div:first-child {
+                width: 70px !important;
+                height: 70px !important;
+            }
+
+            #profileModal h2 {
+                font-size: 1.2rem !important;
+            }
+
+            #profileModal input,
+            #profileModal select {
+                font-size: 16px !important; /* Prevent iOS zoom */
+            }
+
+            /* Stats grid in profile */
+            .profile-stats-grid {
+                gap: 8px !important;
+            }
+
+            .profile-stats-grid > div {
+                padding: 10px !important;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .navbar .brand {
+                font-size: 0.9rem;
+            }
+
+            .nav-links {
+                gap: 5px !important;
+            }
+
+            .semester-info-item span {
+                font-size: 0.75rem;
+            }
+        }
+    </style>
 </head>
 
 <body>
     <div class="container-wide glass-container animate-pop">
         <nav class="navbar">
-            <div class="brand"><i class="fas fa-user-graduate"></i> Student Portal</div>
+            <div class="brand"><i class="fas fa-user-graduate"></i> <span class="brand-text">Student Portal</span></div>
             <div class="nav-links">
-                <!-- Theme Toggle -->
                 <button onclick="toggleDarkMode()"
-                    style="width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); border-radius: 50%; color: var(--text-color); cursor: pointer; transition: all 0.3s; margin: 0;">
+                    style="width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); border-radius: 50%; color: var(--text-color); cursor: pointer; transition: all 0.3s; margin: 0; min-width: 40px;">
                     <i id="theme-icon" class="fas fa-moon"></i>
                 </button>
-
-                <!-- User Profile Badge -->
-                <div
-                    style="background: rgba(255, 255, 255, 0.25); backdrop-filter: blur(4px); padding: 5px 15px 5px 5px; border-radius: 50px; display: flex; align-items: center; gap: 10px; border: 1px solid rgba(255,255,255,0.4);">
+                <button onclick="openProfileModal()" class="profile-btn"
+                    style="background: rgba(255, 255, 255, 0.25); backdrop-filter: blur(4px); padding: 5px 12px 5px 5px; border-radius: 50px; display: flex; align-items: center; gap: 8px; border: 1px solid rgba(255,255,255,0.4); cursor: pointer;">
                     <div
-                        style="width: 35px; height: 35px; background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                        style="width: 32px; height: 32px; background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); flex-shrink: 0;">
                         <i class="fas fa-user"></i>
                     </div>
-                    <span style="font-weight: 600; font-size: 0.95rem; color: var(--text-color);">{{ username }}</span>
-                </div>
-
-                <!-- Report Issue Button -->
-                <button onclick="openGeneralCorrectionModal()"
-                    style="width: auto; background: #000000; border: 1px solid rgba(255,255,255,0.2); padding: 10px 20px; border-radius: 25px; color: white; font-weight: 600; display: flex; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3); transition: transform 0.2s;">
-                    <i class="fas fa-exclamation-triangle"></i> Report Issue
+                    <span class="profile-name" style="font-weight: 600; font-size: 0.85rem; color: var(--text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px;">{{ .username }}</span>
                 </button>
-
-                <!-- Logout Button -->
+                <button onclick="openGeneralCorrectionModal()" class="report-btn"
+                    style="background: #000000; border: 1px solid rgba(255,255,255,0.2); padding: 8px 14px; border-radius: 25px; color: white; font-weight: 600; display: flex; align-items: center; gap: 6px; cursor: pointer; white-space: nowrap;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span class="btn-text">Report</span>
+                </button>
                 <a href="/logout"
-                    style="width: 40px; height: 40px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #e74c3c; text-decoration: none; box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: transform 0.2s;"
+                    style="width: 40px; height: 40px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #e74c3c; text-decoration: none; min-width: 40px; flex-shrink: 0;"
                     title="Logout">
                     <i class="fas fa-sign-out-alt"></i>
                 </a>
             </div>
         </nav>
 
-        <!-- Attendance Overview -->
+        <!-- Semester Info Banner -->
+        {{ if and .semester_start .semester_end }}
+        <div class="semester-info">
+            <div class="semester-info-item">
+                <i class="fas fa-calendar-alt"></i>
+                <span><strong>Semester:</strong> {{ .semester_start }} to {{ .semester_end }}</span>
+            </div>
+            <div class="semester-info-item">
+                <i class="fas fa-user-tag"></i>
+                <span><strong>Roll:</strong> {{ .student_id }}</span>
+            </div>
+            <div class="semester-info-item">
+                <i class="fas fa-code-branch"></i>
+                <span><strong>Branch:</strong> {{ .branch }}</span>
+            </div>
+        </div>
+        {{ end }}
+
         <div class="stats-container"
             style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
             <div class="stat-card">
-                <h3>Total Present</h3>
-                <p class="stat-num">{{ total_present }}</p>
+                <h3><i class="fas fa-check-circle" style="color: #28a745;"></i> Total Present</h3>
+                <p class="stat-num" id="stat-present">{{ .total_present }}</p>
             </div>
             <div class="stat-card">
-                <h3>Total Working Days</h3>
-                <p class="stat-num">{{ working_days }}</p>
+                <h3><i class="fas fa-calendar-check" style="color: #667eea;"></i> Total Working Days</h3>
+                <p class="stat-num" id="stat-working">{{ .working_days }}</p>
             </div>
             <div class="stat-card">
-                <h3>Semester Days Remaining</h3>
-                <p class="stat-num" id="stat-rem-days">{{ total_sem_days - working_days }}</p>
+                <h3><i class="fas fa-hourglass-half" style="color: #ffc107;"></i> Semester Days Remaining</h3>
+                <p class="stat-num" id="stat-rem-days">{{ .remaining_sem_days }}</p>
             </div>
             <div class="stat-card">
-                <h3>Overall Percentage</h3>
+                <h3><i class="fas fa-percentage" style="color: #764ba2;"></i> Overall Percentage</h3>
                 <div style="display: flex; align-items: center; gap: 15px; justify-content: center;">
-                    <p class="stat-num" style="min-width: unset;">{{ percentage }}%</p>
-                    <div
-                        style="width: 100px; background: rgba(255,255,255,0.3); height: 12px; border-radius: 10px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);">
-                        <div
-                            style="width: '{{ percentage }}%'; height: 100%; background: linear-gradient(90deg, #96e6a1 0%, #d4fc79 100%); transition: width 1.5s cubic-bezier(0.34, 1.56, 0.64, 1); box-shadow: 0 0 10px rgba(150, 230, 161, 0.5);">
+                    <p class="stat-num" id="stat-percentage" style="min-width: unset;">{{ printf "%.2f" .percentage }}%</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tab-container">
+            <div class="tab-buttons">
+                <button class="tab-btn active" onclick="showTab('records')">
+                    <i class="fas fa-list"></i> Attendance Records
+                </button>
+                <button class="tab-btn" onclick="showTab('calculator')">
+                    <i class="fas fa-calculator"></i> Attendance Calculator
+                </button>
+            </div>
+
+            <!-- Attendance Records Tab -->
+            <div id="records-tab" class="tab-content active">
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Subject</th>
+                                <th>Branch</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{ range .records }}
+                            <tr>
+                                <td data-label="Date">{{ .Date }}</td>
+                                <td data-label="Time">{{ .Time }}</td>
+                                <td data-label="Subject">{{ .Subject }}</td>
+                                <td data-label="Branch">{{ .Branch }}</td>
+                                <td data-label="Status">
+                                    {{ if eq .Status "PRESENT" }}
+                                    <span class="status-present"><i class="fas fa-check-circle"></i> Present</span>
+                                    {{ else if eq .Status "Present" }}
+                                    <span class="status-present"><i class="fas fa-check-circle"></i> Present</span>
+                                    {{ else }}
+                                    <span class="status-absent"><i class="fas fa-times-circle"></i> Absent</span>
+                                    {{ end }}
+                                </td>
+                                <td data-label="Action">
+                                    {{ if or (eq .Status "Absent") (eq .Status "ABSENT") }}
+                                    <button onclick="openCorrectionForRecord('{{ .Subject }}', '{{ .Date }}', '{{ .TeacherID }}')" 
+                                        class="btn-small" style="background: linear-gradient(135deg, #f39c12, #e67e22); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.75rem;">
+                                        <i class="fas fa-flag"></i> Report
+                                    </button>
+                                    {{ else }}
+                                    <span style="color: #999; font-size: 0.75rem;"><i class="fas fa-check"></i> OK</span>
+                                    {{ end }}
+                                </td>
+                            </tr>
+                            {{ else }}
+                            <tr>
+                                <td colspan="6" style="text-align: center;">No records found.</td>
+                            </tr>
+                            {{ end }}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Calculator Tab -->
+            <div id="calculator-tab" class="tab-content">
+                <div class="calculator-section">
+                    <h3><i class="fas fa-calculator"></i> Attendance Calculator</h3>
+                    <p style="margin-bottom: 1rem; font-size: 0.9rem; color: var(--text-muted);">
+                        Plan your attendance and see how many classes you can skip while maintaining 75% attendance.
+                    </p>
+
+                    <div class="calc-grid">
+                        <div class="calc-input-group">
+                            <label><i class="fas fa-check"></i> Classes Attended</label>
+                            <input type="number" id="calc-attended" value="{{ .total_present }}" min="0" onchange="calculateAttendance()">
+                        </div>
+                        <div class="calc-input-group">
+                            <label><i class="fas fa-calendar"></i> Total Classes Held</label>
+                            <input type="number" id="calc-total" value="{{ .working_days }}" min="0" onchange="calculateAttendance()">
+                        </div>
+                        <div class="calc-input-group">
+                            <label><i class="fas fa-forward"></i> Future Classes (Remaining)</label>
+                            <input type="number" id="calc-future" value="{{ .remaining_sem_days }}" min="0" onchange="calculateAttendance()">
+                        </div>
+                        <div class="calc-input-group">
+                            <label><i class="fas fa-bullseye"></i> Target Percentage (%)</label>
+                            <input type="number" id="calc-target" value="75" min="0" max="100" onchange="calculateAttendance()">
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Smart Analytics Section -->
-        <!-- Smart Analytics Section -->
-        <div
-            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-bottom: 3rem;">
-
-            <!-- Safe Zone Calculator -->
-            <div class="glass-container"
-                style="max-width: none; padding: 2rem; display: flex; flex-direction: column; align-items: center; text-align: center; position: relative; overflow: hidden;">
-
-                <div
-                    style="width: 70px; height: 70px; background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; color: white; margin-bottom: 1rem; box-shadow: 0 4px 15px rgba(161, 140, 209, 0.4);">
-                    <i class="fas fa-calculator"></i>
-                </div>
-
-                <h3 style="margin-bottom: 0.5rem;">Safe Zone</h3>
-                <p style="font-size: 0.9rem; margin-bottom: 1.5rem; color: var(--text-muted);">Predict your attendance
-                    future</p>
-
-                <div
-                    style="display: flex; align-items: center; gap: 10px; margin-bottom: 1.5rem; background: rgba(255,255,255,0.4); padding: 5px 15px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.5);">
-                    <span style="font-weight: 600; font-size: 0.9rem;">Target:</span>
-                    <input type="number" id="target_pct" value="75" oninput="calculateSafeZone()"
-                        style="width: 60px; padding: 5px; border: none; background: transparent; font-size: 1.1rem; font-weight: bold; text-align: center; color: var(--primary-color); outline: none;">
-                    <span style="font-weight: 600;">%</span>
-                </div>
-
-                <div id="calc-result"
-                    style="width: 100%; padding: 15px; background: rgba(255,255,255,0.6); border-radius: 12px; font-weight: 600; font-size: 1.1rem; min-height: 80px; display: flex; align-items: center; justify-content: center; border-left: 5px solid #a18cd1; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-                    Calculating...
-                </div>
-            </div>
-
-            <!-- Calendar View -->
-            <div class="glass-container" style="max-width: none; padding: 2rem; position: relative; overflow: hidden;">
-
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <div
-                            style="width: 40px; height: 40px; background: white; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--text-color); box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-                            <i class="fas fa-calendar-day"></i>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-top: 1.5rem;">
+                        <div class="calc-result" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
+                            <h4><i class="fas fa-percentage"></i> Current Attendance</h4>
+                            <div class="result-value" id="current-percentage">0%</div>
+                            <div class="result-detail" id="current-detail">0 / 0 classes</div>
                         </div>
-                        <h3 style="margin: 0;">History</h3>
+                        <div class="calc-result" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            <h4><i class="fas fa-calendar-times"></i> Classes You Can Skip</h4>
+                            <div class="result-value" id="can-skip">0</div>
+                            <div class="result-detail" id="skip-detail">To maintain target</div>
+                        </div>
+                        <div class="calc-result" style="background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);">
+                            <h4><i class="fas fa-calendar-plus"></i> Must Attend More</h4>
+                            <div class="result-value" id="must-attend">0</div>
+                            <div class="result-detail" id="attend-detail">To reach target</div>
+                        </div>
                     </div>
 
-                    <div
-                        style="display: flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.5); padding: 5px; border-radius: 20px;">
-                        <button onclick="jumpToToday()" title="Current Month"
-                            style="width: 30px; height: 30px; padding: 0; background: white; color: var(--primary-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-                            <i class="fas fa-home"></i>
-                        </button>
-                        <button onclick="changeMonth(-1)"
-                            style="width: 30px; height: 30px; padding: 0; background: transparent; color: var(--text-color); box-shadow: none; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-chevron-left"></i>
-                        </button>
-                        <span id="month-year"
-                            style="font-weight: 600; font-size: 0.9rem; min-width: 100px; text-align: center;"></span>
-                        <button onclick="changeMonth(1)"
-                            style="width: 30px; height: 30px; padding: 0; background: transparent; color: var(--text-color); box-shadow: none; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-chevron-right"></i>
-                        </button>
+                    <div id="attendance-alert" class="attendance-success" style="margin-top: 1.5rem;">
+                        <i class="fas fa-info-circle"></i>
+                        <span id="alert-message">Enter your attendance data above to calculate.</span>
                     </div>
-                </div>
 
-                <div id="calendar-grid"
-                    style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; text-align: center; font-size: 0.85rem;">
-                    <!-- Days will be generated here -->
-                </div>
-
-                <div style="display: flex; gap: 15px; justify-content: center; margin-top: 1.5rem; font-size: 0.8rem;">
-                    <div style="display: flex; align-items: center; gap: 5px;"><span
-                            style="width: 10px; height: 10px; background: #2ecc71; border-radius: 50%;"></span> Present
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 5px;"><span
-                            style="width: 10px; height: 10px; background: #e74c3c; border-radius: 50%;"></span> Absent
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 5px;"><span
-                            style="width: 10px; height: 10px; background: #f1c40f; border-radius: 50%;"></span> Holiday
+                    <!-- Scenario Calculator -->
+                    <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px dashed rgba(255,255,255,0.3);">
+                        <h4 style="margin-bottom: 1rem;"><i class="fas fa-question-circle"></i> What If Scenarios</h4>
+                        
+                        <div class="calc-grid">
+                            <div class="calc-input-group">
+                                <label>If I skip next <input type="number" id="skip-scenario" value="5" min="0" style="width: 60px; display: inline; padding: 5px 10px;"> classes</label>
+                            </div>
+                            <div class="calc-input-group">
+                                <label>Projected Attendance: <strong id="projected-percentage">--</strong></label>
+                            </div>
+                        </div>
+                        <button onclick="calculateScenario()" style="margin-top: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 25px; border-radius: 10px; cursor: pointer; font-weight: 600;">
+                            <i class="fas fa-magic"></i> Calculate Scenario
+                        </button>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <h2>My Attendance History</h2>
-
-        <!-- Pass records to JS for Calendar -->
-        <!-- Data for JS -->
-        <script id="student-data" type="application/json">
-            {
-                "totalPresent": {{ total_present }},
-                "workingDays": {{ working_days }},
-                "totalSemDays": {{ total_sem_days }},
-                "semStart": "{{ config.start_date if config else '' }}",
-                "semEnd": "{{ config.end_date if config else '' }}",
-                "holidayDates": {{ holidays | map(attribute='date') | list | tojson }},
-                "allRecords": [
-                    {% for r in records %}
-                    { "date": "{{ r.date }}", "status": "{{ r.status }}" }{% if not loop.last %},{% endif %}
-                    {% endfor %}
-                ]
-            }
-        </script>
-
-        <script>
-            // Parse data safely
-            const rawData = JSON.parse(document.getElementById('student-data').textContent);
-            const TOTAL_PRESENT = rawData.totalPresent;
-            const TOTAL_DAYS = rawData.workingDays;
-            const TOTAL_SEM_DAYS = rawData.totalSemDays;
-            const SEM_START = rawData.semStart;
-            const holidayDates = new Set(rawData.holidayDates);
-            const allRecordsJson = rawData.allRecords;
-        </script>
-
-        <script>
-            // Calculator Logic
-            function calculateSafeZone() {
-                const target = parseFloat(document.getElementById('target_pct').value) || 75;
-                const p = TOTAL_PRESENT;
-                const t = TOTAL_DAYS;
-                const T_SEM = TOTAL_SEM_DAYS;
-                const currentPct = t > 0 ? (p / t) * 100 : 100;
-
-                const resEl = document.getElementById('calc-result');
-
-                if (T_SEM === 0) {
-                    resEl.innerText = "Semester setup incomplete (0 days).";
-                    return;
-                }
-
-                // 1. Total Semester Buffer (Leaves Remaining)
-                // Max absences allowed to end with >= target%
-                const maxAbsences = Math.floor(T_SEM * (100 - target) / 100);
-                const currentAbsences = t - p;
-                const leavesLeft = maxAbsences - currentAbsences;
-
-                // 2. Safe Streak (Immediate Bunking)
-                // How many consecutive days I can miss NOW and stay >= target%
-                // (p) / (t + x) >= target/100  =>  x <= (p*100/target) - t
-                let safeStreak = 0;
-                let recoverDays = 0;
-
-                if (currentPct >= target) {
-                    safeStreak = Math.floor((p * 100 / target) - t);
-                } else {
-                    // How many days to attend to get back to target
-                    // (p + x) / (t + x) >= target/100 
-                    // p + x >= 0.01*target*t + 0.01*target*x
-                    // x(1 - 0.01*target) >= 0.01*target*t - p
-                    // x >= (target*t - 100*p) / (100 - target)
-                    recoverDays = Math.ceil((target * t - 100 * p) / (100 - target));
-                }
-
-                let html = "";
-
-                // Display Logic
-                if (currentPct >= target) {
-                    html += `<div style="color: var(--success-color); margin-bottom: 10px;">
-                                <i class="fas fa-check-circle"></i> <b>Safe Zone</b>
-                             </div>`;
-
-                    // Streak
-                    html += `<div style="font-size: 0.9rem; margin-bottom: 5px;">
-                                You can assume <b>${safeStreak}</b> days consecutively without dropping below ${target}%.
-                             </div>`;
-                } else {
-                    html += `<div style="color: var(--danger-color); margin-bottom: 10px;">
-                                <i class="fas fa-exclamation-triangle"></i> <b>Danger Zone</b>
-                             </div>`;
-
-                    html += `<div style="font-size: 0.9rem; margin-bottom: 5px;">
-                                Attend <b>${recoverDays}</b> next classes to recover to ${target}%.
-                             </div>`;
-                }
-
-                // Semester Long View
-                html += `<div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed rgba(0,0,0,0.1); font-size: 0.85rem; color: var(--text-muted);">
-                            <b>Semester Buffer:</b> `;
-
-                if (leavesLeft >= 0) {
-                    html += `You have <b>${leavesLeft}</b> leaves remaining for the entire semester.`;
-                } else {
-                    html += `<span style="color: #e74c3c;">You strictly exceeded the absence limit by ${Math.abs(leavesLeft)} days.</span>`;
-                }
-
-                // Feasibility Check
-                const remaining = T_SEM - t;
-                const neededForTarget = Math.ceil((target * T_SEM) / 100) - p;
-
-                if (neededForTarget > remaining) {
-                    html += `<br><span style="color: #e74c3c; font-weight: bold;">Impossible to reach ${target}% by semester end!</span>`;
-                } else if (neededForTarget > 0) {
-                    html += `<br>Goal: Attend <b>${neededForTarget}</b> of the remaining <b>${remaining}</b> days.`;
-                }
-
-                html += `</div>`;
-
-                resEl.innerHTML = html;
-            }
-
-            // Calendar Logic
-            let currentDate = new Date();
-
-            // If semester start is set, initialize calendar to that month
-            if (SEM_START) {
-                const sDate = new Date(SEM_START);
-                const today = new Date();
-                // If today is before semester or far after end (heuristic), show start month
-                // Otherwise keep today's month
-                if (today < sDate) {
-                    currentDate = new Date(sDate.getFullYear(), sDate.getMonth(), 1);
-                }
-            }
-
-            function jumpToToday() {
-                currentDate = new Date();
-                renderCalendar();
-            }
-
-            function renderCalendar() {
-                const monthYear = document.getElementById('month-year');
-                const grid = document.getElementById('calendar-grid');
-                grid.innerHTML = '';
-
-                // Headers (Su Mo Tu...)
-                const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-                days.forEach(d => {
-                    const el = document.createElement('div');
-                    el.innerText = d;
-                    el.style.fontWeight = 'bold';
-                    el.style.paddingBottom = '5px';
-                    grid.appendChild(el);
-                });
-
-                const y = currentDate.getFullYear();
-                const m = currentDate.getMonth();
-
-                monthYear.innerText = new Date(y, m).toLocaleString('default', { month: 'long', year: 'numeric' });
-
-                const firstDay = new Date(y, m, 1).getDay();
-                const daysInMonth = new Date(y, m + 1, 0).getDate();
-
-                // Empty slots
-                for (let i = 0; i < firstDay; i++) {
-                    grid.appendChild(document.createElement('div'));
-                }
-
-                // Days
-                const presentDates = new Set(allRecordsJson.filter(r => r.status === 'PRESENT').map(r => r.date));
-                const absentDates = new Set(allRecordsJson.filter(r => r.status === 'ABSENT').map(r => r.date));
-
-                for (let d = 1; d <= daysInMonth; d++) {
-                    const el = document.createElement('div');
-                    el.innerText = d;
-                    el.style.padding = '8px';
-                    el.style.borderRadius = '50%';
-                    el.style.margin = '2px';
-                    el.style.cursor = 'default';
-
-                    const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-
-                    if (presentDates.has(dateStr)) {
-                        el.style.background = '#2ecc71'; // Green
-                        el.style.color = 'white';
-                        el.title = "Present";
-                    } else if (absentDates.has(dateStr)) {
-                        el.style.background = '#e74c3c'; // Red
-                        el.style.color = 'white';
-                        el.title = "Absent";
-                    } else if (holidayDates.has(dateStr)) {
-                        el.style.background = '#f1c40f'; // Yellow/Gold
-                        el.style.color = 'white';
-                        el.title = "Holiday";
-                    } else if (new Date(dateStr).getDay() === 0) {
-                        el.style.background = '#dfe6e9'; // Sunday Grey
-                        el.style.color = '#636e72';
-                    }
-
-                    // Highlight Today
-                    const today = new Date();
-                    if (d === today.getDate() && m === today.getMonth() && y === today.getFullYear()) {
-                        el.style.border = '2px solid var(--primary-color)';
-                    }
-
-                    grid.appendChild(el);
-                }
-            }
-
-            function changeMonth(delta) {
-                currentDate.setMonth(currentDate.getMonth() + delta);
-                renderCalendar();
-            }
-
-            // Init
-            calculateSafeZone();
-            renderCalendar();
-        </script>
-
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Time</th>
-                        <th>Subject</th>
-                        <th>Branch</th>
-                        <th>Status</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in records %}
-                    <tr>
-                        <td data-label="Date">{{ row.date }}</td>
-                        <td data-label="Time">{{ row.time }}</td>
-                        <td data-label="Subject">{{ row.subject }}</td>
-                        <td data-label="Branch">{{ row.branch }}</td>
-                        <td data-label="Status">
-                            {% if row.status == 'PRESENT' %}
-                            <span class="status-present"><i class="fas fa-check-circle"></i> Present</span>
-                            {% else %}
-                            <span class="status-absent"><i class="fas fa-times-circle"></i> Absent</span>
-                            {% endif %}
-                        </td>
-                        <td data-label="Action">
-                            {% if row.status == 'ABSENT' %}
-                            <button onclick="requestCorrection({{ row.id }})" class="btn-small"
-                                style="background: var(--info-color);">
-                                <i class="fas fa-question-circle"></i> Report Issue
-                            </button>
-                            {% else %}
-                            -
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="6" style="text-align: center;">No records found.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <h2 style="margin-top: 3rem;">My Correction Requests</h2>
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Submitted</th>
-                        <th>Subject</th>
-                        <th>Reason</th>
-                        <th>Status</th>
-                        <th>Admin Comment</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for req in corrections %}
-                    <tr>
-                        <td>{{ req.timestamp }}</td>
-                        <td>{{ req.subject if req.subject else 'General' }}</td>
-                        <td>{{ req.reason }}</td>
-                        <td>
-                            {% if req.status == 'PENDING' %}
-                            <span class="status-tag" style="background: #ffeaa7; color: #d63031;">Pending</span>
-                            {% elif req.status == 'APPROVED' %}
-                            <span class="status-tag" style="background: #55efc4; color: #00b894;">Approved</span>
-                            {% else %}
-                            <span class="status-tag" style="background: #ff7675; color: #d63031;">Rejected</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ req.admin_comment or '-' }}</td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="4" style="text-align: center; padding: 20px; color: #888;">
-                            <i class="fas fa-info-circle"></i> No correction requests submitted yet.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
         </div>
     </div>
 
     <!-- Correction Modal -->
-    <div id="correctionModal" class="modal"
-        style="display:none; position:fixed; z-index:10001; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.5);">
-        <div class="glass-container animate-pop"
-            style="max-width: 500px; margin: 10% auto; padding: 2.5rem; position: relative;">
-            <button onclick="closeCorrectionModal()"
-                style="position: absolute; right: 20px; top: 20px; background: transparent; border: none; color: white; cursor: pointer; font-size: 1.5rem;">&times;</button>
-            <h2 id="modalTitle" style="margin-bottom: 1.5rem;">Request Correction</h2>
-            <form action="/submit_correction" method="POST" enctype="multipart/form-data">
-                <input type="hidden" name="session_id" id="modalSessionId">
-                <div class="form-group" style="margin-bottom: 1.5rem;">
-                    <label style="display: block; margin-bottom: 0.5rem;">Reason for Absence</label>
-                    <textarea name="reason" placeholder="e.g., Device battery was dead, network issues, joined late..."
-                        required
-                        style="width: 100%; height: 100px; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.05); color: white; border: 1px solid rgba(255,255,255,0.2); font-family: inherit;"></textarea>
+    <div id="correctionModal" class="modal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; overflow-y: auto;">
+        <div style="background: white; padding: 2rem; border-radius: 20px; max-width: 500px; width: 90%; position: relative; margin: 20px auto;">
+            <button onclick="closeCorrectionModal()" style="position: absolute; top: 15px; right: 15px; background: #e74c3c; border: none; color: white; font-size: 1.2rem; cursor: pointer; width: 35px; height: 35px; border-radius: 50%;">&times;</button>
+            <h3 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-clipboard-check" style="color: #667eea;"></i> Request Attendance Correction
+            </h3>
+            <form id="correctionForm">
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Subject *</label>
+                    <select id="correction-subject" required style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 1rem;">
+                        <option value="">Loading subjects...</option>
+                    </select>
+                    <input type="hidden" id="correction-teacher-id">
                 </div>
-                <div class="form-group" style="margin-bottom: 2rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Upload Proof
-                        (Photo/Screenshot)</label>
-                    <div class="file-upload-wrapper" style="position: relative; width: 100%;">
-                        <div style="
-                            border: 2px dashed rgba(255,255,255,0.4); 
-                            background: rgba(255,255,255,0.1); 
-                            border-radius: 12px; 
-                            padding: 20px; 
-                            text-align: center; 
-                            cursor: pointer;
-                            transition: all 0.3s;
-                        " onmouseover="this.style.background='rgba(255,255,255,0.2)'; this.style.borderColor='#a18cd1';"
-                            onmouseout="this.style.background='rgba(255,255,255,0.1)'; this.style.borderColor='rgba(255,255,255,0.4)';">
-                            <i class="fas fa-cloud-upload-alt"
-                                style="font-size: 2rem; color: #a18cd1; margin-bottom: 10px;"></i>
-                            <div id="file-name-display" style="font-size: 0.9rem; color: var(--text-muted);">Click to
-                                browse</div>
-                        </div>
-                        <input type="file" name="proof" accept="image/*"
-                            onchange="const n = this.files[0] ? this.files[0].name : 'Click to browse'; document.getElementById('file-name-display').innerText = n; this.previousElementSibling.style.borderColor = '#00b894';"
-                            style="opacity: 0; position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: pointer;">
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Date of Absence *</label>
+                    <input type="date" id="correction-date" required style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 1rem;">
+                </div>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Reason for Absence *</label>
+                    <textarea id="correction-reason" rows="4" placeholder="Explain why you were absent..." style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 1rem; resize: vertical;" required></textarea>
+                </div>
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">
+                        <i class="fas fa-paperclip"></i> Proof (Optional)
+                    </label>
+                    <input type="file" id="correction-proof" accept="image/*,.pdf" style="width: 100%; padding: 10px; border: 2px dashed #ddd; border-radius: 10px;">
+                    <small style="color: #666; display: block; margin-top: 5px;">Medical certificate, letter, etc. (Image or PDF)</small>
+                </div>
+                <div id="correction-msg" style="margin-bottom: 1rem; padding: 10px; border-radius: 8px; display: none;"></div>
+                <button type="submit" id="correction-submit-btn" style="width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 15px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 1rem;">
+                    <i class="fas fa-paper-plane"></i> Submit Request
+                </button>
+            </form>
+
+            <!-- My Previous Requests -->
+            <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 2px solid #eee;">
+                <h4 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-history" style="color: #667eea;"></i> My Correction Requests
+                </h4>
+                <div id="my-corrections-list" style="max-height: 300px; overflow-y: auto;">
+                    <div style="text-align: center; padding: 20px; color: #999;">
+                        <i class="fas fa-spinner fa-spin"></i> Loading...
                     </div>
                 </div>
-                <div style="display: flex; gap: 10px;">
-                    <button type="submit"
-                        style="flex: 1; padding: 12px; background: #000000; border: 1px solid rgba(255,255,255,0.2);">Submit
-                        Request</button>
-                </div>
-            </form>
+            </div>
         </div>
     </div>
 
+    <!-- Profile Modal -->
+    <div id="profileModal" class="modal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; overflow-y: auto;">
+        <div style="background: white; padding: 2rem; border-radius: 20px; max-width: 450px; width: 90%; position: relative; margin: 20px auto;">
+            <button onclick="closeProfileModal()" style="position: absolute; top: 15px; right: 15px; background: #e74c3c; border: 2px solid #c0392b; color: white; font-size: 1.2rem; cursor: pointer; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">&times;</button>
+            
+            <!-- Profile Header -->
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <div style="width: 100px; height: 100px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+                    <i class="fas fa-user-graduate" style="font-size: 2.5rem; color: white;"></i>
+                </div>
+                <h2 style="margin: 0; color: #333;">{{ .username }}</h2>
+                <p style="color: #666; margin: 5px 0; font-size: 0.9rem;">Student</p>
+            </div>
+
+            <!-- Profile Details -->
+            <div style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%); border-radius: 15px; padding: 1.25rem;">
+                <!-- Editable Name -->
+                <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(102, 126, 234, 0.2);">
+                    <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-user" style="color: white;"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <small style="color: #888; display: block;">Full Name</small>
+                        <div id="name-display">
+                            <strong style="color: #333;">{{ if .student_name }}{{ .student_name }}{{ else }}Not provided{{ end }}</strong>
+                            <button onclick="editName()" style="background: none; border: none; color: #667eea; cursor: pointer; margin-left: 8px;" title="Edit Name">
+                                <i class="fas fa-pen"></i>
+                            </button>
+                        </div>
+                        <div id="name-edit" style="display: none;">
+                            <input type="text" id="new-name" value="{{ .student_name }}" placeholder="Enter your full name" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; width: 100%; font-size: 0.9rem;">
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(102, 126, 234, 0.2);">
+                    <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-id-card" style="color: white;"></i>
+                    </div>
+                    <div>
+                        <small style="color: #888; display: block;">Roll Number</small>
+                        <strong style="color: #333;">{{ .student_id }}</strong>
+                    </div>
+                </div>
+                
+                <!-- Editable Email -->
+                <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(102, 126, 234, 0.2);">
+                    <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-envelope" style="color: white;"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <small style="color: #888; display: block;">Email</small>
+                        <div id="email-display">
+                            <strong style="color: #333;">{{ if .email }}{{ .email }}{{ else }}Not provided{{ end }}</strong>
+                            <button onclick="editEmail()" style="background: none; border: none; color: #667eea; cursor: pointer; margin-left: 8px;" title="Edit Email">
+                                <i class="fas fa-pen"></i>
+                            </button>
+                        </div>
+                        <div id="email-edit" style="display: none;">
+                            <input type="email" id="new-email" value="{{ .email }}" placeholder="Enter email" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; width: 100%; font-size: 0.9rem;">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Branch (Editable only if not set) -->
+                <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(102, 126, 234, 0.2);">
+                    <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-code-branch" style="color: white;"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <small style="color: #888; display: block;">Branch {{ if .branch }}<span style="color: #28a745; font-size: 0.7rem;"><i class="fas fa-lock"></i> Locked</span>{{ end }}</small>
+                        <div id="branch-display">
+                            <strong style="color: #333;">{{ if .branch }}{{ .branch }}{{ else }}Not provided{{ end }}</strong>
+                            {{ if not .branch }}
+                            <button onclick="editBranch()" style="background: none; border: none; color: #667eea; cursor: pointer; margin-left: 8px;" title="Set Branch (One time only)">
+                                <i class="fas fa-pen"></i>
+                            </button>
+                            {{ end }}
+                        </div>
+                        {{ if not .branch }}
+                        <div id="branch-edit" style="display: none;">
+                            <select id="new-branch" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; width: 100%; font-size: 0.9rem;">
+                                <option value="">Select Branch</option>
+                                <option value="CSE">CSE - Computer Science</option>
+                                <option value="ECE">ECE - Electronics & Communication</option>
+                                <option value="EEE">EEE - Electrical & Electronics</option>
+                                <option value="MECH">MECH - Mechanical</option>
+                                <option value="CIVIL">CIVIL - Civil Engineering</option>
+                                <option value="IT">IT - Information Technology</option>
+                                <option value="AIDS">AIDS - AI & Data Science</option>
+                                <option value="AIML">AIML - AI & Machine Learning</option>
+                                <option value="CAI">CAI - Computers in Artificial Intelligence</option>
+                            </select>
+                            <small style="color: #e74c3c; display: block; margin-top: 5px;"><i class="fas fa-exclamation-triangle"></i> Branch can only be set once!</small>
+                        </div>
+                        {{ end }}
+                    </div>
+                </div>
+                
+                <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0;">
+                    <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #28a745, #20c997); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-percentage" style="color: white;"></i>
+                    </div>
+                    <div>
+                        <small style="color: #888; display: block;">Current Attendance</small>
+                        <strong style="color: {{ if ge .percentage 75.0 }}#28a745{{ else if ge .percentage 60.0 }}#ffc107{{ else }}#dc3545{{ end }};">{{ printf "%.2f" .percentage }}%</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Save Button -->
+            <div id="save-profile-btn" style="display: none; margin-top: 1rem;">
+                <button onclick="saveProfile()" style="width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                    <i class="fas fa-save"></i> Save Changes
+                </button>
+            </div>
+
+            <!-- Stats Summary -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 1rem;">
+                <div style="background: rgba(40, 167, 69, 0.1); border: 1px solid rgba(40, 167, 69, 0.3); padding: 12px; border-radius: 12px; text-align: center;">
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #28a745;">{{ .total_present }}</div>
+                    <small style="color: #666;">Present</small>
+                </div>
+                <div style="background: rgba(102, 126, 234, 0.1); border: 1px solid rgba(102, 126, 234, 0.3); padding: 12px; border-radius: 12px; text-align: center;">
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #667eea;">{{ .working_days }}</div>
+                    <small style="color: #666;">Working Days</small>
+                </div>
+                <div style="background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.3); padding: 12px; border-radius: 12px; text-align: center;">
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #ffc107;">{{ .remaining_sem_days }}</div>
+                    <small style="color: #666;">Remaining</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/backjs.js"></script>
     <script>
-        function openCorrectionModal(sessionId, subject, date) {
-            document.getElementById('modalSessionId').value = sessionId || '';
-            document.getElementById('modalTitle').innerText = sessionId ? `Correction: ${subject} (${date})` : "Report Attendance Issue";
-            document.getElementById('correctionModal').style.display = 'block';
+        // Tab switching
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.closest('.tab-btn').classList.add('active');
         }
-        function openGeneralCorrectionModal() {
-            openCorrectionModal('', '', '');
+
+        // Attendance Calculator
+        function calculateAttendance() {
+            const attended = parseInt(document.getElementById('calc-attended').value) || 0;
+            const total = parseInt(document.getElementById('calc-total').value) || 0;
+            const future = parseInt(document.getElementById('calc-future').value) || 0;
+            const target = parseInt(document.getElementById('calc-target').value) || 75;
+
+            // Current percentage
+            const currentPercentage = total > 0 ? (attended / total * 100) : 0;
+            document.getElementById('current-percentage').textContent = currentPercentage.toFixed(2) + '%';
+            document.getElementById('current-detail').textContent = `${attended} / ${total} classes`;
+
+            // Total classes by end of semester
+            const totalFinal = total + future;
+
+            // Classes needed to reach target at end of semester
+            const classesNeededForTarget = Math.ceil((target / 100) * totalFinal);
+            const mustAttendMore = Math.max(0, classesNeededForTarget - attended);
+
+            document.getElementById('must-attend').textContent = mustAttendMore;
+            document.getElementById('attend-detail').textContent = mustAttendMore > future ? 
+                `Need ${mustAttendMore - future} more than remaining!` : 
+                `Out of ${future} remaining classes`;
+
+            // Classes can skip
+            const maxSkippable = future - mustAttendMore;
+            const canSkip = Math.max(0, maxSkippable);
+
+            document.getElementById('can-skip').textContent = canSkip;
+            document.getElementById('skip-detail').textContent = `While maintaining ${target}%`;
+
+            // Alert message
+            const alertDiv = document.getElementById('attendance-alert');
+            const alertMsg = document.getElementById('alert-message');
+
+            if (currentPercentage >= target) {
+                alertDiv.className = 'attendance-success';
+                if (canSkip > 0) {
+                    alertMsg.innerHTML = `<strong>Great!</strong> You're above ${target}%. You can safely skip up to <strong>${canSkip}</strong> future classes.`;
+                } else {
+                    alertMsg.innerHTML = `<strong>Good!</strong> You're at ${target}%. Attend all remaining classes to maintain your percentage.`;
+                }
+            } else if (currentPercentage >= target - 10) {
+                alertDiv.className = 'attendance-warning';
+                alertMsg.innerHTML = `<strong>Warning!</strong> Your attendance is ${currentPercentage.toFixed(1)}%. You need to attend at least <strong>${mustAttendMore}</strong> more classes to reach ${target}%.`;
+            } else {
+                alertDiv.className = 'attendance-danger attendance-warning';
+                alertMsg.innerHTML = `<strong>Critical!</strong> Your attendance is only ${currentPercentage.toFixed(1)}%. You must attend <strong>${mustAttendMore}</strong> classes to reach ${target}%.`;
+            }
         }
+
+        // Scenario Calculator
+        function calculateScenario() {
+            const attended = parseInt(document.getElementById('calc-attended').value) || 0;
+            const total = parseInt(document.getElementById('calc-total').value) || 0;
+            const future = parseInt(document.getElementById('calc-future').value) || 0;
+            const skipCount = parseInt(document.getElementById('skip-scenario').value) || 0;
+
+            const totalFinal = total + future;
+            const attendedFinal = attended + (future - skipCount);
+            const projectedPercentage = totalFinal > 0 ? (attendedFinal / totalFinal * 100) : 0;
+
+            const resultEl = document.getElementById('projected-percentage');
+            resultEl.textContent = projectedPercentage.toFixed(2) + '%';
+            
+            if (projectedPercentage >= 75) {
+                resultEl.style.color = '#28a745';
+            } else if (projectedPercentage >= 65) {
+                resultEl.style.color = '#ffc107';
+            } else {
+                resultEl.style.color = '#dc3545';
+            }
+        }
+
+        // Modal functions
+        let subjectsData = [];
+
+        async function openGeneralCorrectionModal() {
+            document.getElementById('correctionModal').style.display = 'flex';
+            await loadSubjectsForCorrection();
+            await loadMyCorrections();
+        }
+
+        // Open correction modal pre-filled with specific record data
+        async function openCorrectionForRecord(subject, date, teacherId) {
+            document.getElementById('correctionModal').style.display = 'flex';
+            await loadSubjectsForCorrection();
+            await loadMyCorrections();
+            
+            // Pre-fill the form with the record data
+            const subjectSelect = document.getElementById('correction-subject');
+            const dateInput = document.getElementById('correction-date');
+            const teacherInput = document.getElementById('correction-teacher-id');
+            
+            // Set the subject
+            for (let i = 0; i < subjectSelect.options.length; i++) {
+                if (subjectSelect.options[i].value === subject) {
+                    subjectSelect.selectedIndex = i;
+                    break;
+                }
+            }
+            
+            // Set the date
+            if (date) {
+                dateInput.value = date;
+            }
+            
+            // Set the teacher ID
+            if (teacherId) {
+                teacherInput.value = teacherId;
+            } else {
+                // Try to get teacher ID from subjects data
+                const subjectData = subjectsData.find(s => s.subject === subject);
+                if (subjectData) {
+                    teacherInput.value = subjectData.teacher_id || '';
+                }
+            }
+            
+            // Pre-fill a default reason
+            document.getElementById('correction-reason').value = 'I was present in this class but was marked absent. Please verify and correct my attendance.';
+        }
+
         function closeCorrectionModal() {
             document.getElementById('correctionModal').style.display = 'none';
+            document.getElementById('correctionForm').reset();
+            document.getElementById('correction-msg').style.display = 'none';
         }
+
+        async function loadSubjectsForCorrection() {
+            const select = document.getElementById('correction-subject');
+            try {
+                const res = await fetch('/student/get_subjects');
+                const data = await res.json();
+                if (data.success && data.subjects.length > 0) {
+                    subjectsData = data.subjects;
+                    select.innerHTML = '<option value="">Select a subject</option>';
+                    data.subjects.forEach(s => {
+                        select.innerHTML += `<option value="${s.subject}" data-teacher="${s.teacher_id}">${s.subject} (${s.teacher_name || 'Unknown Teacher'})</option>`;
+                    });
+                } else {
+                    select.innerHTML = '<option value="">No subjects found</option>';
+                }
+            } catch (err) {
+                select.innerHTML = '<option value="">Error loading subjects</option>';
+            }
+        }
+
+        // Update teacher ID when subject changes
+        document.getElementById('correction-subject').addEventListener('change', function() {
+            const selected = this.options[this.selectedIndex];
+            document.getElementById('correction-teacher-id').value = selected.dataset.teacher || '';
+        });
+
+        async function loadMyCorrections() {
+            const listDiv = document.getElementById('my-corrections-list');
+            listDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+            try {
+                const res = await fetch('/student/my_corrections');
+                const data = await res.json();
+                console.log('My corrections response:', data);
+                if (data.success && data.requests && data.requests.length > 0) {
+                    listDiv.innerHTML = data.requests.map(r => {
+                        const statusColor = r.status === 'APPROVED' ? '#28a745' : r.status === 'REJECTED' ? '#dc3545' : '#ffc107';
+                        const statusIcon = r.status === 'APPROVED' ? 'check-circle' : r.status === 'REJECTED' ? 'times-circle' : 'clock';
+                        let createdAt = 'N/A';
+                        if (r.created_at) {
+                            if (r.created_at.seconds) createdAt = new Date(r.created_at.seconds * 1000).toLocaleDateString();
+                            else if (typeof r.created_at === 'string') createdAt = new Date(r.created_at).toLocaleDateString();
+                        }
+                        return `
+                            <div style="background: #f8f9fa; border-radius: 10px; padding: 12px; margin-bottom: 10px; border-left: 4px solid ${statusColor};">
+                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                                    <strong style="color: #333;">${r.subject}</strong>
+                                    <span style="background: ${statusColor}; color: white; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">
+                                        <i class="fas fa-${statusIcon}"></i> ${r.status}
+                                    </span>
+                                </div>
+                                <div style="font-size: 0.85rem; color: #666;">
+                                    <div><i class="fas fa-calendar"></i> Date: ${r.absent_date}</div>
+                                    <div><i class="fas fa-user-tie"></i> Teacher: ${r.teacher_name || 'N/A'}</div>
+                                    ${r.teacher_remarks ? `<div style="margin-top: 5px; padding: 8px; background: rgba(0,0,0,0.05); border-radius: 5px;"><i class="fas fa-comment"></i> <em>"${r.teacher_remarks}"</em></div>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    listDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;"><i class="fas fa-inbox"></i><br>No correction requests yet</div>';
+                }
+            } catch (err) {
+                console.error('Error loading corrections:', err);
+                listDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #dc3545;"><i class="fas fa-exclamation-triangle"></i> Error loading requests</div>';
+            }
+        }
+
+        document.getElementById('correctionForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const btn = document.getElementById('correction-submit-btn');
+            const msgDiv = document.getElementById('correction-msg');
+            const originalBtnText = btn.innerHTML;
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+            
+            const formData = new FormData();
+            formData.append('subject', document.getElementById('correction-subject').value);
+            formData.append('teacher_id', document.getElementById('correction-teacher-id').value);
+            formData.append('absent_date', document.getElementById('correction-date').value);
+            formData.append('reason', document.getElementById('correction-reason').value);
+            
+            const proofFile = document.getElementById('correction-proof').files[0];
+            if (proofFile) {
+                formData.append('proof', proofFile);
+            }
+            
+            try {
+                const res = await fetch('/student/submit_correction', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                
+                msgDiv.style.display = 'block';
+                if (data.success) {
+                    msgDiv.style.background = 'rgba(40, 167, 69, 0.1)';
+                    msgDiv.style.color = '#28a745';
+                    msgDiv.innerHTML = '<i class="fas fa-check-circle"></i> ' + data.message;
+                    document.getElementById('correctionForm').reset();
+                    loadMyCorrections(); // Refresh the list
+                } else {
+                    msgDiv.style.background = 'rgba(220, 53, 69, 0.1)';
+                    msgDiv.style.color = '#dc3545';
+                    msgDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + data.message;
+                }
+            } catch (err) {
+                msgDiv.style.display = 'block';
+                msgDiv.style.background = 'rgba(220, 53, 69, 0.1)';
+                msgDiv.style.color = '#dc3545';
+                msgDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Network error. Please try again.';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalBtnText;
+            }
+        });
+
+        function openProfileModal() {
+            document.getElementById('profileModal').style.display = 'flex';
+        }
+
+        function closeProfileModal() {
+            document.getElementById('profileModal').style.display = 'none';
+            // Reset edit modes
+            const nameEdit = document.getElementById('name-edit');
+            const emailEdit = document.getElementById('email-edit');
+            const branchEdit = document.getElementById('branch-edit');
+            if (nameEdit) nameEdit.style.display = 'none';
+            if (emailEdit) emailEdit.style.display = 'none';
+            if (branchEdit) branchEdit.style.display = 'none';
+            document.getElementById('name-display').style.display = 'block';
+            document.getElementById('email-display').style.display = 'block';
+            const branchDisplay = document.getElementById('branch-display');
+            if (branchDisplay) branchDisplay.style.display = 'block';
+            document.getElementById('save-profile-btn').style.display = 'none';
+            editingName = false;
+            editingEmail = false;
+            editingBranch = false;
+        }
+
+        // Profile editing functions
+        let editingEmail = false;
+        let editingBranch = false;
+        let editingName = false;
+
+        function editName() {
+            editingName = true;
+            document.getElementById('name-display').style.display = 'none';
+            document.getElementById('name-edit').style.display = 'block';
+            document.getElementById('save-profile-btn').style.display = 'block';
+        }
+
+        function editEmail() {
+            editingEmail = true;
+            document.getElementById('email-display').style.display = 'none';
+            document.getElementById('email-edit').style.display = 'block';
+            document.getElementById('save-profile-btn').style.display = 'block';
+        }
+
+        function editBranch() {
+            editingBranch = true;
+            document.getElementById('branch-display').style.display = 'none';
+            document.getElementById('branch-edit').style.display = 'block';
+            document.getElementById('save-profile-btn').style.display = 'block';
+        }
+
+        async function saveProfile() {
+            const newName = document.getElementById('new-name')?.value || '';
+            const newEmail = document.getElementById('new-email')?.value || '';
+            const branchSelect = document.getElementById('new-branch');
+            const newBranch = branchSelect ? branchSelect.value : '';
+
+            const formData = new FormData();
+            if (editingName && newName) {
+                formData.append('name', newName);
+            }
+            if (editingEmail && newEmail) {
+                formData.append('email', newEmail);
+            }
+            if (editingBranch && newBranch) {
+                formData.append('branch', newBranch);
+            }
+
+            try {
+                const response = await fetch('/student/update_profile', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                
+                if (data.error) {
+                    if (data.branch_locked) {
+                        alert('⚠️ Branch has already been set and cannot be changed.');
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                    return;
+                }
+
+                alert('✅ Profile updated successfully!');
+                // Reload the page to show updated data
+                window.location.reload();
+            } catch (err) {
+                alert('Error updating profile: ' + err.message);
+            }
+        }
+
+        // Dark mode toggle
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const icon = document.getElementById('theme-icon');
+            if (document.body.classList.contains('dark-mode')) {
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+                localStorage.setItem('darkMode', 'true');
+            } else {
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+                localStorage.setItem('darkMode', 'false');
+            }
+        }
+
+        // Load saved theme
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+            document.getElementById('theme-icon').classList.remove('fa-moon');
+            document.getElementById('theme-icon').classList.add('fa-sun');
+        }
+
+        // Initialize calculator on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            calculateAttendance();
+        });
     </script>
-    <script src="{{ url_for('static', filename='backjs.js') }}?v=5"></script>
 </body>
 
 </html>

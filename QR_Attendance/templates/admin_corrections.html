@@ -5,8 +5,127 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Correction Requests | Admin Panel</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=2">
+    <link rel="stylesheet" href="/static/style.css?v=2">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .filter-bar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .filter-bar select, .filter-bar input {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+        .correction-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--primary-color);
+        }
+        .correction-card.pending { border-left-color: #f39c12; }
+        .correction-card.approved { border-left-color: #27ae60; }
+        .correction-card.rejected { border-left-color: #e74c3c; }
+        .correction-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .correction-student {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        .correction-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .meta-item i {
+            color: var(--primary-color);
+            width: 20px;
+        }
+        .correction-reason {
+            background: rgba(0,0,0,0.2);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        .correction-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status-badge.pending { background: #f39c12; color: white; }
+        .status-badge.approved { background: #27ae60; color: white; }
+        .status-badge.rejected { background: #e74c3c; color: white; }
+        .teacher-remarks {
+            background: rgba(46, 204, 113, 0.1);
+            border: 1px solid rgba(46, 204, 113, 0.3);
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-top: 0.5rem;
+        }
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .tab-btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            transition: all 0.3s;
+        }
+        .tab-btn.active {
+            background: var(--primary-color);
+        }
+        .tab-btn:hover:not(.active) {
+            background: rgba(255,255,255,0.2);
+        }
+        .count-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 0.1rem 0.5rem;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            margin-left: 0.5rem;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: rgba(255,255,255,0.6);
+        }
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+    </style>
 </head>
 
 <body>
@@ -17,113 +136,311 @@
                 <a href="/admin" data-tooltip="Dashboard"><i class="fas fa-home"></i></a>
                 <a href="/view_attendance" data-tooltip="View Records"><i class="fas fa-list"></i></a>
                 <a href="/analytics" data-tooltip="Analytics"><i class="fas fa-chart-line"></i></a>
-                <a href="/logout" style="color: var(--danger-color);" data-tooltip="Logout"><i
-                        class="fas fa-sign-out-alt"></i></a>
+                <a href="/logout" style="color: var(--danger-color);" data-tooltip="Logout"><i class="fas fa-sign-out-alt"></i></a>
             </div>
         </nav>
 
-        <h2 style="margin-bottom: 2rem;">Pending Requests</h2>
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Student</th>
-                        <th>Roll No</th>
-                        <th>Reason</th>
-                        <th>Proof</th>
-                        <th>Submitted</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for req in pending %}
-                    <tr>
-                        <td data-label="Student">{{ req.student_name if req.student_name else 'Unknown' }}</td>
-                        <td data-label="Roll No">{{ req.roll }}</td>
-                        <td data-label="Reason">{{ req.reason }}</td>
-                        <td data-label="Proof">
-                            {% if req.proof_img %}
-                            <a href="{{ url_for('static', filename='proofs/' + req.proof_img) }}" target="_blank"
-                                class="btn-small" style="background: var(--info-color);">
-                                <i class="fas fa-image"></i> View
-                            </a>
-                            {% else %}
-                            No Proof
-                            {% endif %}
-                        </td>
-                        <td data-label="Submitted">{{ req.timestamp }}</td>
-                        <td data-label="Action">
-                            <div style="display: flex; gap: 5px;">
-                                <button onclick="handleRequest('{{ req.id }}', 'APPROVE')" class="btn-small"
-                                    style="background: var(--success-color);">
-                                    <i class="fas fa-check"></i>
-                                </button>
-                                <button onclick="handleRequest('{{ req.id }}', 'REJECT')" class="btn-small"
-                                    style="background: var(--danger-color);">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="6" style="text-align: center;">No pending corrections.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <h2 style="margin-bottom: 1.5rem;"><i class="fas fa-edit"></i> All Correction Requests</h2>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="filterByStatus('all')">
+                All <span class="count-badge" id="count-all">0</span>
+            </button>
+            <button class="tab-btn" onclick="filterByStatus('pending')">
+                Pending <span class="count-badge" id="count-pending">0</span>
+            </button>
+            <button class="tab-btn" onclick="filterByStatus('approved')">
+                Approved <span class="count-badge" id="count-approved">0</span>
+            </button>
+            <button class="tab-btn" onclick="filterByStatus('rejected')">
+                Rejected <span class="count-badge" id="count-rejected">0</span>
+            </button>
         </div>
 
-        <h2 style="margin-top: 3rem; margin-bottom: 2rem;">Action History</h2>
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Roll No</th>
-                        <th>Reason</th>
-                        <th>Status</th>
-                        <th>Admin Comment</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for req in history %}
-                    <tr>
-                        <td data-label="Roll No">{{ req.roll }}</td>
-                        <td data-label="Reason">{{ req.reason }}</td>
-                        <td data-label="Status">
-                            <span class="status-tag"
-                                style="background: {{ '#55efc4' if req.status=='APPROVED' else '#ff7675' }}; color: white;">
-                                {{ req.status }}
-                            </span>
-                        </td>
-                        <td data-label="Admin Comment">{{ req.admin_comment or '-' }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+            <input type="text" id="searchInput" placeholder="Search by student/roll..." oninput="applyFilters()">
+            <select id="branchFilter" onchange="applyFilters()">
+                <option value="">All Branches</option>
+            </select>
+            <select id="subjectFilter" onchange="applyFilters()">
+                <option value="">All Subjects</option>
+            </select>
         </div>
+
+        <!-- Corrections List -->
+        <div id="correctionsList"></div>
     </div>
 
     <script>
-        function handleRequest(id, action) {
-            const comment = prompt("Enter comment (optional):");
-            const formData = new FormData();
-            formData.append('id', id);
-            formData.append('action', action);
-            formData.append('comment', comment || '');
+        let allCorrections = [];
+        let currentStatusFilter = 'all';
 
-            fetch('/api/handle_correction', {
-                method: 'POST',
-                body: formData
-            })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        location.reload();
-                    } else {
-                        alert("Error: " + data.message);
-                    }
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCorrections();
+        });
+
+        async function loadCorrections() {
+            try {
+                const response = await fetch('/admin/corrections');
+                const data = await response.json();
+                
+                if (data.success) {
+                    allCorrections = data.corrections || [];
+                    populateFilters();
+                    updateCounts();
+                    applyFilters();
+                } else {
+                    showError('Failed to load corrections');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Error loading corrections');
+            }
+        }
+
+        function populateFilters() {
+            const branches = new Set();
+            const subjects = new Set();
+
+            allCorrections.forEach(c => {
+                if (c.branch) branches.add(c.branch);
+                if (c.subject) subjects.add(c.subject);
+            });
+
+            const branchSelect = document.getElementById('branchFilter');
+            branches.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b;
+                opt.textContent = b;
+                branchSelect.appendChild(opt);
+            });
+
+            const subjectSelect = document.getElementById('subjectFilter');
+            subjects.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s;
+                opt.textContent = s;
+                subjectSelect.appendChild(opt);
+            });
+        }
+
+        function updateCounts() {
+            const counts = { all: 0, pending: 0, approved: 0, rejected: 0 };
+            allCorrections.forEach(c => {
+                counts.all++;
+                const status = (c.status || 'pending').toLowerCase();
+                if (counts[status] !== undefined) counts[status]++;
+            });
+
+            document.getElementById('count-all').textContent = counts.all;
+            document.getElementById('count-pending').textContent = counts.pending;
+            document.getElementById('count-approved').textContent = counts.approved;
+            document.getElementById('count-rejected').textContent = counts.rejected;
+        }
+
+        function filterByStatus(status) {
+            currentStatusFilter = status;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const branchFilter = document.getElementById('branchFilter').value;
+            const subjectFilter = document.getElementById('subjectFilter').value;
+
+            let filtered = allCorrections.filter(c => {
+                // Status filter
+                if (currentStatusFilter !== 'all') {
+                    const status = (c.status || 'pending').toLowerCase();
+                    if (status !== currentStatusFilter) return false;
+                }
+
+                // Search filter
+                if (searchTerm) {
+                    const studentName = (c.student_name || '').toLowerCase();
+                    const roll = (c.roll || '').toLowerCase();
+                    if (!studentName.includes(searchTerm) && !roll.includes(searchTerm)) return false;
+                }
+
+                // Branch filter
+                if (branchFilter && c.branch !== branchFilter) return false;
+
+                // Subject filter
+                if (subjectFilter && c.subject !== subjectFilter) return false;
+
+                return true;
+            });
+
+            renderCorrections(filtered);
+        }
+
+        function renderCorrections(corrections) {
+            const container = document.getElementById('correctionsList');
+            
+            if (corrections.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>No correction requests found</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Sort by created_at descending
+            corrections.sort((a, b) => {
+                const dateA = new Date(a.created_at || 0);
+                const dateB = new Date(b.created_at || 0);
+                return dateB - dateA;
+            });
+
+            container.innerHTML = corrections.map(c => createCorrectionCard(c)).join('');
+        }
+
+        function createCorrectionCard(correction) {
+            const status = (correction.status || 'pending').toLowerCase();
+            const statusClass = status;
+            
+            return `
+                <div class="correction-card ${statusClass}">
+                    <div class="correction-header">
+                        <div>
+                            <div class="correction-student">
+                                <i class="fas fa-user-graduate"></i> 
+                                ${correction.student_name || 'Unknown Student'}
+                            </div>
+                            <small style="color: rgba(255,255,255,0.6);">Roll: ${correction.roll || 'N/A'}</small>
+                        </div>
+                        <span class="status-badge ${statusClass}">${status}</span>
+                    </div>
+                    
+                    <div class="correction-meta">
+                        <div class="meta-item">
+                            <i class="fas fa-book"></i>
+                            <span><strong>Subject:</strong> ${correction.subject || 'N/A'}</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                            <span><strong>Teacher:</strong> ${correction.teacher_name || 'N/A'}</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-calendar-times"></i>
+                            <span><strong>Absent Date:</strong> ${formatDate(correction.absent_date)}</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-code-branch"></i>
+                            <span><strong>Branch:</strong> ${correction.branch || 'N/A'}</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-clock"></i>
+                            <span><strong>Submitted:</strong> ${formatDateTime(correction.created_at)}</span>
+                        </div>
+                        ${correction.updated_at && status !== 'pending' ? `
+                        <div class="meta-item">
+                            <i class="fas fa-check-circle"></i>
+                            <span><strong>Handled:</strong> ${formatDateTime(correction.updated_at)}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+
+                    <div class="correction-reason">
+                        <strong><i class="fas fa-comment-alt"></i> Reason:</strong>
+                        <p style="margin-top: 0.5rem; margin-bottom: 0;">${correction.reason || 'No reason provided'}</p>
+                    </div>
+
+                    ${correction.proof_img ? `
+                    <div style="margin-bottom: 1rem;">
+                        <a href="/static/proofs/${correction.proof_img}" target="_blank" class="btn-small" style="background: var(--info-color);">
+                            <i class="fas fa-image"></i> View Proof
+                        </a>
+                    </div>
+                    ` : ''}
+
+                    ${correction.teacher_remarks ? `
+                    <div class="teacher-remarks">
+                        <strong><i class="fas fa-comment-dots"></i> Teacher Remarks:</strong>
+                        <p style="margin-top: 0.5rem; margin-bottom: 0;">${correction.teacher_remarks}</p>
+                    </div>
+                    ` : ''}
+
+                    ${status === 'pending' ? `
+                    <div class="correction-actions">
+                        <button onclick="handleAdminAction('${correction.id}', 'APPROVED')" class="btn-small" style="background: var(--success-color);">
+                            <i class="fas fa-check"></i> Approve
+                        </button>
+                        <button onclick="handleAdminAction('${correction.id}', 'REJECTED')" class="btn-small" style="background: var(--danger-color);">
+                            <i class="fas fa-times"></i> Reject
+                        </button>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            try {
+                const date = new Date(dateStr);
+                return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+            } catch {
+                return dateStr;
+            }
+        }
+
+        function formatDateTime(dateStr) {
+            if (!dateStr) return 'N/A';
+            try {
+                const date = new Date(dateStr);
+                return date.toLocaleDateString('en-IN', { 
+                    day: '2-digit', 
+                    month: 'short', 
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
                 });
+            } catch {
+                return dateStr;
+            }
+        }
+
+        async function handleAdminAction(id, action) {
+            const comment = prompt(`Enter admin comment for ${action.toLowerCase()} (optional):`);
+            
+            try {
+                const formData = new FormData();
+                formData.append('id', id);
+                formData.append('action', action);
+                formData.append('comment', comment || '');
+
+                const response = await fetch('/api/handle_correction', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess(`Request ${action.toLowerCase()} successfully`);
+                    loadCorrections(); // Reload
+                } else {
+                    showError(data.message || 'Action failed');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Error processing request');
+            }
+        }
+
+        function showSuccess(message) {
+            alert('✅ ' + message);
+        }
+
+        function showError(message) {
+            alert('❌ ' + message);
         }
     </script>
 </body>

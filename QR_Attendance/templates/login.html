@@ -3,11 +3,50 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Login | QR Attendance</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="/static/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link rel="manifest" href="/static/manifest.json">
+    <style>
+        /* Mobile-first login styles */
+        @media (max-width: 576px) {
+            body {
+                padding: 10px !important;
+            }
+
+            .glass-container {
+                padding: 1.25rem !important;
+                margin: 5px;
+                border-radius: 16px;
+            }
+
+            h1 {
+                font-size: 1.5rem !important;
+            }
+
+            .form-group input,
+            .form-group select {
+                font-size: 16px !important; /* Prevent iOS zoom */
+                padding: 14px 14px 14px 40px !important;
+            }
+
+            button[type="submit"] {
+                padding: 14px 20px !important;
+                font-size: 1rem !important;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .glass-container {
+                padding: 1rem !important;
+            }
+
+            h1 {
+                font-size: 1.3rem !important;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -19,17 +58,51 @@
             <p style="margin-bottom: 1rem; font-size: 0.95rem;">Student / Teacher / Admin Login</p>
         </div>
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        {% for category, message in messages %}
+        {{ if .error }}
         <div
             style="padding: 10px; border-radius: 8px; margin-bottom: 1rem; background: rgba(255, 107, 107, 0.2); border: 1px solid rgba(255, 107, 107, 0.5); color: #c0392b; text-align: center;">
-            {{ message }}
+            {{ .error }}
         </div>
-        {% endfor %}
-        {% endif %}
-        {% endwith %}
+        {{ end }}
 
+        {{ if .is_register }}
+        <form action="/register" method="POST">
+            <div class="form-group">
+                <label>Username</label>
+                <div style="position: relative;">
+                    <i class="fas fa-user" style="position: absolute; left: 15px; top: 15px; color: #a18cd1;"></i>
+                    <input type="text" name="username" placeholder="Choose username" style="padding-left: 40px;"
+                        required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <div style="position: relative;">
+                    <i class="fas fa-lock" style="position: absolute; left: 15px; top: 15px; color: #a18cd1;"></i>
+                    <input type="password" name="password" placeholder="Create password" style="padding-left: 40px;"
+                        required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <div style="position: relative;">
+                    <i class="fas fa-envelope" style="position: absolute; left: 15px; top: 15px; color: #a18cd1;"></i>
+                    <input type="email" name="email" placeholder="Email Address" style="padding-left: 40px;" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Role</label>
+                <select name="role" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd;">
+                    <option value="student">Student</option>
+                    <option value="teacher">Teacher</option>
+                </select>
+            </div>
+            <button type="submit">Sign Up <i class="fas fa-user-plus"></i></button>
+            <div style="margin-top: 1rem; text-align: center;">
+                <a href="/login" style="color: var(--primary-color);">Back to Login</a>
+            </div>
+        </form>
+        {{ else }}
         <form action="/login" method="POST">
             <div class="form-group">
                 <label>Username</label>
@@ -59,14 +132,90 @@
             <p style="margin-bottom: 0.5rem;">Don't have an account? <a href="/register"
                     style="color: var(--primary-color); font-weight: bold;">Sign
                     Up Here</a></p>
+            <p><a href="#" onclick="openForgotPassword()" style="color: #888; text-decoration: underline;">Forgot Password?</a></p>
         </div>
+        {{ end }}
 
-        <div style="margin-top: 1rem; text-align: center; font-size: 0.8rem; opacity: 0.8;">
-            <p style="margin-bottom: 2px;"></p>
-            <p style="margin-bottom: 2px;"></p>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div id="forgotPasswordModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+        <div class="glass-container" style="max-width: 400px; width: 90%; margin: 20px auto; position: relative;">
+            <button onclick="closeForgotPassword()" style="position: absolute; top: 10px; right: 10px; background: #e74c3c; border: none; color: white; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 1.2rem;">&times;</button>
+            
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <i class="fas fa-key fa-2x" style="color: #a18cd1; margin-bottom: 10px;"></i>
+                <h2 style="font-size: 1.3rem; margin-bottom: 5px;">Password Recovery</h2>
+                <p style="font-size: 0.9rem; color: #666;">Enter your username to view your password hint</p>
+            </div>
+            
+            <div class="form-group">
+                <label>Username / Roll Number</label>
+                <div style="position: relative;">
+                    <i class="fas fa-user" style="position: absolute; left: 15px; top: 15px; color: #a18cd1;"></i>
+                    <input type="text" id="forgot-username" placeholder="Enter your username" style="padding-left: 40px;">
+                </div>
+            </div>
+            
+            <button onclick="checkPasswordHint()" style="width: 100%; background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                <i class="fas fa-search"></i> Get Password Hint
+            </button>
+            
+            <div id="password-hint-result" style="display: none; margin-top: 1rem; padding: 15px; border-radius: 10px; text-align: center;"></div>
+            
+            <div style="margin-top: 1.5rem; padding: 15px; background: rgba(102, 126, 234, 0.1); border-radius: 10px; border: 1px solid rgba(102, 126, 234, 0.3);">
+                <p style="font-size: 0.85rem; color: #666; margin: 0;">
+                    <i class="fas fa-info-circle" style="color: #667eea;"></i>
+                    <strong>Can't remember?</strong> Contact your administrator or teacher to reset your password.
+                </p>
+            </div>
         </div>
     </div>
-    <script src="{{ url_for('static', filename='backjs.js') }}?v=5"></script>
+
+    <script>
+        function openForgotPassword() {
+            document.getElementById('forgotPasswordModal').style.display = 'flex';
+        }
+        
+        function closeForgotPassword() {
+            document.getElementById('forgotPasswordModal').style.display = 'none';
+            document.getElementById('forgot-username').value = '';
+            document.getElementById('password-hint-result').style.display = 'none';
+        }
+        
+        async function checkPasswordHint() {
+            const username = document.getElementById('forgot-username').value.trim();
+            if (!username) {
+                alert('Please enter your username');
+                return;
+            }
+            
+            const resultDiv = document.getElementById('password-hint-result');
+            resultDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+            resultDiv.style.display = 'block';
+            resultDiv.style.background = 'rgba(102, 126, 234, 0.1)';
+            resultDiv.style.color = '#333';
+            
+            try {
+                const response = await fetch('/api/password_hint?username=' + encodeURIComponent(username));
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.style.background = 'rgba(40, 167, 69, 0.1)';
+                    resultDiv.style.border = '1px solid rgba(40, 167, 69, 0.3)';
+                    resultDiv.innerHTML = '<i class="fas fa-lightbulb" style="color: #28a745;"></i><br><strong>Password Hint:</strong><br>' + data.hint + '<br><br><small style="color: #666;">Registered Email: ' + (data.email || 'Not provided') + '</small>';
+                } else {
+                    resultDiv.style.background = 'rgba(231, 76, 60, 0.1)';
+                    resultDiv.style.border = '1px solid rgba(231, 76, 60, 0.3)';
+                    resultDiv.innerHTML = '<i class="fas fa-exclamation-circle" style="color: #e74c3c;"></i><br>' + data.message;
+                }
+            } catch (err) {
+                resultDiv.style.background = 'rgba(231, 76, 60, 0.1)';
+                resultDiv.innerHTML = '<i class="fas fa-exclamation-circle" style="color: #e74c3c;"></i><br>Error checking username. Please try again.';
+            }
+        }
+    </script>
+    <script src="/static/backjs.js"></script>
 </body>
 
 </html>

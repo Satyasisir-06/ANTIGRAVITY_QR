@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code - {{ .subject }}</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .qr-container {
+            text-align: center;
+            padding: 2rem;
+            max-width: 450px;
+            width: 100%;
+        }
+
+        .session-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, rgba(46, 204, 113, 0.2), rgba(39, 174, 96, 0.1));
+            border: 1px solid rgba(46, 204, 113, 0.4);
+            padding: 8px 16px;
+            border-radius: 20px;
+            color: #27ae60;
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .session-badge i {
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .subject-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin: 0 0 5px 0;
+            color: var(--text-color);
+        }
+
+        .branch-info {
+            color: var(--text-muted);
+            font-size: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .qr-wrapper {
+            background: white;
+            padding: 20px;
+            border-radius: 20px;
+            display: inline-block;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+        }
+
+        .qr-wrapper img {
+            display: block;
+            width: 250px;
+            height: 250px;
+            border-radius: 10px;
+        }
+
+        .timer-section {
+            background: rgba(231, 76, 60, 0.1);
+            border: 1px solid rgba(231, 76, 60, 0.3);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 1.5rem;
+        }
+
+        .timer-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+        }
+
+        .timer-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #e74c3c;
+            font-family: monospace;
+        }
+
+        .timer-value.warning {
+            animation: flash 0.5s infinite;
+        }
+
+        @keyframes flash {
+            0%, 100% { color: #e74c3c; }
+            50% { color: #c0392b; }
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .info-item i {
+            color: #a18cd1;
+        }
+
+        .scan-instruction {
+            background: linear-gradient(135deg, rgba(161, 140, 209, 0.15), rgba(251, 194, 235, 0.1));
+            border: 1px solid rgba(161, 140, 209, 0.3);
+            border-radius: 12px;
+            padding: 12px 20px;
+            margin-bottom: 1.5rem;
+        }
+
+        .scan-instruction p {
+            margin: 0;
+            font-size: 0.95rem;
+            color: var(--text-color);
+        }
+
+        .scan-instruction i {
+            color: #a18cd1;
+            margin-right: 8px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .action-buttons a, .action-buttons button {
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+
+        .btn-end {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+        }
+
+        .btn-end:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(231, 76, 60, 0.4);
+        }
+
+        .btn-back {
+            background: rgba(161, 140, 209, 0.15);
+            border: 1px solid rgba(161, 140, 209, 0.3) !important;
+            color: #a18cd1;
+        }
+
+        .btn-back:hover {
+            background: rgba(161, 140, 209, 0.25);
+        }
+
+        .btn-fullscreen {
+            background: rgba(52, 152, 219, 0.15);
+            border: 1px solid rgba(52, 152, 219, 0.3) !important;
+            color: #3498db;
+        }
+
+        .btn-fullscreen:hover {
+            background: rgba(52, 152, 219, 0.25);
+        }
+
+        /* Fullscreen mode */
+        .fullscreen-mode {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: white;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .fullscreen-mode .qr-wrapper {
+            box-shadow: none;
+            padding: 0;
+        }
+
+        .fullscreen-mode .qr-wrapper img {
+            width: 300px;
+            height: 300px;
+        }
+
+        .fullscreen-mode .subject-title {
+            color: #333;
+            font-size: 2rem;
+        }
+
+        .fullscreen-mode .branch-info {
+            color: #666;
+            font-size: 1.2rem;
+        }
+
+        .fullscreen-mode .exit-fullscreen {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+
+        @media (max-width: 480px) {
+            .qr-wrapper img {
+                width: 200px;
+                height: 200px;
+            }
+
+            .subject-title {
+                font-size: 1.3rem;
+            }
+
+            .timer-value {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="glass-container qr-container animate-pop" id="qrCard">
+        <div class="session-badge">
+            <i class="fas fa-circle"></i> LIVE SESSION
+        </div>
+
+        <h1 class="subject-title">{{ .subject }}</h1>
+        <p class="branch-info"><i class="fas fa-users"></i> {{ .branch }}</p>
+
+        <div class="qr-wrapper">
+            <img src="/get_qr_img/{{ .token }}" alt="QR Code" id="qrImage">
+        </div>
+
+        <div class="timer-section">
+            <div class="timer-label">Session expires in</div>
+            <div class="timer-value" id="countdown">--:--:--</div>
+        </div>
+
+        <div class="info-row">
+            <div class="info-item">
+                <i class="fas fa-chalkboard"></i>
+                <span>{{ .class_type }}</span>
+            </div>
+            <div class="info-item">
+                <i class="fas fa-clock"></i>
+                <span>Started: {{ .start_time }}</span>
+            </div>
+        </div>
+
+        <div class="scan-instruction">
+            <p><i class="fas fa-mobile-alt"></i> Students: Open camera and scan this QR code</p>
+        </div>
+
+        <div class="action-buttons">
+            <button onclick="toggleFullscreen()" class="btn-fullscreen">
+                <i class="fas fa-expand"></i> Fullscreen
+            </button>
+            <a href="/teacher" class="btn-back">
+                <i class="fas fa-arrow-left"></i> Dashboard
+            </a>
+            <form method="POST" action="/teacher/finalize_session" style="margin: 0;">
+                <input type="hidden" name="session_id" value="{{ .session_id }}">
+                <button type="submit" class="btn-end">
+                    <i class="fas fa-stop"></i> End Session
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Fullscreen QR View -->
+    <div id="fullscreenView" class="fullscreen-mode" style="display: none;">
+        <button class="exit-fullscreen" onclick="toggleFullscreen()">
+            <i class="fas fa-times"></i>
+        </button>
+        <h1 class="subject-title">{{ .subject }}</h1>
+        <p class="branch-info">{{ .branch }}</p>
+        <div class="qr-wrapper">
+            <img src="/get_qr_img/{{ .token }}" alt="QR Code">
+        </div>
+        <p style="color: #888; margin-top: 1rem;">Scan to mark attendance</p>
+    </div>
+
+    <script>
+        // Countdown timer
+        const endTime = {{ .end_time }};
+        
+        function updateCountdown() {
+            const now = Math.floor(Date.now() / 1000);
+            const remaining = endTime - now;
+            
+            if (remaining <= 0) {
+                document.getElementById('countdown').textContent = 'EXPIRED';
+                document.getElementById('countdown').classList.add('warning');
+                return;
+            }
+            
+            const hours = Math.floor(remaining / 3600);
+            const minutes = Math.floor((remaining % 3600) / 60);
+            const seconds = remaining % 60;
+            
+            const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            document.getElementById('countdown').textContent = timeStr;
+            
+            // Warning when less than 5 minutes
+            if (remaining < 300) {
+                document.getElementById('countdown').classList.add('warning');
+            }
+        }
+        
+        updateCountdown();
+        setInterval(updateCountdown, 1000);
+
+        // Fullscreen toggle
+        function toggleFullscreen() {
+            const fullscreenView = document.getElementById('fullscreenView');
+            const qrCard = document.getElementById('qrCard');
+            
+            if (fullscreenView.style.display === 'none') {
+                fullscreenView.style.display = 'flex';
+                qrCard.style.display = 'none';
+                // Try native fullscreen
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen().catch(() => {});
+                }
+            } else {
+                fullscreenView.style.display = 'none';
+                qrCard.style.display = 'block';
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().catch(() => {});
+                }
+            }
+        }
+
+        // Exit fullscreen on Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.getElementById('fullscreenView').style.display = 'none';
+                document.getElementById('qrCard').style.display = 'block';
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Semester Settings | QR Attendance</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="/static/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 
@@ -14,6 +14,9 @@
         <nav class="navbar">
             <div class="brand"><i class="fas fa-cogs"></i> Settings</div>
             <div class="nav-links">
+                <button onclick="toggleDarkMode()" class="theme-toggle-btn" data-tooltip="Toggle Theme">
+                    <i id="theme-icon" class="fas fa-moon"></i>
+                </button>
                 <a href="/admin" data-tooltip="Dashboard"><i class="fas fa-arrow-left"></i></a>
                 <a href="/admin/corrections" data-tooltip="Corrections"><i class="fas fa-clipboard-check"></i></a>
                 <a href="/analytics" data-tooltip="Analytics"><i class="fas fa-chart-line"></i></a>
@@ -23,18 +26,18 @@
             </div>
         </nav>
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        {% for category, message in messages %}
-        <div style="padding: 10px; border-radius: 8px; margin-bottom: 1rem; 
-                        background: {% if category=='success' %}rgba(46, 204, 113, 0.2){% else %}rgba(255, 107, 107, 0.2){% endif %}; 
-                        border: 1px solid {% if category=='success' %}rgba(46, 204, 113, 0.5){% else %}rgba(255, 107, 107, 0.5){% endif %}; 
-                        color: {% if category=='success' %}#27ae60{% else %}#c0392b{% endif %}; text-align: center;">
-            {{ message }}
+        {{ if .error }}
+        <div
+            style="padding: 10px; border-radius: 8px; margin-bottom: 1rem; background: rgba(255, 107, 107, 0.2); border: 1px solid rgba(255, 107, 107, 0.5); color: #c0392b; text-align: center;">
+            {{ .error }}
         </div>
-        {% endfor %}
-        {% endif %}
-        {% endwith %}
+        {{ end }}
+        {{ if .success }}
+        <div
+            style="padding: 10px; border-radius: 8px; margin-bottom: 1rem; background: rgba(46, 204, 113, 0.2); border: 1px solid rgba(46, 204, 113, 0.5); color: #27ae60; text-align: center;">
+            {{ .success }}
+        </div>
+        {{ end }}
 
         <div style="display: flex; flex-wrap: wrap; gap: 2rem;">
             <!-- Semester Dates (Flex Item) -->
@@ -46,11 +49,11 @@
                     <h3><i class="fas fa-calendar-alt"></i> Semester Dates</h3>
                     <div class="form-group" style="margin-top: 15px;">
                         <label>Start Date</label>
-                        <input type="date" name="start_date" value="{{ config.start_date }}" required>
+                        <input type="date" name="start_date" value="{{ .config.StartDate }}" required>
                     </div>
                     <div class="form-group">
                         <label>End Date</label>
-                        <input type="date" name="end_date" value="{{ config.end_date }}" required>
+                        <input type="date" name="end_date" value="{{ .config.EndDate }}" required>
                     </div>
                     <button type="submit" style="margin-top: 15px;">Update Dates</button>
                 </form>
@@ -62,8 +65,8 @@
 
                     <div class="toggle-wrapper">
                         <label class="toggle-switch">
-                            <input type="checkbox" name="geo_enabled" id="geo_enabled" {% if config.geo_enabled
-                                %}checked{% endif %}>
+                            <input type="checkbox" name="geo_enabled" id="geo_enabled" {{ if .config.GeoEnabled
+                                }}checked{{ end }}>
                             <span class="slider"></span>
                         </label>
                         <label for="geo_enabled" class="toggle-label">Enable Location Restriction</label>
@@ -71,18 +74,18 @@
 
                     <div class="form-group">
                         <label>Allowed Radius (meters)</label>
-                        <input type="number" name="geo_radius" value="{{ config.geo_radius }}" placeholder="200">
+                        <input type="number" name="geo_radius" value="{{ .config.GeoRadius }}" placeholder="200">
                     </div>
 
                     <div class="responsive-grid" style="gap: 10px;">
                         <div class="form-group">
                             <label>Lat</label>
-                            <input type="text" name="college_lat" id="college_lat" value="{{ config.college_lat }}"
+                            <input type="text" name="college_lat" id="college_lat" value="{{ .config.CollegeLat }}"
                                 placeholder="e.g. 17.1234">
                         </div>
                         <div class="form-group">
                             <label>Lng</label>
-                            <input type="text" name="college_lng" id="college_lng" value="{{ config.college_lng }}"
+                            <input type="text" name="college_lng" id="college_lng" value="{{ .config.CollegeLng }}"
                                 placeholder="e.g. 78.5678">
                         </div>
                     </div>
@@ -94,67 +97,6 @@
                     <button type="submit">Update Geofencing</button>
                 </form>
 
-                <h2 style="margin-top: 2rem;"><i class="fas fa-sms"></i> SMS Configuration</h2>
-                <div
-                    style="background: rgba(46, 204, 113, 0.1); border: 1px solid rgba(46, 204, 113, 0.3); padding: 1rem; border-radius: 12px; margin-bottom: 1rem; font-size: 0.85rem;">
-                    <strong><i class="fas fa-lightbulb"></i> How to get these?</strong>
-                    <ol style="margin: 5px 0 0 20px; padding: 0;">
-                        <li>Go to <a href="https://console.twilio.com" target="_blank"
-                                style="color: #27ae60; text-decoration: underline;">Twilio Console</a></li>
-                        <li>Copy the <strong>Account SID</strong> and <strong>Auth Token</strong> from the dashboard.
-                        </li>
-                        <li>In "Phone Numbers" -> "Manage", copy your <strong>Twilio Phone Number</strong>.</li>
-                    </ol>
-                </div>
-                <form action="/update_sms_config" method="POST"
-                    style="background: rgba(255,255,255,0.3); padding: 1.5rem; border-radius: 20px;">
-                    <div class="toggle-wrapper">
-                        <label class="toggle-switch">
-                            <input type="checkbox" name="sms_enabled" id="sms_enabled" {% if config.sms_enabled
-                                %}checked{% endif %}>
-                            <span class="slider"></span>
-                        </label>
-                        <label for="sms_enabled" class="toggle-label">Enable Parent SMS Alerts</label>
-                    </div>
-                    <div class="form-group">
-                        <label>1. Twilio Account SID <small>(Username for SMS)</small></label>
-                        <input type="text" name="sms_sid" value="{{ config.sms_sid or '' }}"
-                            placeholder="Starts with AC...">
-                    </div>
-                    <div class="form-group">
-                        <label>2. Twilio Auth Token <small>(Password for SMS)</small></label>
-                        <input type="password" name="sms_auth_token" value="{{ config.sms_auth_token or '' }}"
-                            placeholder="A long string of letters/numbers">
-                    </div>
-                    <div class="form-group">
-                        <label>3. Twilio From Number <small>(Sender ID)</small></label>
-                        <input type="text" name="sms_from_number" value="{{ config.sms_from_number or '' }}"
-                            placeholder="e.g. +1234567890">
-                    </div>
-                    <div class="form-group">
-                        <label>Minimum Attendance Safety Limit (%)</label>
-                        <input type="number" name="sms_threshold" value="{{ config.sms_threshold or 75 }}"
-                            placeholder="75">
-                        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;">
-                            <i class="fas fa-info-circle"></i> If a student's attendance for a subject drops below this
-                            percentage, an additional warning will be included in the absence SMS.
-                        </p>
-                    </div>
-
-                    <div
-                        style="background: rgba(46, 204, 113, 0.05); padding: 1rem; border-radius: 12px; border: 1px dashed rgba(46, 204, 113, 0.3); margin-bottom: 15px;">
-                        <label style="font-weight: 600; display: block; margin-bottom: 10px;"><i
-                                class="fas fa-vial"></i> Verify Credentials</label>
-                        <div style="display: flex; gap: 10px;">
-                            <input type="tel" id="test_phone" placeholder="Your Phone (e.g. +91...)" style="flex: 1;">
-                            <button type="button" onclick="sendTestSMS()" class="secondary"
-                                style="width: auto; margin: 0; background: #27ae60;">Test SMS</button>
-                        </div>
-                        <p id="test_status" style="font-size: 0.8rem; margin-top: 5px; display: none;"></p>
-                    </div>
-
-                    <button type="submit" class="secondary">Save SMS Config</button>
-                </form>
             </div>
 
             <!-- Holidays (Flex Item) -->
@@ -194,150 +136,31 @@
                                 </tr>
                             </thead>
                             <tbody id="holidayList">
-                                {% for h in holidays %}
+                                {{ range .holidays }}
                                 <tr>
-                                    <td style="font-weight: 500;">{{ h.date_display }}</td>
+                                    <td style="font-weight: 500;">{{ .DateDisplay }}</td>
                                     <td><span class="badge"
                                             style="background: rgba(161, 140, 209, 0.2); color: #a18cd1; border: 1px solid #a18cd1;">{{
-                                            h.description }}</span></td>
+                                            .Description }}</span></td>
                                     <td>
-                                        <button class="danger-btn" onclick="deleteHoliday({{ h.ids }})"
+                                        <button class="danger-btn" onclick="deleteHoliday('{{ .ID }}')"
                                             title="Delete Range">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </td>
                                 </tr>
-                                {% else %}
-                                <tr>
-                                    <td colspan="3" style="text-align: center;">No holidays added.</td>
-                                </tr>
-                                {% endfor %}
+                                {{ end }}
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
-            <!-- Student Management -->
-            <div style="grid-column: 1 / -1;">
-                <h2><i class="fas fa-users-cog"></i> Manage Students</h2>
-                <div style="background: rgba(255,255,255,0.3); padding: 1.5rem; border-radius: 20px;">
-                    <p style="margin-bottom: 15px;"><b>Option 1: Upload / Replace List</b><br>
-                        Upload a CSV file with columns: <i>Roll Number, Name, Branch</i></p>
 
-                    <form action="/upload_students" method="POST" enctype="multipart/form-data" class="mobile-stack"
-                        style="align-items: center; margin-bottom: 2rem;">
-
-                        <!-- Custom File Input -->
-                        <div style="position: relative; overflow: hidden; display: inline-block;">
-                            <input type="file" name="file" id="csvFile" accept=".csv" required
-                                style="position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;">
-                            <label for="csvFile" class="file-label"
-                                style="background: white; padding: 10px 15px; border-radius: 12px; border: 2px solid #a18cd1; color: #a18cd1; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-weight: 600;">
-                                <i class="fas fa-cloud-upload-alt"></i> Choose CSV
-                            </label>
-                        </div>
-                        <span id="fileName"
-                            style="font-size: 0.9rem; color: var(--text-color); max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">No
-                            file chosen</span>
-
-                        <label
-                            style="display: flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap; margin-left: auto;">
-                            <input type="checkbox" name="replace_all" style="width: auto;"> Replace/Clear Existing Data
-                        </label>
-                        <button type="submit" style="width: auto;">Upload CSV</button>
-                    </form>
-
-                    <script>
-                        document.getElementById('csvFile').addEventListener('change', function (e) {
-                            var fileName = e.target.files[0] ? e.target.files[0].name : "No file chosen";
-                            document.getElementById('fileName').textContent = fileName;
-                        });
-                    </script>
-
-                    <hr style="border-color: rgba(255,255,255,0.2); margin-bottom: 1.5rem;">
-
-                    <p style="margin-bottom: 10px;"><b>Option 2: Manual Add / Edit Student</b></p>
-                    <div class="responsive-grid" style="gap: 10px; margin-bottom: 10px;">
-                        <input type="text" id="ms_roll" placeholder="Roll No">
-                        <input type="text" id="ms_name" placeholder="Name">
-                    </div>
-                    <div class="responsive-grid" style="gap: 10px; margin-bottom: 10px;">
-                        <select id="ms_branch">
-                            <option value="CAI">CAI</option>
-                            <option value="CSM">CSM</option>
-                            <option value="CSD">CSD</option>
-                            <option value="CSE-A">CSE-A</option>
-                            <option value="CSE-B">CSE-B</option>
-                            <option value="CSE-C">CSE-C</option>
-                            <option value="CSE-D">CSE-D</option>
-                            <option value="CIVIL">CIVIL</option>
-                            <option value="MECH">MECH</option>
-                            <option value="ECE">ECE</option>
-                            <option value="EEE">EEE</option>
-                        </select>
-                        <input type="tel" id="ms_phone" placeholder="Parent Phone (10 digits)">
-                    </div>
-                    <button type="button" onclick="saveStudent()" class="secondary"
-                        style="width: auto; margin-bottom: 1.5rem;">
-                        <i class="fas fa-save"></i> Save Student
-                    </button>
-
-                    <script>
-                        async function saveStudent() {
-                            // Immediate feedback
-                            const btn = document.querySelector('button[onclick="saveStudent()"]');
-                            const originalText = btn.innerHTML;
-                            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-                            btn.disabled = true;
-
-                            const roll = document.getElementById('ms_roll').value;
-                            const name = document.getElementById('ms_name').value;
-                            const branch = document.getElementById('ms_branch').value;
-                            const phone = document.getElementById('ms_phone').value;
-
-                            if (!roll || !name) {
-                                alert("Roll No and Name are required");
-                                btn.innerHTML = originalText;
-                                btn.disabled = false;
-                                return;
-                            }
-
-                            try {
-                                const res = await fetch('/add_student_manual', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ roll: roll, name: name, branch: branch, parent_phone: phone })
-                                });
-                                const data = await res.json();
-                                alert(data.message);
-                                if (data.success) {
-                                    document.getElementById('ms_roll').value = '';
-                                    document.getElementById('ms_name').value = '';
-                                    document.getElementById('ms_phone').value = '';
-                                }
-                            } catch (e) {
-                                alert('Error saving student: ' + e);
-                                console.error(e);
-                            } finally {
-                                btn.innerHTML = originalText;
-                                btn.disabled = false;
-                            }
-                        }
-                    </script>
-
-                    <hr style="border-color: rgba(255,255,255,0.2); margin-bottom: 1.5rem;">
-
-                    <p style="margin-bottom: 10px;"><b>Option 2: Clear Database</b></p>
-                    <button onclick="deleteAllStudents()" class="danger" style="width: auto;">
-                        <i class="fas fa-trash"></i> Delete All Students
-                    </button>
-                </div>
-            </div>
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='backjs.js') }}?v=4"></script>
+    <script src="/static/backjs.js"></script>
     <script>
         function setCurrentLocation() {
             if (!navigator.geolocation) {
@@ -357,58 +180,56 @@
             );
         }
 
-        // Inline script for delete confirmation as it's specific to this page
-        async function deleteAllStudents() {
-            if (!confirm('CRITICAL WARNING: This will delete ALL student records from the database.\n\nAre you sure you want to proceed?')) return;
 
-            try {
-                const res = await fetch('/delete_students', { method: 'POST' });
-                // We perform a redirect on the backend, but if it was an AJAX call we reload:
-                window.location.reload();
-            } catch (e) {
-                alert('Error processing request');
-            }
-        }
 
-        async function sendTestSMS() {
-            const sid = document.querySelector('input[name="sms_sid"]').value;
-            const token = document.querySelector('input[name="sms_auth_token"]').value;
-            const from = document.querySelector('input[name="sms_from_number"]').value;
-            const to = document.getElementById('test_phone').value;
-            const statusEl = document.getElementById('test_status');
+        // Holiday management scripts
+        async function addHoliday() {
+            const date = document.getElementById("h_date").value
+            const end = document.getElementById("h_end_date").value
+            const desc = document.getElementById("h_desc").value
 
-            if (!sid || !token || !from || !to) {
-                alert("Please fill in all Twilio fields and your test phone number first!");
+            if (!date || !desc) {
+                alert("Date and description are required");
                 return;
             }
 
-            statusEl.style.display = 'block';
-            statusEl.style.color = 'var(--text-color)';
-            statusEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending test SMS...';
+            await fetch("/admin/add_holiday", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ start_date: date, end_date: end, description: desc })
+            }).then(r => location.reload());
+        }
 
-            try {
-                const res = await fetch('/api/test_sms', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sid, token, from_number: from, to_number: to })
-                });
+        async function deleteHoliday(id) {
+            if (!confirm("Delete this holiday?")) return;
+            // Assuming endpoint
+            // await fetch("/admin/delete_holiday", ...)
+            console.log("Delete ID:", id);
+            // Implement backend handler if not existing
+        }
 
-                if (!res.ok) {
-                    const text = await res.text();
-                    throw new Error(`Server returned ${res.status}: ${text.slice(0, 100)}`);
-                }
+        // Dark mode toggle
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const icon = document.getElementById('theme-icon');
+            if (document.body.classList.contains('dark-mode')) {
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+                localStorage.setItem('darkMode', 'true');
+            } else {
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+                localStorage.setItem('darkMode', 'false');
+            }
+        }
 
-                const data = await res.json();
-                if (data.success) {
-                    statusEl.style.color = '#27ae60';
-                    statusEl.innerHTML = '<i class="fas fa-check-circle"></i> SMS Sent Successfully! Check your phone.';
-                } else {
-                    statusEl.style.color = '#e74c3c';
-                    statusEl.innerHTML = '<i class="fas fa-times-circle"></i> Error: ' + data.message;
-                }
-            } catch (e) {
-                statusEl.style.color = '#e74c3c';
-                statusEl.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ' + e.message;
+        // Load saved theme
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+            const icon = document.getElementById('theme-icon');
+            if (icon) {
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
             }
         }
     </script>

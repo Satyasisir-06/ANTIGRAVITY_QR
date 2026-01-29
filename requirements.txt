@@ -1,9 +1,0 @@
-Flask==3.0.0
-flask-socketio
-firebase-admin
-requests
-qrcode[pil]
-Pillow
-gunicorn
-psycopg2-binary
-python-dotenv

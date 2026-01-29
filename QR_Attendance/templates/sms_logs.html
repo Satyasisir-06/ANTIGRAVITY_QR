@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SMS Delivery Logs | QR Attendance</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="/static/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 
@@ -33,34 +33,36 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for log in logs %}
+                    {{ if .logs }}
+                    {{ range .logs }}
                     <tr>
-                        <td>{{ log.timestamp }}</td>
-                        <td>{{ log.roll }}</td>
-                        <td>{{ log.phone }}</td>
+                        <td>{{ .Timestamp }}</td>
+                        <td>{{ .Roll }}</td>
+                        <td>{{ .Phone }}</td>
                         <td style="max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
-                            title="{{ log.message }}">
-                            {{ log.message }}
+                            title="{{ .Message }}">
+                            {{ .Message }}
                         </td>
                         <td>
-                            {% if log.status == 'SENT' %}
+                            {{ if eq .Status "SENT" }}
                             <span class="status-present"><i class="fas fa-check-circle"></i> Sent</span>
-                            {% else %}
-                            <span class="status-absent" title="{{ log.error_message }}"><i
-                                    class="fas fa-times-circle"></i> {{ log.status }}</span>
-                            {% endif %}
+                            {{ else }}
+                            <span class="status-absent" title="{{ .ErrorMessage }}"><i class="fas fa-times-circle"></i>
+                                {{ .Status }}</span>
+                            {{ end }}
                         </td>
                     </tr>
-                    {% else %}
+                    {{ end }}
+                    {{ else }}
                     <tr>
                         <td colspan="5" style="text-align: center;">No SMS logs found.</td>
                     </tr>
-                    {% endfor %}
+                    {{ end }}
                 </tbody>
             </table>
         </div>
     </div>
-    <script src="{{ url_for('static', filename='backjs.js') }}"></script>
+    <script src="/static/backjs.js"></script>
 </body>
 
 </html>

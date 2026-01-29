@@ -3,50 +3,123 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Mark Attendance</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="/static/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Mobile-optimized scan page */
+        @media (max-width: 576px) {
+            body {
+                padding: 10px !important;
+            }
+
+            .glass-container {
+                padding: 1.25rem !important;
+                margin: 5px;
+            }
+
+            h2 {
+                font-size: 1.3rem !important;
+            }
+
+            .form-group input {
+                font-size: 16px !important; /* Prevent iOS zoom */
+                padding: 14px !important;
+            }
+
+            button[type="submit"] {
+                padding: 14px 20px !important;
+                font-size: 1rem !important;
+            }
+
+            i.fa-3x {
+                font-size: 2rem !important;
+            }
+        }
+    </style>
 </head>
 
 <body>
     <div class="glass-container animate-pop">
         <div style="text-align: center;">
             <h2>Mark Attendance</h2>
-            {% if is_expired %}
+            {{ if .is_expired }}
             <div style="color: var(--danger-color); font-size: 1.2rem; font-weight: bold; margin: 2rem;">
                 <i class="fas fa-times-circle fa-3x"></i><br><br>
                 This QR Code has expired.
             </div>
-            {% else %}
-            <p>Please fill in your details quickly.</p>
-            <div style="background: rgba(255,255,255,0.3); padding: 10px; border-radius: 10px; margin-bottom: 1rem;">
-                <strong>{{ subject }}</strong> ({{ branch }})
+            {{ else }}
+            <!-- Check if device already marked for this session -->
+            <div id="alreadyMarked" style="display: none; color: var(--danger-color); font-size: 1.1rem; margin: 2rem;">
+                <i class="fas fa-ban fa-3x"></i><br><br>
+                <strong>Already Submitted!</strong><br>
+                <p style="font-size: 0.9rem; margin-top: 10px;">You have already marked attendance from this device for this session.</p>
             </div>
 
-            <form id="scanForm">
-                <!-- Hidden fields for valid data -->
-                <input type="hidden" id="s_subject" value="{{ subject }}">
-                <input type="hidden" id="s_branch" value="{{ branch }}">
-                <input type="hidden" id="s_exp" value="{{ exp }}">
-
-                <div class="form-group">
-                    <label>Roll Number</label>
-                    <input type="text" id="s_roll" placeholder="Enter Roll No" required>
-                </div>
-                <div class="form-group">
-                    <label>Full Name</label>
-                    <input type="text" id="s_name" placeholder="Enter Name" required>
+            <div id="attendanceForm">
+                <p>Please fill in your details quickly.</p>
+                <div style="background: rgba(255,255,255,0.3); padding: 10px; border-radius: 10px; margin-bottom: 1rem;">
+                    <strong>{{ .subject }}</strong> ({{ .branch }})
                 </div>
 
-                <button type="submit">Submit Attendance</button>
-            </form>
-            <p id="msg" style="margin-top: 10px; color: var(--danger-color);"></p>
-            {% endif %}
+                <form id="scanForm">
+                    <input type="hidden" id="s_subject" value="{{ .subject }}">
+                    <input type="hidden" id="s_branch" value="{{ .branch }}">
+                    <input type="hidden" id="s_exp" value="{{ .exp }}">
+
+                    <div class="form-group">
+                        <label>Roll Number</label>
+                        <input type="text" id="s_roll" placeholder="Enter Roll No" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" id="s_name" placeholder="Enter Name" required>
+                    </div>
+
+                    <button type="submit">Submit Attendance</button>
+                </form>
+                <p id="msg" style="margin-top: 10px; color: var(--danger-color);"></p>
+            </div>
+            {{ end }}
         </div>
     </div>
 
     <script>
+        // Generate or get unique device ID
+        function getDeviceId() {
+            let deviceId = localStorage.getItem('qr_device_id');
+            if (!deviceId) {
+                deviceId = 'dev_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('qr_device_id', deviceId);
+            }
+            return deviceId;
+        }
+
+        // Check if already submitted for this session
+        function hasSubmittedForSession(token) {
+            const submitted = JSON.parse(localStorage.getItem('qr_submitted_sessions') || '[]');
+            return submitted.includes(token);
+        }
+
+        // Mark session as submitted
+        function markSessionSubmitted(token) {
+            const submitted = JSON.parse(localStorage.getItem('qr_submitted_sessions') || '[]');
+            if (!submitted.includes(token)) {
+                submitted.push(token);
+                localStorage.setItem('qr_submitted_sessions', JSON.stringify(submitted));
+            }
+        }
+
+        // Get token from URL
+        const urlToken = window.location.search.split('token=')[1];
+
+        // Check on page load if already submitted
+        if (urlToken && hasSubmittedForSession(urlToken)) {
+            document.getElementById('attendanceForm')?.style.setProperty('display', 'none');
+            document.getElementById('alreadyMarked')?.style.setProperty('display', 'block');
+        }
+
         document.getElementById('scanForm')?.addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = e.target.querySelector('button');
@@ -55,24 +128,25 @@
             btn.disabled = true;
             btn.innerText = "Processing...";
 
-            const data = {
-                roll: document.getElementById('s_roll').value,
-                name: document.getElementById('s_name').value,
-                subject: document.getElementById('s_subject').value,
-                branch: document.getElementById('s_branch').value,
-                exp: document.getElementById('s_exp').value
-            };
+            const deviceId = getDeviceId();
 
             try {
-                const res = await fetch('/mark_attendance', {
+                const res = await fetch('/mark_session_attendance', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify({
+                        roll: document.getElementById('s_roll').value,
+                        name: document.getElementById('s_name').value,
+                        token: urlToken,
+                        device_id: deviceId
+                    })
                 });
                 const result = await res.json();
 
                 if (result.success) {
-                    window.location.href = '/success'; // Redirect to the success route
+                    // Mark this session as submitted locally
+                    markSessionSubmitted(urlToken);
+                    window.location.href = '/success';
                 } else {
                     msg.innerText = result.message;
                     btn.disabled = false;
