@@ -34,7 +34,7 @@
             cursor: pointer;
             transition: all 0.3s ease;
             overflow: hidden;
-            border: 3px solid rgba(255,255,255,0.5);
+            border: 3px solid rgba(255, 255, 255, 0.5);
             box-shadow: 0 5px 20px rgba(161, 140, 209, 0.4);
             flex-shrink: 0;
         }
@@ -225,7 +225,8 @@
             margin-bottom: 0;
         }
 
-        .add-subject-form input, .add-subject-form select {
+        .add-subject-form input,
+        .add-subject-form select {
             padding: 10px 12px;
             font-size: 0.9rem;
         }
@@ -254,8 +255,15 @@
         }
 
         @keyframes pulse-border {
-            0%, 100% { border-left-color: #2ecc71; }
-            50% { border-left-color: #27ae60; }
+
+            0%,
+            100% {
+                border-left-color: #2ecc71;
+            }
+
+            50% {
+                border-left-color: #27ae60;
+            }
         }
 
         .modal {
@@ -265,14 +273,16 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0, 0, 0, 0.5);
             z-index: 1000;
             align-items: center;
             justify-content: center;
             backdrop-filter: blur(5px);
         }
 
-        .modal.active { display: flex; }
+        .modal.active {
+            display: flex;
+        }
 
         .modal-content {
             background: white;
@@ -286,8 +296,15 @@
         }
 
         @keyframes slideUp {
-            from { transform: translateY(30px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
 
         .modal-header {
@@ -463,7 +480,7 @@
         .class-entry .class-name {
             font-size: 0.75rem;
             color: #666;
-            background: rgba(255,255,255,0.5);
+            background: rgba(255, 255, 255, 0.5);
             padding: 2px 6px;
             border-radius: 4px;
             display: inline-block;
@@ -529,14 +546,16 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.6);
+            background: rgba(0, 0, 0, 0.6);
             z-index: 2000;
             align-items: center;
             justify-content: center;
             backdrop-filter: blur(5px);
         }
 
-        .tt-modal.active { display: flex; }
+        .tt-modal.active {
+            display: flex;
+        }
 
         .tt-modal-content {
             background: white;
@@ -566,7 +585,7 @@
         }
 
         .dark-mode .class-entry .class-name {
-            background: rgba(0,0,0,0.3);
+            background: rgba(0, 0, 0, 0.3);
             color: #ddd;
         }
 
@@ -665,18 +684,18 @@
                 padding: 12px !important;
             }
 
-            .session-card > div {
+            .session-card>div {
                 width: 100%;
             }
 
-            .session-card > div:last-child {
+            .session-card>div:last-child {
                 flex-direction: row !important;
                 flex-wrap: wrap;
                 justify-content: center;
             }
 
-            .session-card > div:last-child a,
-            .session-card > div:last-child button {
+            .session-card>div:last-child a,
+            .session-card>div:last-child button {
                 flex: 1;
                 min-width: 80px;
                 text-align: center;
@@ -744,7 +763,8 @@
             /* Start session modal */
             .start-session-form input,
             .start-session-form select {
-                font-size: 16px !important; /* Prevent iOS zoom */
+                font-size: 16px !important;
+                /* Prevent iOS zoom */
             }
         }
 
@@ -769,7 +789,10 @@
 
         /* Touch friendly */
         @media (hover: none) and (pointer: coarse) {
-            button, a, .action-card {
+
+            button,
+            a,
+            .action-card {
                 min-height: 44px;
             }
         }
@@ -781,11 +804,13 @@
         <nav class="navbar">
             <div class="brand"><i class="fas fa-chalkboard-teacher"></i> Teacher Portal</div>
             <div class="nav-links">
-                <button onclick="toggleDarkMode()" style="width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); border-radius: 50%; color: var(--text-color); cursor: pointer;">
+                <button onclick="toggleDarkMode()"
+                    style="width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); border-radius: 50%; color: var(--text-color); cursor: pointer;">
                     <i id="theme-icon" class="fas fa-moon"></i>
                 </button>
                 <a href="/view_attendance" title="View Attendance"><i class="fas fa-list"></i></a>
-                <a href="/logout" style="color: var(--danger-color);" title="Logout"><i class="fas fa-sign-out-alt"></i></a>
+                <a href="/logout" style="color: var(--danger-color);" title="Logout"><i
+                        class="fas fa-sign-out-alt"></i></a>
             </div>
         </nav>
 
@@ -801,8 +826,10 @@
             <div class="profile-details">
                 <h2>{{ .teacher.Name }}</h2>
                 <div class="info-row"><i class="fas fa-id-badge"></i> {{ .teacher.TeacherID }}</div>
-                <div class="info-row"><i class="fas fa-envelope"></i> {{ if .teacher.Email }}{{ .teacher.Email }}{{ else }}<span style="opacity:0.5">Add email</span>{{ end }}</div>
-                <div class="info-row"><i class="fas fa-phone"></i> {{ if .teacher.Phone }}{{ .teacher.Phone }}{{ else }}<span style="opacity:0.5">Add phone</span>{{ end }}</div>
+                <div class="info-row"><i class="fas fa-envelope"></i> {{ if .teacher.Email }}{{ .teacher.Email }}{{ else
+                    }}<span style="opacity:0.5">Add email</span>{{ end }}</div>
+                <div class="info-row"><i class="fas fa-phone"></i> {{ if .teacher.Phone }}{{ .teacher.Phone }}{{ else
+                    }}<span style="opacity:0.5">Add phone</span>{{ end }}</div>
             </div>
             <div class="profile-actions">
                 <button onclick="openModal('profileModal')" title="Edit Profile">
@@ -837,22 +864,34 @@
                 <div class="number">{{ if .today_subjects }}{{ len .today_subjects }}{{ else }}0{{ end }}</div>
                 <div class="label">Today</div>
             </div>
-            <div class="mini-stat" onclick="openModal('timetableModal')" style="cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+            <div class="mini-stat" onclick="openModal('timetableModal')" style="cursor: pointer; transition: all 0.3s;"
+                onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
                 <div class="icon" style="background: rgba(155, 89, 182, 0.2); color: #9b59b6;">
                     <i class="fas fa-calendar-alt"></i>
                 </div>
                 <div class="number" style="font-size: 1rem;"><i class="fas fa-table"></i></div>
                 <div class="label">Timetable</div>
             </div>
+            <div class="mini-stat" onclick="openModal('permissionRequestModal')"
+                style="cursor: pointer; transition: all 0.3s; background: linear-gradient(135deg, rgba(241, 196, 15, 0.15), rgba(243, 156, 18, 0.1)); border: 1px solid rgba(243, 156, 18, 0.3);"
+                onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div class="icon" style="background: rgba(243, 156, 18, 0.2); color: #f39c12;">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <div class="number" style="font-size: 1rem;"><i class="fas fa-paper-plane"></i></div>
+                <div class="label">Apply Leave</div>
+            </div>
         </div>
 
         {{ if .error }}
-        <div style="padding: 12px 15px; margin-bottom: 1rem; border-radius: 12px; background: rgba(231, 76, 60, 0.15); border: 1px solid rgba(231, 76, 60, 0.3); color: #c0392b; display: flex; align-items: center; gap: 10px;">
+        <div
+            style="padding: 12px 15px; margin-bottom: 1rem; border-radius: 12px; background: rgba(231, 76, 60, 0.15); border: 1px solid rgba(231, 76, 60, 0.3); color: #c0392b; display: flex; align-items: center; gap: 10px;">
             <i class="fas fa-exclamation-circle"></i> {{ .error }}
         </div>
         {{ end }}
         {{ if .success }}
-        <div style="padding: 12px 15px; margin-bottom: 1rem; border-radius: 12px; background: rgba(46, 204, 113, 0.15); border: 1px solid rgba(46, 204, 113, 0.3); color: #27ae60; display: flex; align-items: center; gap: 10px;">
+        <div
+            style="padding: 12px 15px; margin-bottom: 1rem; border-radius: 12px; background: rgba(46, 204, 113, 0.15); border: 1px solid rgba(46, 204, 113, 0.3); color: #27ae60; display: flex; align-items: center; gap: 10px;">
             <i class="fas fa-check-circle"></i> {{ .success }}
         </div>
         {{ end }}
@@ -861,7 +900,8 @@
         {{ if .all_subjects }}
         <div class="section-card">
             <h3><i class="fas fa-play-circle" style="color: #2ecc71 !important;"></i> Start New Session</h3>
-            <form method="POST" action="/teacher/start_session" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: end;">
+            <form method="POST" action="/teacher/start_session"
+                style="display: flex; gap: 12px; flex-wrap: wrap; align-items: end;">
                 <div class="form-group" style="flex: 2; min-width: 200px; margin-bottom: 0;">
                     <select name="subject" required>
                         <option value="">Select Subject</option>
@@ -876,7 +916,8 @@
                         <option value="Lab">Lab (3hrs)</option>
                     </select>
                 </div>
-                <button type="submit" style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); color: white; border: none; padding: 12px 25px; border-radius: 10px; font-weight: 600; cursor: pointer; height: 46px;">
+                <button type="submit"
+                    style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); color: white; border: none; padding: 12px 25px; border-radius: 10px; font-weight: 600; cursor: pointer; height: 46px;">
                     <i class="fas fa-qrcode"></i> Start
                 </button>
             </form>
@@ -887,7 +928,8 @@
             <i class="fas fa-book-open" style="font-size: 3rem; color: #a18cd1; margin-bottom: 1rem;"></i>
             <h3 style="margin-bottom: 0.5rem;">No Subjects Yet</h3>
             <p style="color: var(--text-muted); margin-bottom: 1rem;">Add your subjects to start taking attendance</p>
-            <button onclick="openModal('settingsModal')" style="background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); color: white; border: none; padding: 12px 25px; border-radius: 10px; font-weight: 600; cursor: pointer;">
+            <button onclick="openModal('settingsModal')"
+                style="background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); color: white; border: none; padding: 12px 25px; border-radius: 10px; font-weight: 600; cursor: pointer;">
                 <i class="fas fa-plus"></i> Add Subject
             </button>
         </div>
@@ -902,23 +944,28 @@
                 <div style="flex: 1;">
                     <strong style="font-size: 1.1rem;">{{ .Subject }}</strong>
                     <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 3px;">
-                        <i class="fas fa-code-branch"></i> {{ .Branch }} &nbsp;•&nbsp; 
+                        <i class="fas fa-code-branch"></i> {{ .Branch }} &nbsp;•&nbsp;
                         <i class="fas fa-flask"></i> {{ .ClassType }}
                     </div>
                     <div style="font-size: 0.8rem; margin-top: 8px; display: flex; align-items: center; gap: 8px;">
-                        <span style="background: rgba(231, 76, 60, 0.15); color: #e74c3c; padding: 4px 10px; border-radius: 20px; font-weight: 600;">
-                            <i class="fas fa-hourglass-half"></i> <span class="time-remaining" data-end="{{ .EndTime }}">--:--</span>
+                        <span
+                            style="background: rgba(231, 76, 60, 0.15); color: #e74c3c; padding: 4px 10px; border-radius: 20px; font-weight: 600;">
+                            <i class="fas fa-hourglass-half"></i> <span class="time-remaining"
+                                data-end="{{ .EndTime }}">--:--</span>
                         </span>
                         <span style="color: #888;">remaining</span>
                     </div>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 8px;">
-                    <a href="/qr_display?token={{ .QRToken }}" style="background: #3498db; color: white; padding: 8px 16px; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 0.9rem; text-align: center;">
+                    <a href="/qr_display?token={{ .QRToken }}"
+                        style="background: #3498db; color: white; padding: 8px 16px; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 0.9rem; text-align: center;">
                         <i class="fas fa-qrcode"></i> Show QR
                     </a>
                     <form method="POST" action="/teacher/finalize_session" style="margin: 0;">
                         <input type="hidden" name="session_id" value="{{ .ID }}">
-                        <button type="submit" style="background: #e74c3c; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 0.9rem; width: 100%;" title="End early (for interruptions)">
+                        <button type="submit"
+                            style="background: #e74c3c; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 0.9rem; width: 100%;"
+                            title="End early (for interruptions)">
                             <i class="fas fa-stop"></i> End Early
                         </button>
                     </form>
@@ -926,7 +973,8 @@
             </div>
             {{ end }}
             <p style="font-size: 0.75rem; color: #888; margin-top: 10px; text-align: center;">
-                <i class="fas fa-info-circle"></i> Sessions auto-end when class time is over. Use "End Early" only for interruptions.
+                <i class="fas fa-info-circle"></i> Sessions auto-end when class time is over. Use "End Early" only for
+                interruptions.
             </p>
             {{ else }}
             <div class="empty-state">
@@ -939,8 +987,10 @@
         <!-- Correction Requests Section -->
         <div class="section-card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <h3 style="margin: 0;"><i class="fas fa-clipboard-check" style="color: #f39c12 !important;"></i> Correction Requests</h3>
-                <button onclick="loadCorrectionRequests()" style="background: rgba(243, 156, 18, 0.1); color: #f39c12; border: 1px solid rgba(243, 156, 18, 0.3); padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.85rem;">
+                <h3 style="margin: 0;"><i class="fas fa-clipboard-check" style="color: #f39c12 !important;"></i>
+                    Correction Requests</h3>
+                <button onclick="loadCorrectionRequests()"
+                    style="background: rgba(243, 156, 18, 0.1); color: #f39c12; border: 1px solid rgba(243, 156, 18, 0.3); padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.85rem;">
                     <i class="fas fa-sync"></i> Refresh
                 </button>
             </div>
@@ -965,13 +1015,16 @@
             </div>
             <div class="form-group" style="margin-top: 1rem;">
                 <label><i class="fas fa-comment"></i> Your Remarks (Optional)</label>
-                <textarea id="correction-remarks" rows="3" placeholder="Add a note for the student..." style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px;"></textarea>
+                <textarea id="correction-remarks" rows="3" placeholder="Add a note for the student..."
+                    style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px;"></textarea>
             </div>
             <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
-                <button onclick="handleCorrectionAction('REJECT')" style="flex: 1; background: rgba(231, 76, 60, 0.1); color: #e74c3c; border: 2px solid #e74c3c; padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                <button onclick="handleCorrectionAction('REJECT')"
+                    style="flex: 1; background: rgba(231, 76, 60, 0.1); color: #e74c3c; border: 2px solid #e74c3c; padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer;">
                     <i class="fas fa-times"></i> Reject
                 </button>
-                <button onclick="handleCorrectionAction('APPROVE')" style="flex: 1; background: linear-gradient(135deg, #2ecc71, #27ae60); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                <button onclick="handleCorrectionAction('APPROVE')"
+                    style="flex: 1; background: linear-gradient(135deg, #2ecc71, #27ae60); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer;">
                     <i class="fas fa-check"></i> Approve
                 </button>
             </div>
@@ -987,15 +1040,19 @@
             </div>
             <form method="POST" action="/teacher/update_profile" enctype="multipart/form-data">
                 <div style="text-align: center; margin-bottom: 1.5rem;">
-                    <div style="width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, #a18cd1, #fbc2eb); margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden;" onclick="document.getElementById('profilePicInput').click()">
+                    <div style="width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, #a18cd1, #fbc2eb); margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden;"
+                        onclick="document.getElementById('profilePicInput').click()">
                         {{ if .teacher.ProfilePic }}
-                        <img src="{{ .teacher.ProfilePic }}" style="width: 100%; height: 100%; object-fit: cover;" id="profilePreview">
+                        <img src="{{ .teacher.ProfilePic }}" style="width: 100%; height: 100%; object-fit: cover;"
+                            id="profilePreview">
                         {{ else }}
                         <i class="fas fa-camera" style="font-size: 1.5rem; color: white;" id="cameraIcon"></i>
-                        <img src="" style="width: 100%; height: 100%; object-fit: cover; display: none;" id="profilePreview">
+                        <img src="" style="width: 100%; height: 100%; object-fit: cover; display: none;"
+                            id="profilePreview">
                         {{ end }}
                     </div>
-                    <input type="file" id="profilePicInput" name="profile_pic" accept="image/*" style="display: none;" onchange="previewImage(this)">
+                    <input type="file" id="profilePicInput" name="profile_pic" accept="image/*" style="display: none;"
+                        onchange="previewImage(this)">
                     <small style="color: #888;">Click to change photo</small>
                 </div>
                 <div class="form-group">
@@ -1012,9 +1069,11 @@
                 </div>
                 <div class="form-group">
                     <label><i class="fas fa-building"></i> Department</label>
-                    <input type="text" name="department" value="{{ .teacher.Department }}" placeholder="Computer Science">
+                    <input type="text" name="department" value="{{ .teacher.Department }}"
+                        placeholder="Computer Science">
                 </div>
-                <button type="submit" style="width: 100%; background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); color: white; border: none; padding: 14px; border-radius: 10px; font-weight: 600; cursor: pointer; margin-top: 10px;">
+                <button type="submit"
+                    style="width: 100%; background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); color: white; border: none; padding: 14px; border-radius: 10px; font-weight: 600; cursor: pointer; margin-top: 10px;">
                     <i class="fas fa-save"></i> Save Changes
                 </button>
             </form>
@@ -1030,7 +1089,8 @@
             </div>
 
             <p style="color: #666; margin-bottom: 1rem; font-size: 0.9rem;">
-                <i class="fas fa-info-circle"></i> Subjects are managed through the <strong>Timetable</strong>. Click on a timetable cell to add classes.
+                <i class="fas fa-info-circle"></i> Subjects are managed through the <strong>Timetable</strong>. Click on
+                a timetable cell to add classes.
             </p>
 
             <!-- My Subjects List -->
@@ -1038,14 +1098,17 @@
                 {{ if .all_subjects }}
                 <div style="max-height: 400px; overflow-y: auto;">
                     {{ range .all_subjects }}
-                    <div style="padding: 15px; margin: 10px 0; background: rgba(161, 140, 209, 0.1); border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(161, 140, 209, 0.2);">
+                    <div
+                        style="padding: 15px; margin: 10px 0; background: rgba(161, 140, 209, 0.1); border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(161, 140, 209, 0.2);">
                         <div>
                             <strong style="color: #333;">{{ .Subject }}</strong><br>
                             <small style="color: #888;">{{ .Branch }} • {{ .DayOfWeek }} {{ .TimeSlot }}</small>
                         </div>
                         <form method="POST" action="/teacher/delete_subject" style="margin: 0;">
                             <input type="hidden" name="subject_id" value="{{ .ID }}">
-                            <button type="submit" style="background: rgba(231, 76, 60, 0.1); color: #e74c3c; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer;" title="Delete">
+                            <button type="submit"
+                                style="background: rgba(231, 76, 60, 0.1); color: #e74c3c; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer;"
+                                title="Delete">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
                         </form>
@@ -1056,7 +1119,8 @@
                 <div style="text-align: center; padding: 3rem; color: #888;">
                     <i class="fas fa-calendar-alt" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
                     <p>No subjects yet.</p>
-                    <button onclick="closeModal('settingsModal'); openModal('timetableModal');" style="margin-top: 1rem; background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); color: white; border: none; padding: 12px 25px; border-radius: 10px; cursor: pointer; font-weight: 600;">
+                    <button onclick="closeModal('settingsModal'); openModal('timetableModal');"
+                        style="margin-top: 1rem; background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); color: white; border: none; padding: 12px 25px; border-radius: 10px; cursor: pointer; font-weight: 600;">
                         <i class="fas fa-plus"></i> Add via Timetable
                     </button>
                 </div>
@@ -1072,7 +1136,7 @@
                 <h3><i class="fas fa-calendar-alt" style="color: #9b59b6;"></i> My Timetable</h3>
                 <button class="modal-close" onclick="closeModal('timetableModal')">&times;</button>
             </div>
-            
+
             <p style="color: #666; margin-bottom: 1rem; font-size: 0.9rem;">
                 <i class="fas fa-info-circle"></i> Click on any cell to add a class. Working hours: 9:00 AM - 4:30 PM
             </p>
@@ -1103,7 +1167,8 @@
                 <button onclick="exportTimetablePDF()" style="background: rgba(52, 152, 219, 0.1); color: #3498db;">
                     <i class="fas fa-file-pdf"></i> Export PDF
                 </button>
-                <button onclick="location.reload()" style="background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); color: white;">
+                <button onclick="location.reload()"
+                    style="background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); color: white;">
                     <i class="fas fa-sync"></i> Refresh
                 </button>
             </div>
@@ -1113,14 +1178,16 @@
     <!-- Add Class Modal -->
     <div id="addClassModal" class="tt-modal">
         <div class="tt-modal-content">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #eee;">
+            <div
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #eee;">
                 <h3 style="margin: 0; display: flex; align-items: center; gap: 10px;">
-                    <i class="fas fa-plus-circle" style="color: #a18cd1;"></i> 
+                    <i class="fas fa-plus-circle" style="color: #a18cd1;"></i>
                     <span id="addClass-title">Add Class</span>
                 </h3>
-                <button onclick="closeAddClassModal()" style="width: 35px; height: 35px; border-radius: 50%; border: none; background: #f0f0f0; cursor: pointer; font-size: 1.1rem;">&times;</button>
+                <button onclick="closeAddClassModal()"
+                    style="width: 35px; height: 35px; border-radius: 50%; border: none; background: #f0f0f0; cursor: pointer; font-size: 1.1rem;">&times;</button>
             </div>
-            
+
             <div class="form-group">
                 <label><i class="fas fa-book"></i> Subject Name</label>
                 <input type="text" id="tt-subject" placeholder="e.g., Python Programming" required>
@@ -1136,31 +1203,145 @@
                     <option value="lab">Lab Session (3 hours)</option>
                 </select>
             </div>
-            
+
             <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
-                <button onclick="closeAddClassModal()" style="flex: 1; padding: 12px; border: 2px solid #a18cd1; background: rgba(161, 140, 209, 0.1); border-radius: 10px; cursor: pointer; font-weight: 600; color: #7c5db5;">
+                <button onclick="closeAddClassModal()"
+                    style="flex: 1; padding: 12px; border: 2px solid #a18cd1; background: rgba(161, 140, 209, 0.1); border-radius: 10px; cursor: pointer; font-weight: 600; color: #7c5db5;">
                     Cancel
                 </button>
-                <button onclick="saveClass()" style="flex: 1; padding: 12px; border: none; background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); color: white; border-radius: 10px; cursor: pointer; font-weight: 600;">
+                <button onclick="saveClass()"
+                    style="flex: 1; padding: 12px; border: none; background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); color: white; border-radius: 10px; cursor: pointer; font-weight: 600;">
                     <i class="fas fa-save"></i> Save
                 </button>
             </div>
         </div>
     </div>
 
+    <!-- Permission Request Modal -->
+    <div id="permissionRequestModal" class="modal">
+        <div class="modal-content" style="max-width: 550px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-file-alt" style="color: #f39c12;"></i> Apply for Leave/Permission</h3>
+                <button class="modal-close" onclick="closeModal('permissionRequestModal')">&times;</button>
+            </div>
+            <form id="permissionForm" onsubmit="submitPermissionRequest(event)">
+                <div class="form-group">
+                    <label><i class="fas fa-heading"></i> Request Type *</label>
+                    <select id="perm-type" name="title" required onchange="toggleCustomTitle(this)">
+                        <option value="Half Day Leave">Half Day Leave</option>
+                        <option value="Full Day Leave">Full Day Leave</option>
+                        <option value="Late Arrival">Late Arrival</option>
+                        <option value="Early Exit">Early Exit</option>
+                        <option value="On Duty">On Duty (OD)</option>
+                        <option value="Medical Leave">Medical Leave</option>
+                        <option value="Emergency Leave">Emergency Leave</option>
+                        <option value="Custom">Custom Request...</option>
+                    </select>
+                    <input type="text" id="perm-custom-title" name="custom_title"
+                        placeholder="Enter custom request title" style="display: none; margin-top: 10px;">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label><i class="fas fa-calendar"></i> Start Date *</label>
+                        <input type="date" id="perm-start-date" name="start_date" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label><i class="fas fa-calendar-check"></i> End Date</label>
+                        <input type="date" id="perm-end-date" name="end_date">
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label><i class="fas fa-clock"></i> From Time</label>
+                        <input type="time" id="perm-time-from" name="time_from">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label><i class="fas fa-clock"></i> To Time</label>
+                        <input type="time" id="perm-time-to" name="time_to">
+                    </div>
+                </div>
+                <div class="form-group" style="margin-top: 12px;">
+                    <label><i class="fas fa-comment-alt"></i> Reason *</label>
+                    <textarea id="perm-reason" name="reason" rows="3" placeholder="Explain your reason..." required
+                        style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px;"></textarea>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
+                    <button type="button" onclick="closeModal('permissionRequestModal')"
+                        style="flex: 1; padding: 12px; border: 2px solid #f39c12; background: rgba(243, 156, 18, 0.1); border-radius: 10px; cursor: pointer; font-weight: 600; color: #d35400;">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                        style="flex: 1; padding: 12px; border: none; background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); color: white; border-radius: 10px; cursor: pointer; font-weight: 600;">
+                        <i class="fas fa-paper-plane"></i> Submit
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="/static/backjs.js"></script>
     <script>
-        function openModal(id) { document.getElementById(id).classList.add('active'); if(id === 'timetableModal') renderTimetable(); }
+        function openModal(id) { document.getElementById(id).classList.add('active'); if (id === 'timetableModal') renderTimetable(); }
         function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-        
+
         document.querySelectorAll('.modal').forEach(m => {
-            m.addEventListener('click', e => { if(e.target === m) m.classList.remove('active'); });
+            m.addEventListener('click', e => { if (e.target === m) m.classList.remove('active'); });
         });
+
+        // Permission Request Functions
+        function toggleCustomTitle(select) {
+            const customInput = document.getElementById('perm-custom-title');
+            if (select.value === 'Custom') {
+                customInput.style.display = 'block';
+                customInput.required = true;
+            } else {
+                customInput.style.display = 'none';
+                customInput.required = false;
+            }
+        }
+
+        function submitPermissionRequest(e) {
+            e.preventDefault();
+            const form = document.getElementById('permissionForm');
+            let title = document.getElementById('perm-type').value;
+            if (title === 'Custom') {
+                title = document.getElementById('perm-custom-title').value;
+            }
+            const data = {
+                title: title,
+                start_date: document.getElementById('perm-start-date').value,
+                end_date: document.getElementById('perm-end-date').value || document.getElementById('perm-start-date').value,
+                time_from: document.getElementById('perm-time-from').value || '',
+                time_to: document.getElementById('perm-time-to').value || '',
+                reason: document.getElementById('perm-reason').value
+            };
+
+            fetch('/teacher/permission-request', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+                .then(res => res.json())
+                .then(result => {
+                    if (result.success) {
+                        alert('✅ Permission request submitted successfully! Admin will review it.');
+                        closeModal('permissionRequestModal');
+                        form.reset();
+                    } else {
+                        alert('❌ Error: ' + (result.message || 'Failed to submit request'));
+                    }
+                })
+                .catch(err => {
+                    alert('❌ Network error. Please try again.');
+                    console.error(err);
+                });
+        }
+
 
         function previewImage(input) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = function (e) {
                     const preview = document.getElementById('profilePreview');
                     const icon = document.getElementById('cameraIcon');
                     preview.src = e.target.result;
@@ -1237,7 +1418,7 @@
 
             TIME_SLOTS.forEach((slot, slotIndex) => {
                 const row = document.createElement('tr');
-                
+
                 // Time column
                 const timeCell = document.createElement('td');
                 timeCell.className = 'time-col';
@@ -1255,7 +1436,7 @@
                     } else {
                         // Check if this cell is part of a lab
                         const labInfo = isPartOfLab(day, slotIndex);
-                        
+
                         if (labInfo.isLab && !labInfo.isStart) {
                             // This cell is part of a lab but not the start
                             cell.className = 'lab-cell ' + (labInfo.position === 'middle' ? 'lab-middle' : 'lab-end');
@@ -1354,7 +1535,7 @@
                     alert('Not enough consecutive slots available for a 3-hour lab session');
                     return;
                 }
-                
+
                 // Check if any lab slot conflicts with existing classes
                 for (const slot of labSlots) {
                     const key = `${day}_${slot}`;
@@ -1402,7 +1583,7 @@
         async function deleteClass(cellKey, event) {
             event.stopPropagation();
             if (!confirm('Delete this class? This will also remove it from your subjects list.')) return;
-            
+
             try {
                 const response = await fetch('/api/timetable/delete', {
                     method: 'POST',
@@ -1426,7 +1607,7 @@
         // Clear entire timetable via Backend API
         async function clearTimetable() {
             if (!confirm('Are you sure you want to clear the entire timetable? This will also remove all subjects. This cannot be undone.')) return;
-            
+
             try {
                 const response = await fetch('/api/timetable/clear', {
                     method: 'POST',
@@ -1525,7 +1706,7 @@
                     const hours = Math.floor(remaining / 3600);
                     const minutes = Math.floor((remaining % 3600) / 60);
                     const seconds = remaining % 60;
-                    
+
                     if (hours > 0) {
                         el.textContent = `${hours}h ${minutes}m`;
                     } else if (minutes > 0) {
@@ -1563,32 +1744,32 @@
         async function loadCorrectionRequests() {
             const listDiv = document.getElementById('correction-requests-list');
             listDiv.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading...</p></div>';
-            
+
             try {
                 const res = await fetch('/teacher/correction_requests');
                 const data = await res.json();
                 console.log('Teacher correction requests response:', data);
-                
+
                 if (data.success && data.requests && data.requests.length > 0) {
                     const pending = data.requests.filter(r => r.status === 'PENDING');
                     const handled = data.requests.filter(r => r.status !== 'PENDING');
-                    
+
                     let html = '';
-                    
+
                     if (pending.length > 0) {
                         html += `<div style="margin-bottom: 1rem;"><span style="background: #ffc107; color: #000; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">${pending.length} Pending</span></div>`;
                         pending.forEach(r => {
                             html += createCorrectionCard(r, true);
                         });
                     }
-                    
+
                     if (handled.length > 0) {
                         html += `<div style="margin: 1.5rem 0 1rem; border-top: 1px solid rgba(0,0,0,0.1); padding-top: 1rem;"><span style="color: #888; font-size: 0.85rem;"><i class="fas fa-history"></i> Recent Actions</span></div>`;
                         handled.slice(0, 5).forEach(r => {
                             html += createCorrectionCard(r, false);
                         });
                     }
-                    
+
                     listDiv.innerHTML = html;
                 } else {
                     listDiv.innerHTML = `
@@ -1613,9 +1794,9 @@
                 if (r.created_at.seconds) createdAt = new Date(r.created_at.seconds * 1000).toLocaleDateString();
                 else if (typeof r.created_at === 'string') createdAt = new Date(r.created_at).toLocaleDateString();
             }
-            
+
             return `
-                <div style="background: rgba(0,0,0,0.03); border-radius: 12px; padding: 15px; margin-bottom: 10px; border-left: 4px solid ${statusColor};">
+                <div class="${isPending ? 'correction-card-clickable' : ''}" ${isPending ? `onclick="openCorrectionActionFromCard(this)" data-id="${r.id}" data-name="${encodeURIComponent(r.student_name || r.roll)}" data-roll="${r.roll}" data-subject="${r.subject}" data-date="${r.absent_date}" data-reason="${encodeURIComponent(r.reason || '')}" data-proof="${r.proof_img || ''}"` : ''} style="background: rgba(0,0,0,0.03); border-radius: 12px; padding: 15px; margin-bottom: 10px; border-left: 4px solid ${statusColor}; ${isPending ? 'cursor: pointer; transition: all 0.2s;' : ''}" ${isPending ? 'onmouseover="this.style.background=\'rgba(243, 156, 18, 0.1)\'" onmouseout="this.style.background=\'rgba(0,0,0,0.03)\'"' : ''}>
                     <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
                         <div>
                             <strong style="color: #333; font-size: 1rem;">${r.student_name || r.roll}</strong>
@@ -1645,7 +1826,7 @@
         }
 
         // Event delegation for review buttons
-        document.getElementById('correction-requests-list').addEventListener('click', function(e) {
+        document.getElementById('correction-requests-list').addEventListener('click', function (e) {
             const btn = e.target.closest('.review-correction-btn');
             if (btn) {
                 const id = btn.dataset.id;
@@ -1689,15 +1870,26 @@
             openModal('correctionActionModal');
         }
 
+        function openCorrectionActionFromCard(card) {
+            const id = card.dataset.id;
+            const name = decodeURIComponent(card.dataset.name);
+            const roll = card.dataset.roll;
+            const subject = card.dataset.subject;
+            const date = card.dataset.date;
+            const reason = decodeURIComponent(card.dataset.reason);
+            const proof = card.dataset.proof;
+            openCorrectionAction(id, name, roll, subject, date, reason, proof);
+        }
+
         async function handleCorrectionAction(action) {
             if (!currentCorrectionId) return;
-            
+
             const remarks = document.getElementById('correction-remarks').value;
             const btn = event.target;
             const originalText = btn.innerHTML;
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            
+
             try {
                 const res = await fetch('/teacher/handle_correction', {
                     method: 'POST',
@@ -1708,7 +1900,7 @@
                         remarks: remarks
                     })
                 });
-                
+
                 const data = await res.json();
                 if (data.success) {
                     closeModal('correctionActionModal');

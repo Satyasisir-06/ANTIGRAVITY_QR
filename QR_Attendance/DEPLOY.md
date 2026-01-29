@@ -24,15 +24,13 @@
 2. Add:
    - **Key:** `FIREBASE_CONFIG`
    - **Value:** Your firebase-credentials.json content (minified)
-
-### Step 4: Add Custom Domain (Namecheap)
-1. Settings → Custom Domains → Add your domain
-2. Copy CNAME from Render → Add to Namecheap DNS
-
----
-
-## Free Tier Info
-- ✅ 750 hours/month (enough for 24/7)
+cd QR_Attendance
+gcloud run deploy qr-attendance \
+  --source . \
+  --region asia-south1 \
+  --allow-unauthenticated \
+  --port 8080 \
+  --set-env-vars="FIREBASE_API_KEY=your-key,PROJECT_ID=your-project-id"- ✅ 750 hours/month (enough for 24/7)
 - ⚠️ Sleeps after 15 min inactivity (~30s wake time)
 
 ---

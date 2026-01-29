@@ -163,6 +163,23 @@ type TeacherIssue struct {
 	CreatedAt    time.Time `json:"created_at" firestore:"created_at"`
 }
 
+// PermissionRequest represents a teacher's leave/permission request
+type PermissionRequest struct {
+	ID           string    `json:"id" firestore:"id,omitempty"`
+	TeacherID    string    `json:"teacher_id" firestore:"teacher_id"`
+	TeacherName  string    `json:"teacher_name" firestore:"teacher_name"`
+	Title        string    `json:"title" firestore:"title"`
+	StartDate    string    `json:"start_date" firestore:"start_date"`
+	EndDate      string    `json:"end_date" firestore:"end_date"`
+	TimeFrom     string    `json:"time_from" firestore:"time_from"`
+	TimeTo       string    `json:"time_to" firestore:"time_to"`
+	Reason       string    `json:"reason" firestore:"reason"`
+	Status       string    `json:"status" firestore:"status"` // PENDING, APPROVED, REJECTED
+	AdminRemarks string    `json:"admin_remarks" firestore:"admin_remarks"`
+	CreatedAt    time.Time `json:"created_at" firestore:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at" firestore:"updated_at"`
+}
+
 // ==================== GLOBAL CLIENTS ====================
 
 var firestoreClient *firestore.Client
@@ -987,11 +1004,15 @@ func main() {
 	r.LoadHTMLGlob("templates/*")
 	r.Static("/static", "./static")
 	store := cookie.NewStore([]byte("super-secret-key-qr-attendance-2026"))
+
+	// Detect if running in production (Render sets PORT env var)
+	isProduction := os.Getenv("PORT") != ""
+
 	store.Options(sessions.Options{
 		Path:     "/",
-		MaxAge:   86400 * 7, // 7 days
-		HttpOnly: false,
-		Secure:   false, // Set to true in production with HTTPS
+		MaxAge:   86400 * 7,    // 7 days
+		HttpOnly: true,         // Prevent XSS attacks
+		Secure:   isProduction, // true for HTTPS (Render), false for local HTTP
 		SameSite: http.SameSiteLaxMode,
 	})
 	r.Use(sessions.Sessions("qr_session", store))
@@ -2789,7 +2810,67 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"success": true, "message": "Issue submitted successfully!"})
 	})
 
-	// 4. Admin: Teacher Attendance Manager
+	// 4. Submit Permission/Leave Request
+	r.POST("/teacher/permission-request", func(c *gin.Context) {
+		session := sessions.Default(c)
+		userID := session.Get("user_id")
+		if userID == nil || session.Get("role") != "teacher" {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Unauthorized"})
+			return
+		}
+		teacherID := userID.(string)
+
+		var req struct {
+			Title     string `json:"title"`
+			StartDate string `json:"start_date"`
+			EndDate   string `json:"end_date"`
+			TimeFrom  string `json:"time_from"`
+			TimeTo    string `json:"time_to"`
+			Reason    string `json:"reason"`
+		}
+		if err := c.BindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Invalid data"})
+			return
+		}
+
+		if req.Title == "" || req.StartDate == "" || req.Reason == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Title, start date, and reason are required"})
+			return
+		}
+
+		// Get Teacher Name
+		teacherName := teacherID
+		tDoc, err := firestoreClient.Collection("teachers").Doc(teacherID).Get(context.Background())
+		if err == nil && tDoc.Exists() {
+			if v := tDoc.Data()["name"]; v != nil {
+				teacherName = fmt.Sprint(v)
+			}
+		}
+
+		now := time.Now()
+		permReq := PermissionRequest{
+			TeacherID:   teacherID,
+			TeacherName: teacherName,
+			Title:       req.Title,
+			StartDate:   req.StartDate,
+			EndDate:     req.EndDate,
+			TimeFrom:    req.TimeFrom,
+			TimeTo:      req.TimeTo,
+			Reason:      req.Reason,
+			Status:      "PENDING",
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		}
+
+		_, _, err = firestoreClient.Collection("permission_requests").Add(context.Background(), permReq)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Database error"})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"success": true, "message": "Permission request submitted successfully! Admin will review it."})
+	})
+
+	// 5. Admin: Teacher Attendance Manager
 	r.GET("/admin/teacher-attendance", func(c *gin.Context) {
 		session := sessions.Default(c)
 		if session.Get("role") != "admin" {
@@ -2851,11 +2932,29 @@ func main() {
 			history = append(history, a)
 		}
 
+		// Fetch Pending Permission Requests
+		permIter := firestoreClient.Collection("permission_requests").Where("status", "==", "PENDING").Documents(context.Background())
+		var permissionRequests []PermissionRequest
+		for {
+			doc, err := permIter.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				continue
+			}
+			var p PermissionRequest
+			doc.DataTo(&p)
+			p.ID = doc.Ref.ID
+			permissionRequests = append(permissionRequests, p)
+		}
+
 		c.HTML(http.StatusOK, "admin_teacher_mgr.html", gin.H{
-			"attendance": attendance,
-			"issues":     issues,
-			"history":    history,
-			"today":      today,
+			"attendance":          attendance,
+			"issues":              issues,
+			"permission_requests": permissionRequests,
+			"history":             history,
+			"today":               today,
 		})
 	})
 
@@ -2950,6 +3049,43 @@ func main() {
 		}
 
 		c.JSON(http.StatusOK, gin.H{"success": true})
+	})
+
+	// 6. Admin: Handle Permission Request (Approve/Reject)
+	r.POST("/admin/permission-request", func(c *gin.Context) {
+		session := sessions.Default(c)
+		if session.Get("role") != "admin" {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Unauthorized"})
+			return
+		}
+		var req struct {
+			RequestID string `json:"request_id"`
+			Action    string `json:"action"` // APPROVE, REJECT
+			Remarks   string `json:"remarks"`
+		}
+		if err := c.BindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Invalid data"})
+			return
+		}
+
+		status := "REJECTED"
+		if req.Action == "APPROVE" {
+			status = "APPROVED"
+		}
+
+		docRef := firestoreClient.Collection("permission_requests").Doc(req.RequestID)
+		_, err := docRef.Update(context.Background(), []firestore.Update{
+			{Path: "status", Value: status},
+			{Path: "admin_remarks", Value: req.Remarks},
+			{Path: "updated_at", Value: time.Now()},
+		})
+
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Update failed"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"success": true, "message": "Permission request " + status})
 	})
 
 	port := os.Getenv("PORT")

@@ -234,12 +234,22 @@
                 <div class="stat-title">Pending Issues</div>
                 <div class="stat-value">{{ len .issues }}</div>
             </div>
+            <div class="stat-card">
+                <div class="stat-title">Leave Requests</div>
+                <div class="stat-value" style="color: var(--warning);">{{ len .permission_requests }}</div>
+            </div>
         </div>
 
 
         <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('daily')">Daily Log</button>
-            <button class="tab-btn" onclick="switchTab('issues')">Issues & Requests</button>
+            <button class="tab-btn" onclick="switchTab('issues')">Issues</button>
+            <button class="tab-btn" onclick="switchTab('permissions')" style="position: relative;">
+                Leave Requests
+                {{ if .permission_requests }}<span
+                    style="background: var(--warning); color: #000; font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; margin-left: 5px;">{{
+                    len .permission_requests }}</span>{{ end }}
+            </button>
             <button class="tab-btn" onclick="switchTab('history')">History</button>
         </div>
 
@@ -321,7 +331,55 @@
             </div>
         </div>
 
-        <!-- Tab 3: History -->
+        <!-- Tab 3: Permission Requests -->
+        <div id="permissions" class="tab-content">
+            <div class="card">
+                <h3>Leave/Permission Requests</h3>
+                {{ if .permission_requests }}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Teacher</th>
+                            <th>Type</th>
+                            <th>Date(s)</th>
+                            <th>Time</th>
+                            <th>Reason</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ range .permission_requests }}
+                        <tr id="perm-{{ .ID }}">
+                            <td>
+                                <div>{{ .TeacherName }}</div>
+                                <div style="font-size: 0.8rem; color: #64748b;">{{ .TeacherID }}</div>
+                            </td>
+                            <td><span class="badge badge-pending">{{ .Title }}</span></td>
+                            <td>
+                                {{ .StartDate }}
+                                {{ if and .EndDate (ne .EndDate .StartDate) }} - {{ .EndDate }}{{ end }}
+                            </td>
+                            <td>
+                                {{ if .TimeFrom }}{{ .TimeFrom }} - {{ .TimeTo }}{{ else }}-{{ end }}
+                            </td>
+                            <td style="max-width: 200px;">{{ .Reason }}</td>
+                            <td>
+                                <button class="action-btn btn-approve"
+                                    onclick="handlePermission('{{ .ID }}', 'APPROVE')">Approve</button>
+                                <button class="action-btn btn-reject"
+                                    onclick="handlePermission('{{ .ID }}', 'REJECT')">Reject</button>
+                            </td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+                {{ else }}
+                <div class="empty-state">No pending leave/permission requests.</div>
+                {{ end }}
+            </div>
+        </div>
+
+        <!-- Tab 4: History -->
         <div id="history" class="tab-content">
             <div class="card">
                 <h3>Recent Activity (Last 50)</h3>
@@ -362,7 +420,8 @@
             const btns = document.querySelectorAll('.tab-btn');
             if (tabId === 'daily') btns[0].classList.add('active');
             if (tabId === 'issues') btns[1].classList.add('active');
-            if (tabId === 'history') btns[2].classList.add('active');
+            if (tabId === 'permissions') btns[2].classList.add('active');
+            if (tabId === 'history') btns[3].classList.add('active');
         }
 
         async function handleIssue(id, action) {
@@ -383,6 +442,31 @@
                     // Remove row
                     document.getElementById('issue-' + id).remove();
                     // Update counter (optional, requires reload or dom manip)
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (e) {
+                alert('Network Error');
+            }
+        }
+
+        async function handlePermission(id, action) {
+            if (!confirm(`Are you sure you want to ${action} this leave request?`)) return;
+
+            try {
+                const response = await fetch('/admin/permission-request', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        request_id: id,
+                        action: action,
+                        remarks: "Processed via Admin Panel"
+                    })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    document.getElementById('perm-' + id).remove();
+                    alert('✅ ' + (action === 'APPROVE' ? 'Approved!' : 'Rejected!'));
                 } else {
                     alert('Error: ' + result.message);
                 }
