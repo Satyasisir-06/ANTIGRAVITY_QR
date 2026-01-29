@@ -2,6 +2,7 @@ services:
   - type: web
     name: qr-attendance
     runtime: go
+    rootDir: QR_Attendance
     buildCommand: go build -o main .
     startCommand: ./main
     envVars:
@@ -9,5 +10,5 @@ services:
         value: 8080
       - key: FIREBASE_CONFIG
         sync: false
-    healthCheckPath: /
+    healthCheckPath: /login
     autoDeploy: true
