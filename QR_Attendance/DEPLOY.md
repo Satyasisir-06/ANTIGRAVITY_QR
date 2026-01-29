@@ -1,69 +1,42 @@
-# Deployment Guide - QR Attendance (Google Cloud Run - FREE)
+# Deployment Guide - QR Attendance (Render - FREE, No Credit Card)
 
-## Prerequisites
-1. Google Cloud account (use same account as Firebase)
-2. Google Cloud CLI installed
-3. Docker (optional, Cloud Run can build from source)
+## Quick Deploy to Render
 
----
+### Step 1: Go to Render
+1. Visit **[render.com](https://render.com)**
+2. Click **"Get Started for Free"**
+3. **Sign up with GitHub**
 
-## Quick Deploy to Cloud Run
+### Step 2: Create Web Service
+1. Click **"New +"** → **"Web Service"**
+2. Connect your GitHub account if prompted
+3. Select repository: `Satyasisir-06/ANTIGRAVITY_QR`
+4. Configure:
+   - **Name:** `qr-attendance`
+   - **Root Directory:** `QR_Attendance`
+   - **Runtime:** `Go`
+   - **Build Command:** `go build -o main .`
+   - **Start Command:** `./main`
+5. Click **"Create Web Service"**
 
-### Step 1: Install Google Cloud CLI
-Download from: https://cloud.google.com/sdk/docs/install
+### Step 3: Add Environment Variable
+1. Go to **Environment** tab
+2. Add:
+   - **Key:** `FIREBASE_CONFIG`
+   - **Value:** Your firebase-credentials.json content (minified)
 
-### Step 2: Login & Set Project
-```bash
-gcloud auth login
-gcloud config set project YOUR_FIREBASE_PROJECT_ID
-```
-
-### Step 3: Enable APIs
-```bash
-gcloud services enable run.googleapis.com
-gcloud services enable cloudbuild.googleapis.com
-```
-
-### Step 4: Deploy
-```bash
-cd QR_Attendance
-gcloud run deploy qr-attendance \
-  --source . \
-  --region asia-south1 \
-  --allow-unauthenticated \
-  --port 8080
-```
-
-Cloud Run will build and deploy automatically!
+### Step 4: Add Custom Domain (Namecheap)
+1. Settings → Custom Domains → Add your domain
+2. Copy CNAME from Render → Add to Namecheap DNS
 
 ---
 
-## Add Custom Domain (Namecheap)
-
-### In Cloud Console:
-1. Go to [Cloud Run Console](https://console.cloud.google.com/run)
-2. Select your service → **Domain Mappings** → **Add Mapping**
-3. Verify domain ownership
-4. Get the DNS records to add
-
-### In Namecheap:
-1. Advanced DNS → Add the records Cloud Run provides
-2. Wait 5-30 minutes for DNS propagation
-
----
-
-## Free Tier Limits
-
-| Resource | Free/Month |
-|----------|-----------|
-| Requests | 2 million |
-| CPU | 180,000 vCPU-seconds |
-| Memory | 360,000 GB-seconds |
-| Egress | 1 GB (NA) |
+## Free Tier Info
+- ✅ 750 hours/month (enough for 24/7)
+- ⚠️ Sleeps after 15 min inactivity (~30s wake time)
 
 ---
 
 ## Your URLs
-- **Cloud Run URL:** `https://qr-attendance-xxxxx.run.app`
-- **Custom Domain:** `https://yourdomain.com`
-- **Teacher QR:** `https://yourdomain.com/teacher-attendance`
+- Render: `https://qr-attendance.onrender.com`
+- Custom: `https://yourdomain.com`
