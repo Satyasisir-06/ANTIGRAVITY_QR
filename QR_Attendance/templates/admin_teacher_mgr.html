@@ -217,6 +217,15 @@
         </div>
 
         <div class="stats-grid">
+            <div class="stat-card" style="grid-column: span 2; text-align: center; padding: 2rem;">
+                <div class="stat-title" style="font-size: 1.1rem; margin-bottom: 1rem;">📱 Teacher Attendance QR Code
+                </div>
+                <img src="/admin/teacher-qr" alt="Teacher Attendance QR"
+                    style="width: 200px; height: 200px; border-radius: 12px; background: white; padding: 10px;">
+                <div style="margin-top: 1rem; color: var(--text-gray); font-size: 0.9rem;">
+                    Teachers scan this code to mark daily attendance
+                </div>
+            </div>
             <div class="stat-card">
                 <div class="stat-title">Present Today</div>
                 <div class="stat-value">{{ len .attendance }}</div>
@@ -226,6 +235,7 @@
                 <div class="stat-value">{{ len .issues }}</div>
             </div>
         </div>
+
 
         <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('daily')">Daily Log</button>

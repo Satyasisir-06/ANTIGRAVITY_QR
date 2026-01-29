@@ -5,3 +5,16 @@ venv/
 .env
 .DS_Store
 firebase-credentials.json
+
+# Build artifacts
+*.exe
+main
+
+# Local files
+ngrok_info.json
+url.txt
+error.log
+
+# IDE
+.idea/
+.vscode/

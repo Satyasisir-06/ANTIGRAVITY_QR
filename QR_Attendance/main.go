@@ -2557,37 +2557,138 @@ func main() {
 
 	// ==================== TEACHER ATTENDANCE (PERMANENT QR) ====================
 
-	// 1. Permanent QR Entry Point
+	// 1. Permanent QR Entry Point - PUBLIC (no login redirect)
 	r.GET("/teacher-attendance", func(c *gin.Context) {
 		session := sessions.Default(c)
 		userID := session.Get("user_id")
 		role := session.Get("role")
 
-		if userID == nil || role != "teacher" {
-			// Redirect to login logic
-			c.Redirect(http.StatusFound, "/login")
+		today := time.Now().Format("2006-01-02")
+
+		// If logged in as teacher, show attendance marking page
+		if userID != nil && role == "teacher" {
+			teacherID := userID.(string)
+			// Check if attendance already marked for today
+			iter := firestoreClient.Collection("teacher_attendance").
+				Where("teacher_id", "==", teacherID).
+				Where("date", "==", today).
+				Documents(context.Background())
+
+			alreadyMarked := false
+			doc, err := iter.Next()
+			if err == nil && doc != nil {
+				alreadyMarked = true
+			}
+
+			// Get teacher name
+			teacherName := teacherID
+			tDoc, _ := firestoreClient.Collection("teachers").Doc(teacherID).Get(context.Background())
+			if tDoc != nil && tDoc.Exists() {
+				if v := tDoc.Data()["name"]; v != nil {
+					teacherName = fmt.Sprint(v)
+				}
+			}
+
+			c.HTML(http.StatusOK, "teacher_attendance_mark.html", gin.H{
+				"teacher_id":     teacherID,
+				"teacher_name":   teacherName,
+				"date":           today,
+				"already_marked": alreadyMarked,
+				"logged_in":      true,
+			})
 			return
 		}
 
-		teacherID := userID.(string)
-		// Check if attendance already marked for today
+		// Not logged in - show public page with login form
+		c.HTML(http.StatusOK, "teacher_attendance_mark.html", gin.H{
+			"date":      today,
+			"logged_in": false,
+		})
+	})
+
+	// API: Teacher Login + Mark Attendance (for QR code flow)
+	r.POST("/api/teacher-login-mark", func(c *gin.Context) {
+		var req struct {
+			Username string `json:"username"`
+			Password string `json:"password"`
+		}
+		if err := c.BindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Invalid request"})
+			return
+		}
+
+		// Verify credentials
+		doc, err := firestoreClient.Collection("users").Doc(req.Username).Get(context.Background())
+		if err != nil || !doc.Exists() {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Invalid username or password"})
+			return
+		}
+
+		var user User
+		if err := doc.DataTo(&user); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "System error"})
+			return
+		}
+
+		if !checkPasswordHash(req.Password, user.Password) {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Invalid username or password"})
+			return
+		}
+
+		if user.Role != "teacher" {
+			c.JSON(http.StatusForbidden, gin.H{"success": false, "message": "Only teachers can use this feature"})
+			return
+		}
+
+		teacherID := user.Username
 		today := time.Now().Format("2006-01-02")
+
+		// Check if already marked
 		iter := firestoreClient.Collection("teacher_attendance").
 			Where("teacher_id", "==", teacherID).
 			Where("date", "==", today).
 			Documents(context.Background())
 
-		alreadyMarked := false
-		doc, err := iter.Next()
-		if err == nil && doc != nil {
-			alreadyMarked = true
+		existingDoc, _ := iter.Next()
+		if existingDoc != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Attendance already marked for today"})
+			return
 		}
 
-		c.HTML(http.StatusOK, "teacher_attendance_mark.html", gin.H{
-			"teacher_id":     teacherID,
-			"date":           today,
-			"already_marked": alreadyMarked,
-		})
+		// Get teacher name
+		teacherName := teacherID
+		tDoc, _ := firestoreClient.Collection("teachers").Doc(teacherID).Get(context.Background())
+		if tDoc != nil && tDoc.Exists() {
+			if v := tDoc.Data()["name"]; v != nil {
+				teacherName = fmt.Sprint(v)
+			}
+		}
+
+		// Mark attendance
+		now := time.Now()
+		record := TeacherAttendance{
+			TeacherID: teacherID,
+			Name:      teacherName,
+			Date:      today,
+			Time:      now.Format("15:04:05"),
+			Status:    "PRESENT",
+			Timestamp: now,
+		}
+
+		_, _, err = firestoreClient.Collection("teacher_attendance").Add(context.Background(), record)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to save attendance"})
+			return
+		}
+
+		// Set session for future use
+		session := sessions.Default(c)
+		session.Set("user_id", teacherID)
+		session.Set("username", teacherID)
+		session.Set("role", "teacher")
+		session.Save()
+
+		c.JSON(http.StatusOK, gin.H{"success": true, "message": "Attendance marked successfully!"})
 	})
 
 	// 2. Mark Attendance Action
@@ -2758,7 +2859,36 @@ func main() {
 		})
 	})
 
+	// Generate QR Code for Teacher Attendance (Permanent)
+	r.GET("/admin/teacher-qr", func(c *gin.Context) {
+		// Build the target URL from request
+		scheme := "https"
+		host := c.Request.Host
+		if strings.Contains(host, "localhost") || strings.Contains(host, "127.0.0.1") {
+			scheme = "http"
+		}
+		// Check for X-Forwarded headers (ngrok/proxy)
+		if fwdHost := c.GetHeader("X-Forwarded-Host"); fwdHost != "" {
+			host = fwdHost
+		}
+		if fwdProto := c.GetHeader("X-Forwarded-Proto"); fwdProto != "" {
+			scheme = fwdProto
+		}
+
+		targetURL := scheme + "://" + host + "/teacher-attendance"
+
+		// Generate QR code
+		png, err := qrcode.Encode(targetURL, qrcode.Medium, 300)
+		if err != nil {
+			c.String(http.StatusInternalServerError, "Failed to generate QR")
+			return
+		}
+
+		c.Data(http.StatusOK, "image/png", png)
+	})
+
 	// 5. Admin: Handle Issue
+
 	r.POST("/admin/teacher-issue", func(c *gin.Context) {
 		session := sessions.Default(c)
 		if session.Get("role") != "admin" {
