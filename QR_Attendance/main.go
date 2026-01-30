@@ -2829,6 +2829,101 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"success": true, "message": "Attendance marked successfully!"})
 	})
 
+	// API: Teacher Register + Mark Attendance (for QR code flow - new teachers)
+	r.POST("/api/teacher-register-mark", func(c *gin.Context) {
+		var req struct {
+			Username string `json:"username"`
+			FullName string `json:"full_name"`
+			Email    string `json:"email"`
+			Phone    string `json:"phone"`
+			Password string `json:"password"`
+		}
+		if err := c.BindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Invalid request"})
+			return
+		}
+
+		// Validate required fields
+		if req.Username == "" || req.FullName == "" || req.Email == "" || req.Password == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Username, full name, email, and password are required"})
+			return
+		}
+
+		// Validate password length
+		if len(req.Password) < 6 {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Password must be at least 6 characters"})
+			return
+		}
+
+		// Check if user already exists
+		_, err := firestoreClient.Collection("users").Doc(req.Username).Get(context.Background())
+		if err == nil {
+			c.JSON(http.StatusConflict, gin.H{"success": false, "message": "Teacher ID already exists. Please login instead."})
+			return
+		}
+
+		// Hash password
+		hashedPassword, err := hashPassword(req.Password)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "System error"})
+			return
+		}
+
+		// Create user in users collection
+		user := User{
+			Username:  req.Username,
+			Password:  hashedPassword,
+			Role:      "teacher",
+			Email:     req.Email,
+			CreatedAt: time.Now(),
+		}
+		_, err = firestoreClient.Collection("users").Doc(req.Username).Set(context.Background(), user)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to create account"})
+			return
+		}
+
+		// Create entry in teachers collection
+		teacherData := map[string]interface{}{
+			"name":       req.FullName,
+			"email":      req.Email,
+			"phone":      req.Phone,
+			"created_at": time.Now(),
+		}
+		_, err = firestoreClient.Collection("teachers").Doc(req.Username).Set(context.Background(), teacherData)
+		if err != nil {
+			log.Printf("Error creating teacher record: %v", err)
+			// Continue anyway - user account was created
+		}
+
+		// Mark attendance
+		today := time.Now().Format("2006-01-02")
+		now := time.Now()
+		record := TeacherAttendance{
+			TeacherID: req.Username,
+			Name:      req.FullName,
+			Date:      today,
+			Time:      now.Format("15:04:05"),
+			Status:    "PRESENT",
+			Timestamp: now,
+		}
+
+		_, _, err = firestoreClient.Collection("teacher_attendance").Add(context.Background(), record)
+		if err != nil {
+			log.Printf("Error marking attendance after registration: %v", err)
+			// Don't fail - account was created successfully
+		}
+
+		// Set session
+		session := sessions.Default(c)
+		session.Set("user_id", req.Username)
+		session.Set("username", req.Username)
+		session.Set("role", "teacher")
+		session.Save()
+
+		c.JSON(http.StatusOK, gin.H{"success": true, "message": "Registration successful! Attendance marked."})
+	})
+
 	// 2. Mark Attendance Action
 	r.POST("/teacher/mark-attendance", func(c *gin.Context) {
 		session := sessions.Default(c)

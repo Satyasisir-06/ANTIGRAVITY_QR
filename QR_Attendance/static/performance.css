@@ -1,0 +1,605 @@
+/* =============================================================================
+   PERFORMANCE.CSS - Mobile Performance & Scroll Optimization
+   Fixes: Scroll lag, jank, freezing, CLS, and mobile UX issues
+   ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+   1. SMOOTH SCROLLING - Native momentum & GPU acceleration
+   ----------------------------------------------------------------------------- */
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    /* Native iOS momentum scrolling */
+    -webkit-overflow-scrolling: touch;
+    /* Prevent overscroll bounce on Chrome */
+    overscroll-behavior: contain;
+    /* Prevent pull-to-refresh on mobile */
+    overscroll-behavior-y: none;
+    /* Enable font smoothing for better text rendering */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Optimize text rendering */
+    text-rendering: optimizeSpeed;
+}
+
+/* Scrollable containers */
+.table-container,
+.modal-content,
+#active-sessions-grid,
+#records-grid,
+[style*="overflow"],
+.scrollable {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    /* GPU layer for smooth scrolling */
+    will-change: scroll-position;
+}
+
+/* Remove will-change after scroll to save memory */
+.scroll-idle {
+    will-change: auto;
+}
+
+/* -----------------------------------------------------------------------------
+   2. GPU ACCELERATION - Hardware acceleration for animations
+   ----------------------------------------------------------------------------- */
+
+/* Cards, buttons, and interactive elements */
+.card,
+.stat-card,
+.glass-card,
+.session-card,
+.record-card,
+.running-class-card,
+.tab-btn,
+.page-btn,
+button,
+.animate-pop,
+.modal-content {
+    /* Force GPU layer */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    /* Hint browser about upcoming changes */
+    will-change: transform, opacity;
+    /* Smooth backface for 3D transforms */
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    /* Preserve 3D for better compositing */
+    -webkit-perspective: 1000;
+    perspective: 1000;
+}
+
+/* Remove will-change for elements not in view (applied via JS) */
+.offscreen {
+    will-change: auto;
+}
+
+/* Optimize hover transitions */
+.stat-card:hover,
+.card:hover,
+.glass-card:hover,
+.record-card:hover {
+    transform: translateY(-3px) translateZ(0);
+}
+
+/* -----------------------------------------------------------------------------
+   3. SKELETON LOADERS - Perceived performance
+   ----------------------------------------------------------------------------- */
+
+/* Base skeleton styles */
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        #f0f0f0 0%,
+        #e0e0e0 20%,
+        #f0f0f0 40%,
+        #f0f0f0 100%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s ease-in-out infinite;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* Dark mode skeleton */
+body.dark-mode .skeleton {
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.05) 0%,
+        rgba(255, 255, 255, 0.15) 20%,
+        rgba(255, 255, 255, 0.05) 40%,
+        rgba(255, 255, 255, 0.05) 100%
+    );
+    background-size: 200% 100%;
+}
+
+@keyframes skeleton-shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Skeleton variants */
+.skeleton-text {
+    height: 1em;
+    margin-bottom: 0.5em;
+    width: 80%;
+}
+
+.skeleton-text.short {
+    width: 40%;
+}
+
+.skeleton-card {
+    height: 150px;
+    margin-bottom: 1rem;
+}
+
+.skeleton-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+}
+
+.skeleton-button {
+    height: 44px;
+    width: 120px;
+    border-radius: 10px;
+}
+
+.skeleton-stat {
+    height: 80px;
+    border-radius: 15px;
+}
+
+/* Skeleton row for tables */
+.skeleton-row {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.skeleton-row .skeleton-text {
+    flex: 1;
+}
+
+/* -----------------------------------------------------------------------------
+   4. LAZY LOADING - Fade-in on intersection
+   ----------------------------------------------------------------------------- */
+
+/* Hidden state for lazy elements */
+.lazy,
+[data-lazy] {
+    opacity: 0;
+    transform: translateY(20px) translateZ(0);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+/* Visible state when loaded */
+.lazy.loaded,
+[data-lazy].loaded {
+    opacity: 1;
+    transform: translateY(0) translateZ(0);
+}
+
+/* Lazy images */
+img.lazy {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+img.lazy.loaded {
+    opacity: 1;
+}
+
+/* Placeholder for lazy images */
+.lazy-image-wrapper {
+    background: #f0f0f0;
+    position: relative;
+    overflow: hidden;
+}
+
+.lazy-image-wrapper::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, #f0f0f0, #e8e8e8, #f0f0f0);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s infinite;
+}
+
+/* -----------------------------------------------------------------------------
+   5. CLS (Cumulative Layout Shift) FIXES
+   ----------------------------------------------------------------------------- */
+
+/* Fixed dimensions for images */
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Reserve space for known elements */
+.stat-card {
+    min-height: 100px;
+    /* Prevent layout shift on load */
+    contain: layout style;
+}
+
+.record-card {
+    min-height: 120px;
+    contain: layout style;
+}
+
+.session-card,
+.running-class-card {
+    min-height: 180px;
+    contain: layout style;
+}
+
+/* Aspect ratio containers */
+.aspect-16-9 {
+    aspect-ratio: 16 / 9;
+}
+
+.aspect-1-1 {
+    aspect-ratio: 1 / 1;
+}
+
+.aspect-4-3 {
+    aspect-ratio: 4 / 3;
+}
+
+/* QR code container - prevent layout shift */
+.qr-container {
+    aspect-ratio: 1 / 1;
+    max-width: 200px;
+    contain: layout style;
+}
+
+/* Table container height */
+.table-container {
+    min-height: 200px;
+}
+
+/* Nav fixed height */
+.navbar {
+    min-height: 60px;
+}
+
+/* Stats container */
+.stats-container {
+    min-height: 100px;
+}
+
+/* Prevent font swap layout shift */
+@font-face {
+    font-family: 'Outfit';
+    font-display: swap;
+}
+
+/* -----------------------------------------------------------------------------
+   6. TOUCH OPTIMIZATION - Better mobile interactions
+   ----------------------------------------------------------------------------- */
+
+/* Minimum touch target size (44px) */
+@media (hover: none) and (pointer: coarse) {
+    button,
+    a,
+    .tab-btn,
+    .page-btn,
+    .nav-links a,
+    input[type="submit"],
+    input[type="button"],
+    select {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    /* Larger touch targets for mobile */
+    .nav-links a {
+        padding: 12px;
+    }
+
+    /* Remove hover delays */
+    * {
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Active state feedback */
+    button:active,
+    a:active,
+    .tab-btn:active,
+    .page-btn:active {
+        transform: scale(0.97) translateZ(0);
+        opacity: 0.9;
+    }
+
+    /* Disable hover effects that cause lag */
+    .stat-card:hover,
+    .card:hover,
+    .glass-card:hover {
+        transform: none;
+    }
+}
+
+/* -----------------------------------------------------------------------------
+   7. REDUCED MOTION - Accessibility & performance
+   ----------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    .skeleton {
+        animation: none;
+        background: #e0e0e0;
+    }
+
+    .lazy,
+    [data-lazy] {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* -----------------------------------------------------------------------------
+   8. CONTENT VISIBILITY - Render optimization
+   ----------------------------------------------------------------------------- */
+
+/* Off-screen content optimization */
+.record-card,
+.session-card,
+.running-class-card {
+    content-visibility: auto;
+    contain-intrinsic-size: 0 180px;
+}
+
+/* Large lists optimization */
+#records-grid > * {
+    content-visibility: auto;
+    contain-intrinsic-size: 0 150px;
+}
+
+#active-sessions-grid > * {
+    content-visibility: auto;
+    contain-intrinsic-size: 0 200px;
+}
+
+/* Table rows */
+tbody tr {
+    content-visibility: auto;
+    contain-intrinsic-size: 0 50px;
+}
+
+/* -----------------------------------------------------------------------------
+   9. PAINT CONTAINMENT - Reduce repaint costs
+   ----------------------------------------------------------------------------- */
+
+.glass-container,
+.glass-card,
+.modal {
+    contain: layout style paint;
+}
+
+/* Isolate stacking contexts */
+.modal,
+[style*="position: fixed"] {
+    isolation: isolate;
+}
+
+/* -----------------------------------------------------------------------------
+   10. SCROLL SNAP - Better scroll UX
+   ----------------------------------------------------------------------------- */
+
+/* Horizontal scroll containers */
+.stats-container {
+    scroll-snap-type: x mandatory;
+}
+
+.stats-container > * {
+    scroll-snap-align: start;
+}
+
+/* Tab container */
+.tab-buttons {
+    scroll-snap-type: x proximity;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.tab-buttons::-webkit-scrollbar {
+    display: none;
+}
+
+.tab-buttons > * {
+    scroll-snap-align: start;
+}
+
+/* -----------------------------------------------------------------------------
+   11. LOADING STATES
+   ----------------------------------------------------------------------------- */
+
+/* Page loading overlay */
+.page-loading {
+    position: fixed;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+.page-loading.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+body.dark-mode .page-loading {
+    background: rgba(15, 12, 41, 0.9);
+}
+
+/* Spinner */
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #a18cd1;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Button loading state */
+button.loading {
+    position: relative;
+    color: transparent !important;
+    pointer-events: none;
+}
+
+button.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid transparent;
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+/* -----------------------------------------------------------------------------
+   12. OPTIMIZED ANIMATIONS
+   ----------------------------------------------------------------------------- */
+
+/* Use transform-only animations (GPU-friendly) */
+@keyframes fadeSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px) translateZ(0);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) translateZ(0);
+    }
+}
+
+@keyframes fadeSlideOut {
+    from {
+        opacity: 1;
+        transform: translateY(0) translateZ(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-10px) translateZ(0);
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateZ(0);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateZ(0);
+    }
+}
+
+/* Replace popIn animation with optimized version */
+.animate-pop {
+    animation: scaleIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Staggered animation for lists */
+.stagger-animation > *:nth-child(1) { animation-delay: 0.05s; }
+.stagger-animation > *:nth-child(2) { animation-delay: 0.1s; }
+.stagger-animation > *:nth-child(3) { animation-delay: 0.15s; }
+.stagger-animation > *:nth-child(4) { animation-delay: 0.2s; }
+.stagger-animation > *:nth-child(5) { animation-delay: 0.25s; }
+.stagger-animation > *:nth-child(6) { animation-delay: 0.3s; }
+
+/* -----------------------------------------------------------------------------
+   13. MOBILE-SPECIFIC OPTIMIZATIONS
+   ----------------------------------------------------------------------------- */
+
+@media (max-width: 768px) {
+    /* Reduce animation complexity on mobile */
+    .stat-card,
+    .card,
+    .glass-card,
+    .session-card {
+        transition: opacity 0.2s ease;
+    }
+
+    /* Disable complex gradients animation on mobile */
+    body {
+        background-size: 100% 100%;
+        animation: none;
+    }
+
+    /* Simpler dark mode background */
+    body.dark-mode {
+        background: linear-gradient(135deg, #0f0c29 0%, #302b63 100%);
+        animation: none;
+    }
+
+    /* Reduce blur on mobile (expensive) */
+    .glass-container,
+    .glass-card,
+    .record-card {
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+    }
+
+    /* Reduce box-shadow complexity */
+    .stat-card,
+    .card,
+    .session-card {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+}
+
+/* Very low-end devices */
+@media (max-width: 480px) {
+    /* Disable backdrop-filter on very small devices */
+    .glass-container,
+    .glass-card,
+    .record-card,
+    .filter-bar,
+    .calendar-container {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        background: rgba(255, 255, 255, 0.95);
+    }
+
+    body.dark-mode .glass-container,
+    body.dark-mode .glass-card,
+    body.dark-mode .record-card {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        background: rgba(30, 30, 60, 0.95);
+    }
+}

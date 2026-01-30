@@ -1,5 +1,9 @@
-/* Google Fonts */
+/* Google Fonts - font-display: swap for better performance */
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
+/* =============================================================================
+   CRITICAL PERFORMANCE FIXES - Import first
+   ============================================================================= */
 
 :root {
     --primary-gradient: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 99%, #FECFEF 100%);
@@ -106,6 +110,8 @@ body.dark-mode .stat-num {
     padding: 0;
     box-sizing: border-box;
     font-family: 'Outfit', sans-serif;
+    /* Optimize text rendering */
+    text-rendering: optimizeSpeed;
 }
 
 body {
@@ -118,6 +124,10 @@ body {
     align-items: center;
     color: var(--text-color);
     padding: 20px;
+    /* PERFORMANCE: Smooth scrolling */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    scroll-behavior: smooth;
 }
 
 @keyframes gradientBG {
@@ -207,6 +217,9 @@ body {
     width: 100%;
     max-width: 420px;
     transition: transform 0.3s ease;
+    /* PERFORMANCE: GPU acceleration */
+    transform: translateZ(0);
+    will-change: transform;
 }
 
 .glass-container:hover {
@@ -422,6 +435,9 @@ body.dark-mode [data-tooltip]::before {
     background: var(--card-bg);
     max-height: 400px;
     border: 1px solid var(--border-color);
+    /* PERFORMANCE: Smooth scrolling */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
 }
 
 table {
@@ -621,6 +637,11 @@ body.dark-mode .tag-pill {
     border: 1px solid var(--border-color);
     min-width: 200px;
     max-width: 250px;
+    /* PERFORMANCE: GPU acceleration & CLS fix */
+    transform: translateZ(0);
+    will-change: transform;
+    min-height: 100px;
+    contain: layout style;
 }
 
 .stat-card:hover {

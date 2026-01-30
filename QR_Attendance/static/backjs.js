@@ -1,3 +1,8 @@
+// =============================================================================
+// BACKJS.JS - Main Application JavaScript
+// Performance optimized with RAF, passive listeners, and debouncing
+// =============================================================================
+
 // --- Student Panel Tab & Calculator Logic ---
 function showTab(tabId) {
     // Hide all tabs
@@ -532,26 +537,53 @@ function togglePassword(inputId, iconId) {
     }
 }
 
-// Auto-Refresh Dashboard Stats (Live)
+// Auto-Refresh Dashboard Stats (Live) - OPTIMIZED
+// Use visibility API to pause when tab is hidden
+let statsPollingInterval = null;
+let isPageVisible = true;
+
 function updateDashboardStats() {
     const cse = document.getElementById('stat-cse');
     if (!cse) return; // Not on admin dashboard
+    if (!isPageVisible) return; // Don't poll when page is hidden
 
     fetch('/api/stats')
         .then(res => res.json())
         .then(data => {
             if (data.error) return;
-            document.getElementById('stat-cse').innerText = data.cse;
-            document.getElementById('stat-ece').innerText = data.ece;
-            document.getElementById('stat-eee').innerText = data.eee;
-            document.getElementById('stat-mech').innerText = data.mech;
-            document.getElementById('stat-civil').innerText = data.civil;
+            // Use requestAnimationFrame for smooth DOM updates
+            requestAnimationFrame(() => {
+                document.getElementById('stat-cse').innerText = data.cse;
+                document.getElementById('stat-ece').innerText = data.ece;
+                document.getElementById('stat-eee').innerText = data.eee;
+                document.getElementById('stat-mech').innerText = data.mech;
+                document.getElementById('stat-civil').innerText = data.civil;
+            });
         })
         .catch(err => console.error('Stats Update Fail', err));
 }
 
-// Start polling every 3 seconds
-setInterval(updateDashboardStats, 3000);
+// Start/stop polling based on visibility
+function handleVisibilityChange() {
+    isPageVisible = !document.hidden;
+    if (isPageVisible && !statsPollingInterval) {
+        // Resume polling
+        statsPollingInterval = setInterval(updateDashboardStats, 5000); // Reduced frequency
+        updateDashboardStats(); // Immediate update
+    } else if (!isPageVisible && statsPollingInterval) {
+        // Pause polling when hidden
+        clearInterval(statsPollingInterval);
+        statsPollingInterval = null;
+    }
+}
+
+// Initialize visibility-aware polling
+document.addEventListener('visibilitychange', handleVisibilityChange);
+
+// Start polling every 5 seconds (was 3, reduced for performance)
+if (document.getElementById('stat-cse')) {
+    statsPollingInterval = setInterval(updateDashboardStats, 5000);
+}
 
 async function addHoliday() {
     const date = document.getElementById('h_date').value;

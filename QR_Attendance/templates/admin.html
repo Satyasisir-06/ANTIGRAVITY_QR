@@ -3,10 +3,23 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="theme-color" content="#a18cd1">
+    <meta name="description" content="Admin Dashboard - QR Attendance System">
     <title>Admin Dashboard | QR Attendance</title>
+    
+    <!-- Critical CSS first -->
     <link rel="stylesheet" href="/static/style.css?v=3">
+    <link rel="stylesheet" href="/static/performance.css">
+    
+    <!-- Defer non-critical CSS -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/static/backjs.js" as="script">
+    <link rel="preload" href="/static/performance.js" as="script">
+    
     <link rel="manifest" href="/static/manifest.json">
     <style>
         /* Custom scrollbar for running classes */
@@ -288,8 +301,9 @@
         </div>
     </div>
 
-    <script src="/static/backjs.js?v=5"></script>
-    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script src="/static/backjs.js?v=5" defer></script>
+    <script src="/static/performance.js" defer></script>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js" defer></script>
     <div id="toast-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999;"></div>
 
     <script>
@@ -609,8 +623,8 @@
         updateSessionTimers();
         setInterval(updateSessionTimers, 1000);
 
-        // Auto-refresh page every 60 seconds to get new sessions
-        setTimeout(() => location.reload(), 60000);
+        // Auto-refresh page every 120 seconds to get new sessions (was 60, reduced for performance)
+        setTimeout(() => location.reload(), 120000);
 
         // Dark mode toggle
         function toggleDarkMode() {

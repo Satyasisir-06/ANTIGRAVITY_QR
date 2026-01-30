@@ -170,6 +170,56 @@
             background: #475569;
         }
 
+        /* Tab Styles */
+        .auth-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            background: #0f172a;
+            padding: 0.25rem;
+            border-radius: 12px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            background: transparent;
+            border: none;
+            color: var(--text-gray);
+            font-size: 0.9rem;
+            font-weight: 500;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-light);
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .tab-panel {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        .register-btn {
+            background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+        }
+
+        .register-btn:hover {
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6);
+        }
+
         @keyframes fadeIn {
             from {
                 opacity: 0;
@@ -232,23 +282,67 @@
             </div>
         </div>
         {{ else }}
-        <!-- NOT LOGGED IN: Show login form -->
-        <div style="text-align: center; margin-bottom: 1.5rem; color: var(--text-gray);">
-            Please login to mark your attendance
+        <!-- NOT LOGGED IN: Show login/register tabs -->
+        
+        <!-- Tab Buttons -->
+        <div class="auth-tabs">
+            <button class="tab-btn active" id="loginTab" onclick="switchTab('login')">Login</button>
+            <button class="tab-btn" id="registerTab" onclick="switchTab('register')">New Teacher? Register</button>
         </div>
 
-        <form id="loginForm" onsubmit="return loginAndMark(event)">
-            <div class="form-group">
-                <label>Username / Teacher ID</label>
-                <input type="text" class="form-control" id="username" placeholder="Enter your username" required>
+        <!-- Login Form -->
+        <div id="loginPanel" class="tab-panel active">
+            <div style="text-align: center; margin-bottom: 1.5rem; color: var(--text-gray);">
+                Login to mark your attendance
             </div>
-            <div class="form-group">
-                <label>Password</label>
-                <input type="password" class="form-control" id="password" placeholder="Enter your password" required>
+            <form id="loginForm" onsubmit="return loginAndMark(event)">
+                <div class="form-group">
+                    <label>Username / Teacher ID</label>
+                    <input type="text" class="form-control" id="username" placeholder="Enter your username" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" class="form-control" id="password" placeholder="Enter your password" required>
+                </div>
+                <button type="submit" class="mark-btn" id="loginBtn">Login & Mark Attendance</button>
+                <div id="loginStatus" class="status-message"></div>
+            </form>
+        </div>
+
+        <!-- Registration Form -->
+        <div id="registerPanel" class="tab-panel">
+            <div style="text-align: center; margin-bottom: 1.5rem; color: var(--text-gray);">
+                Register as a new teacher & mark attendance
             </div>
-            <button type="submit" class="mark-btn" id="loginBtn">Login & Mark Attendance</button>
-            <div id="loginStatus" class="status-message"></div>
-        </form>
+            <form id="registerForm" onsubmit="return registerAndMark(event)">
+                <div class="form-group">
+                    <label>Teacher ID (Username)</label>
+                    <input type="text" class="form-control" id="reg_username" placeholder="e.g., john_smith" required>
+                </div>
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" class="form-control" id="reg_fullname" placeholder="e.g., John Smith" required>
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" class="form-control" id="reg_email" placeholder="teacher@college.edu" required>
+                </div>
+                <div class="form-group">
+                    <label>Phone (Optional)</label>
+                    <input type="tel" class="form-control" id="reg_phone" placeholder="+91 9876543210">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" class="form-control" id="reg_password" placeholder="Create a password" required minlength="6">
+                </div>
+                <div class="form-group">
+                    <label>Confirm Password</label>
+                    <input type="password" class="form-control" id="reg_confirm_password" placeholder="Confirm your password" required>
+                </div>
+                <button type="submit" class="mark-btn register-btn" id="registerBtn">Register & Mark Attendance</button>
+                <div id="registerStatus" class="status-message"></div>
+            </form>
+        </div>
         {{ end }}
     </div>
 
@@ -256,6 +350,18 @@
     <script>
         function toggleIssueForm() {
             document.getElementById('issueForm').classList.toggle('visible');
+        }
+
+        function switchTab(tab) {
+            // Update tab buttons
+            document.getElementById('loginTab').classList.remove('active');
+            document.getElementById('registerTab').classList.remove('active');
+            document.getElementById(tab + 'Tab').classList.add('active');
+            
+            // Update panels
+            document.getElementById('loginPanel').classList.remove('active');
+            document.getElementById('registerPanel').classList.remove('active');
+            document.getElementById(tab + 'Panel').classList.add('active');
         }
 
         async function markAttendance() {
@@ -349,6 +455,65 @@
                 status.innerHTML = `<span class="status-error">✕ Network Error</span>`;
                 btn.disabled = false;
                 btn.innerText = "Login & Mark Attendance";
+            }
+            return false;
+        }
+
+        async function registerAndMark(event) {
+            event.preventDefault();
+            const btn = document.getElementById('registerBtn');
+            const status = document.getElementById('registerStatus');
+            
+            const username = document.getElementById('reg_username').value.trim();
+            const fullName = document.getElementById('reg_fullname').value.trim();
+            const email = document.getElementById('reg_email').value.trim();
+            const phone = document.getElementById('reg_phone').value.trim();
+            const password = document.getElementById('reg_password').value;
+            const confirmPassword = document.getElementById('reg_confirm_password').value;
+
+            // Validate passwords match
+            if (password !== confirmPassword) {
+                status.innerHTML = `<span class="status-error">Passwords do not match</span>`;
+                return false;
+            }
+
+            // Validate password length
+            if (password.length < 6) {
+                status.innerHTML = `<span class="status-error">Password must be at least 6 characters</span>`;
+                return false;
+            }
+
+            btn.disabled = true;
+            btn.innerText = "Processing...";
+            status.innerText = "";
+
+            try {
+                const response = await fetch('/api/teacher-register-mark', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        username, 
+                        full_name: fullName, 
+                        email, 
+                        phone, 
+                        password 
+                    })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    status.innerHTML = `<span class="status-success">&#10003; ${result.message}</span>`;
+                    btn.innerText = "Done!";
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    status.innerHTML = `<span class="status-error">&#10007; ${result.message}</span>`;
+                    btn.disabled = false;
+                    btn.innerText = "Register & Mark Attendance";
+                }
+            } catch (error) {
+                status.innerHTML = `<span class="status-error">&#10007; Network Error</span>`;
+                btn.disabled = false;
+                btn.innerText = "Register & Mark Attendance";
             }
             return false;
         }
