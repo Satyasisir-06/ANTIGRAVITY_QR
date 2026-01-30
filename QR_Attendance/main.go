@@ -3,12 +3,15 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/csv"
 	"fmt"
 	"image"
 	"image/draw"
 	"image/png"
 	"log"
+	"math"
 	"net/http"
 	"net/smtp"
 	"os"
@@ -16,6 +19,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"cloud.google.com/go/firestore"
@@ -29,6 +33,103 @@ import (
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 )
+
+// ==================== RATE LIMITER ====================
+
+type RateLimiter struct {
+	mu       sync.Mutex
+	attempts map[string][]time.Time
+	limit    int
+	window   time.Duration
+}
+
+func NewRateLimiter(limit int, window time.Duration) *RateLimiter {
+	rl := &RateLimiter{
+		attempts: make(map[string][]time.Time),
+		limit:    limit,
+		window:   window,
+	}
+	// Cleanup goroutine
+	go func() {
+		for {
+			time.Sleep(window)
+			rl.cleanup()
+		}
+	}()
+	return rl
+}
+
+func (rl *RateLimiter) cleanup() {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+	now := time.Now()
+	for key, times := range rl.attempts {
+		var valid []time.Time
+		for _, t := range times {
+			if now.Sub(t) < rl.window {
+				valid = append(valid, t)
+			}
+		}
+		if len(valid) == 0 {
+			delete(rl.attempts, key)
+		} else {
+			rl.attempts[key] = valid
+		}
+	}
+}
+
+func (rl *RateLimiter) Allow(key string) bool {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+	now := time.Now()
+
+	// Filter out old attempts
+	var valid []time.Time
+	for _, t := range rl.attempts[key] {
+		if now.Sub(t) < rl.window {
+			valid = append(valid, t)
+		}
+	}
+
+	if len(valid) >= rl.limit {
+		rl.attempts[key] = valid
+		return false
+	}
+
+	rl.attempts[key] = append(valid, now)
+	return true
+}
+
+// Global rate limiters
+var (
+	loginLimiter    = NewRateLimiter(5, time.Minute)   // 5 attempts per minute
+	registerLimiter = NewRateLimiter(3, time.Minute*5) // 3 attempts per 5 minutes
+	apiLimiter      = NewRateLimiter(60, time.Minute)  // 60 API calls per minute
+)
+
+// CSRF Token generation
+func generateCSRFToken() string {
+	b := make([]byte, 32)
+	rand.Read(b)
+	return base64.StdEncoding.EncodeToString(b)
+}
+
+// Haversine formula for distance calculation (geofencing)
+func haversineDistance(lat1, lon1, lat2, lon2 float64) float64 {
+	const R = 6371000 // Earth's radius in meters
+
+	lat1Rad := lat1 * math.Pi / 180
+	lat2Rad := lat2 * math.Pi / 180
+	deltaLat := (lat2 - lat1) * math.Pi / 180
+	deltaLon := (lon2 - lon1) * math.Pi / 180
+
+	a := math.Sin(deltaLat/2)*math.Sin(deltaLat/2) +
+		math.Cos(lat1Rad)*math.Cos(lat2Rad)*
+			math.Sin(deltaLon/2)*math.Sin(deltaLon/2)
+	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
+
+	return R * c // Distance in meters
+}
 
 // ==================== MODELS ====================
 
@@ -260,9 +361,22 @@ func getConfig() SemesterConfig {
 
 func loginHandler(c *gin.Context) {
 	if c.Request.Method == "GET" {
-		c.HTML(http.StatusOK, "login.html", gin.H{})
+		// Generate CSRF token for form
+		csrfToken := generateCSRFToken()
+		session := sessions.Default(c)
+		session.Set("csrf_token", csrfToken)
+		session.Save()
+		c.HTML(http.StatusOK, "login.html", gin.H{"csrf_token": csrfToken})
 		return
 	}
+
+	// Rate limiting check
+	clientIP := c.ClientIP()
+	if !loginLimiter.Allow(clientIP) {
+		c.HTML(http.StatusTooManyRequests, "login.html", gin.H{"error": "Too many login attempts. Please wait a minute and try again."})
+		return
+	}
+
 	username := c.PostForm("username")
 	password := c.PostForm("password")
 
@@ -303,10 +417,22 @@ func loginHandler(c *gin.Context) {
 
 func registerHandler(c *gin.Context) {
 	if c.Request.Method == "GET" {
-		c.HTML(http.StatusOK, "register.html", gin.H{})
+		csrfToken := generateCSRFToken()
+		session := sessions.Default(c)
+		session.Set("csrf_token", csrfToken)
+		session.Save()
+		c.HTML(http.StatusOK, "register.html", gin.H{"csrf_token": csrfToken})
 		return // Changed to render register.html specific template if desired, or login with is_register
 		// User previously asked for register.html conversion, so let's use it
 	}
+
+	// Rate limiting check
+	clientIP := c.ClientIP()
+	if !registerLimiter.Allow(clientIP) {
+		c.HTML(http.StatusTooManyRequests, "register.html", gin.H{"error": "Too many registration attempts. Please wait 5 minutes and try again."})
+		return
+	}
+
 	// Logic similar to loginHandler...
 	username := c.PostForm("username") // Register matches login logic now
 	password := c.PostForm("password")
@@ -809,6 +935,20 @@ func adminDashboard(c *gin.Context) {
 		activeSessions = append(activeSessions, s)
 	}
 
+	// Count total teachers
+	totalTeachers := 0
+	teacherIter := firestoreClient.Collection("users").Where("role", "==", "teacher").Documents(context.Background())
+	for {
+		_, err := teacherIter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			break
+		}
+		totalTeachers++
+	}
+
 	c.HTML(http.StatusOK, "admin.html", gin.H{
 		"cse_count":       cseCount,
 		"ai_count":        aiCount,
@@ -819,8 +959,8 @@ func adminDashboard(c *gin.Context) {
 		"active_sessions": activeSessions,
 		"server_now":      now.Unix(),
 		"total_students":  cseCount + aiCount + eceCount + eeeCount + mechCount + civilCount,
-		"total_teachers":  25,                  // Mock
-		"sessions_today":  len(activeSessions), // Basic proxy
+		"total_teachers":  totalTeachers,
+		"sessions_today":  len(activeSessions),
 	})
 }
 
@@ -1001,7 +1141,54 @@ func settingsHandler(c *gin.Context) {
 }
 
 func updateSettingsHandlers(c *gin.Context) {
-	// Generic handler for POST updates
+	session := sessions.Default(c)
+	if session.Get("role") != "admin" {
+		c.Redirect(http.StatusFound, "/login")
+		return
+	}
+
+	settingType := c.PostForm("setting_type")
+
+	switch settingType {
+	case "semester":
+		firestoreClient.Collection("config").Doc("main").Set(context.Background(), map[string]interface{}{
+			"start_date": c.PostForm("start_date"),
+			"end_date":   c.PostForm("end_date"),
+		}, firestore.MergeAll)
+	case "geofencing":
+		enabled := c.PostForm("geo_enabled") == "on"
+		rad, _ := strconv.ParseFloat(c.PostForm("geo_radius"), 64)
+		lat, _ := strconv.ParseFloat(c.PostForm("college_lat"), 64)
+		lng, _ := strconv.ParseFloat(c.PostForm("college_lng"), 64)
+		firestoreClient.Collection("config").Doc("main").Set(context.Background(), map[string]interface{}{
+			"geo_enabled": enabled,
+			"geo_radius":  rad,
+			"college_lat": lat,
+			"college_lng": lng,
+		}, firestore.MergeAll)
+	case "sms":
+		enabled := c.PostForm("sms_enabled") == "on"
+		thresh, _ := strconv.Atoi(c.PostForm("sms_threshold"))
+		firestoreClient.Collection("config").Doc("main").Set(context.Background(), map[string]interface{}{
+			"sms_enabled":     enabled,
+			"sms_sid":         c.PostForm("sms_sid"),
+			"sms_auth_token":  c.PostForm("sms_auth_token"),
+			"sms_from_number": c.PostForm("sms_from_number"),
+			"sms_threshold":   thresh,
+		}, firestore.MergeAll)
+	case "email":
+		enabled := c.PostForm("email_enabled") == "on"
+		port, _ := strconv.Atoi(c.PostForm("smtp_port"))
+		firestoreClient.Collection("config").Doc("main").Set(context.Background(), map[string]interface{}{
+			"email_enabled":  enabled,
+			"smtp_server":    c.PostForm("smtp_server"),
+			"smtp_port":      port,
+			"email_from":     c.PostForm("email_from"),
+			"email_password": c.PostForm("email_password"),
+		}, firestore.MergeAll)
+	}
+
+	c.Redirect(http.StatusFound, "/settings")
 }
 
 // ... Additional handlers for other pages
@@ -1011,7 +1198,17 @@ func main() {
 	r := gin.Default()
 	r.LoadHTMLGlob("templates/*")
 	r.Static("/static", "./static")
-	store := cookie.NewStore([]byte("super-secret-key-qr-attendance-2026"))
+
+	// Session secret from environment variable (security hardening)
+	sessionSecret := os.Getenv("SESSION_SECRET")
+	if sessionSecret == "" {
+		// Generate a random secret if not set (for development)
+		log.Println("[SECURITY] WARNING: SESSION_SECRET not set, using generated secret. Set SESSION_SECRET env var in production!")
+		b := make([]byte, 32)
+		rand.Read(b)
+		sessionSecret = base64.StdEncoding.EncodeToString(b)
+	}
+	store := cookie.NewStore([]byte(sessionSecret))
 
 	// Detect if running in production (Render sets PORT env var)
 	isProduction := os.Getenv("PORT") != ""
@@ -1562,9 +1759,75 @@ func main() {
 	})
 
 	r.POST("/delete_students", func(c *gin.Context) {
-		// Dangerous!
-		// Loop delete or drop collection in production
-		c.JSON(http.StatusOK, gin.H{"success": true})
+		session := sessions.Default(c)
+		if session.Get("role") != "admin" {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Unauthorized"})
+			return
+		}
+
+		var data struct {
+			Branch    string   `json:"branch"`
+			RollNos   []string `json:"roll_nos"`
+			DeleteAll bool     `json:"delete_all"`
+		}
+		if err := c.BindJSON(&data); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Invalid request"})
+			return
+		}
+
+		deletedCount := 0
+		ctx := context.Background()
+
+		if data.DeleteAll && data.Branch != "" {
+			// Delete all students in a branch
+			iter := firestoreClient.Collection("students").Where("branch", "==", data.Branch).Documents(ctx)
+			batch := firestoreClient.Batch()
+			batchCount := 0
+
+			for {
+				doc, err := iter.Next()
+				if err == iterator.Done {
+					break
+				}
+				if err != nil {
+					continue
+				}
+
+				// Delete from students collection
+				batch.Delete(doc.Ref)
+
+				// Also delete from users collection
+				userRef := firestoreClient.Collection("users").Doc(doc.Ref.ID)
+				batch.Delete(userRef)
+
+				batchCount++
+				deletedCount++
+
+				// Firestore batch limit is 500
+				if batchCount >= 400 {
+					batch.Commit(ctx)
+					batch = firestoreClient.Batch()
+					batchCount = 0
+				}
+			}
+			if batchCount > 0 {
+				batch.Commit(ctx)
+			}
+		} else if len(data.RollNos) > 0 {
+			// Delete specific students by roll number
+			batch := firestoreClient.Batch()
+			for _, roll := range data.RollNos {
+				studentRef := firestoreClient.Collection("students").Doc(roll)
+				userRef := firestoreClient.Collection("users").Doc(roll)
+				batch.Delete(studentRef)
+				batch.Delete(userRef)
+				deletedCount++
+			}
+			batch.Commit(ctx)
+		}
+
+		log.Printf("[ADMIN] Deleted %d students (Branch: %s, DeleteAll: %v)", deletedCount, data.Branch, data.DeleteAll)
+		c.JSON(http.StatusOK, gin.H{"success": true, "message": fmt.Sprintf("Deleted %d students", deletedCount), "deleted_count": deletedCount})
 	})
 
 	r.POST("/upload_students", func(c *gin.Context) {
@@ -1684,6 +1947,206 @@ func main() {
 			"email":   maskedEmail,
 			"role":    role,
 		})
+	})
+
+	// Password Reset Request - sends reset link via email
+	r.POST("/api/password_reset_request", func(c *gin.Context) {
+		var data struct {
+			Username string `json:"username"`
+		}
+		if err := c.BindJSON(&data); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Invalid request"})
+			return
+		}
+
+		// Rate limit password reset requests
+		clientIP := c.ClientIP()
+		if !apiLimiter.Allow(clientIP + "_reset") {
+			c.JSON(http.StatusTooManyRequests, gin.H{"success": false, "message": "Too many reset requests. Please wait and try again."})
+			return
+		}
+
+		// Look up user
+		doc, err := firestoreClient.Collection("users").Doc(data.Username).Get(context.Background())
+		if err != nil || !doc.Exists() {
+			// Don't reveal if user exists
+			c.JSON(http.StatusOK, gin.H{"success": true, "message": "If an account exists with this username, a reset link will be sent to the registered email."})
+			return
+		}
+
+		userData := doc.Data()
+		email := ""
+		if v := userData["email"]; v != nil {
+			email = fmt.Sprint(v)
+		}
+
+		if email == "" {
+			c.JSON(http.StatusOK, gin.H{"success": true, "message": "If an account exists with this username, a reset link will be sent to the registered email."})
+			return
+		}
+
+		// Generate reset token
+		tokenBytes := make([]byte, 32)
+		rand.Read(tokenBytes)
+		resetToken := base64.URLEncoding.EncodeToString(tokenBytes)
+
+		// Store reset token with expiry (1 hour)
+		resetData := map[string]interface{}{
+			"username":   data.Username,
+			"token":      resetToken,
+			"expires_at": time.Now().Add(time.Hour),
+			"used":       false,
+		}
+		firestoreClient.Collection("password_resets").Doc(resetToken).Set(context.Background(), resetData)
+
+		// Get email config
+		config := getConfig()
+		if !config.EmailEnabled || config.EmailFrom == "" {
+			log.Printf("[PASSWORD_RESET] Email not configured, token for %s: %s", data.Username, resetToken)
+			c.JSON(http.StatusOK, gin.H{"success": true, "message": "If an account exists with this username, a reset link will be sent to the registered email."})
+			return
+		}
+
+		// Build reset URL
+		scheme := "https"
+		host := c.Request.Host
+		if strings.Contains(host, "localhost") || strings.Contains(host, "127.0.0.1") {
+			scheme = "http"
+		}
+		resetURL := fmt.Sprintf("%s://%s/reset_password?token=%s", scheme, host, resetToken)
+
+		// Send reset email
+		subject := "Password Reset - QR Attendance System"
+		body := fmt.Sprintf(`
+		<html>
+		<body style="font-family: Arial, sans-serif; padding: 20px;">
+			<div style="max-width: 500px; margin: 0 auto; background: #f8f9fa; padding: 30px; border-radius: 15px;">
+				<h2 style="color: #667eea; margin: 0 0 20px 0;">Password Reset Request</h2>
+				<p>You requested a password reset for your QR Attendance account.</p>
+				<p>Click the button below to reset your password:</p>
+				<p style="text-align: center; margin: 30px 0;">
+					<a href="%s" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 15px 30px; text-decoration: none; border-radius: 10px; display: inline-block;">Reset Password</a>
+				</p>
+				<p style="font-size: 0.9em; color: #666;">This link will expire in 1 hour.</p>
+				<p style="font-size: 0.9em; color: #666;">If you didn't request this, you can ignore this email.</p>
+				<hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+				<p style="font-size: 0.8em; color: #999;">Chaitanya Engineering College - QR Attendance System</p>
+			</div>
+		</body>
+		</html>`, resetURL)
+
+		msg := "From: " + config.EmailFrom + "\r\n" +
+			"To: " + email + "\r\n" +
+			"Subject: " + subject + "\r\n" +
+			"MIME-Version: 1.0\r\n" +
+			"Content-Type: text/html; charset=UTF-8\r\n" +
+			"\r\n" + body
+
+		auth := smtp.PlainAuth("", config.EmailFrom, config.EmailPassword, config.SMTPServer)
+		addr := fmt.Sprintf("%s:%d", config.SMTPServer, config.SMTPPort)
+
+		err = smtp.SendMail(addr, auth, config.EmailFrom, []string{email}, []byte(msg))
+		if err != nil {
+			log.Printf("[PASSWORD_RESET] Failed to send email to %s: %v", email, err)
+		} else {
+			log.Printf("[PASSWORD_RESET] Reset email sent to %s", email)
+		}
+
+		c.JSON(http.StatusOK, gin.H{"success": true, "message": "If an account exists with this username, a reset link will be sent to the registered email."})
+	})
+
+	// Password Reset Page
+	r.GET("/reset_password", func(c *gin.Context) {
+		token := c.Query("token")
+		if token == "" {
+			c.HTML(http.StatusBadRequest, "login.html", gin.H{"error": "Invalid reset link"})
+			return
+		}
+
+		// Verify token
+		doc, err := firestoreClient.Collection("password_resets").Doc(token).Get(context.Background())
+		if err != nil || !doc.Exists() {
+			c.HTML(http.StatusBadRequest, "login.html", gin.H{"error": "Invalid or expired reset link"})
+			return
+		}
+
+		data := doc.Data()
+		expiresAt, _ := data["expires_at"].(time.Time)
+		used, _ := data["used"].(bool)
+
+		if used || time.Now().After(expiresAt) {
+			c.HTML(http.StatusBadRequest, "login.html", gin.H{"error": "This reset link has expired. Please request a new one."})
+			return
+		}
+
+		// Show reset form (using login template with reset mode)
+		c.HTML(http.StatusOK, "login.html", gin.H{
+			"reset_mode":  true,
+			"reset_token": token,
+		})
+	})
+
+	// Password Reset Submit
+	r.POST("/reset_password", func(c *gin.Context) {
+		token := c.PostForm("token")
+		newPassword := c.PostForm("new_password")
+		confirmPassword := c.PostForm("confirm_password")
+
+		if token == "" || newPassword == "" {
+			c.HTML(http.StatusBadRequest, "login.html", gin.H{"error": "All fields are required", "reset_mode": true, "reset_token": token})
+			return
+		}
+
+		if newPassword != confirmPassword {
+			c.HTML(http.StatusBadRequest, "login.html", gin.H{"error": "Passwords do not match", "reset_mode": true, "reset_token": token})
+			return
+		}
+
+		if len(newPassword) < 6 {
+			c.HTML(http.StatusBadRequest, "login.html", gin.H{"error": "Password must be at least 6 characters", "reset_mode": true, "reset_token": token})
+			return
+		}
+
+		// Verify token
+		doc, err := firestoreClient.Collection("password_resets").Doc(token).Get(context.Background())
+		if err != nil || !doc.Exists() {
+			c.HTML(http.StatusBadRequest, "login.html", gin.H{"error": "Invalid reset link"})
+			return
+		}
+
+		data := doc.Data()
+		username := fmt.Sprint(data["username"])
+		expiresAt, _ := data["expires_at"].(time.Time)
+		used, _ := data["used"].(bool)
+
+		if used || time.Now().After(expiresAt) {
+			c.HTML(http.StatusBadRequest, "login.html", gin.H{"error": "This reset link has expired"})
+			return
+		}
+
+		// Hash new password
+		hashedPassword, err := hashPassword(newPassword)
+		if err != nil {
+			c.HTML(http.StatusInternalServerError, "login.html", gin.H{"error": "System error. Please try again."})
+			return
+		}
+
+		// Update user password
+		_, err = firestoreClient.Collection("users").Doc(username).Update(context.Background(), []firestore.Update{
+			{Path: "password", Value: hashedPassword},
+		})
+		if err != nil {
+			c.HTML(http.StatusInternalServerError, "login.html", gin.H{"error": "Failed to update password"})
+			return
+		}
+
+		// Mark token as used
+		firestoreClient.Collection("password_resets").Doc(token).Update(context.Background(), []firestore.Update{
+			{Path: "used", Value: true},
+		})
+
+		log.Printf("[PASSWORD_RESET] Password successfully reset for user: %s", username)
+		c.HTML(http.StatusOK, "login.html", gin.H{"success": "Password reset successful! You can now login with your new password."})
 	})
 
 	// Email configuration update
@@ -2483,8 +2946,116 @@ func main() {
 	})
 
 	r.GET("/export_csv", func(c *gin.Context) {
-		// Mock export
-		c.String(http.StatusOK, "Roll,Name,Status\n123,Test,Present")
+		session := sessions.Default(c)
+		role := session.Get("role")
+		if role != "admin" && role != "teacher" {
+			c.String(http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+
+		// Get filter parameters
+		branch := c.Query("branch")
+		subject := c.Query("subject")
+		dateFrom := c.Query("date_from")
+		dateTo := c.Query("date_to")
+		exportType := c.Query("type") // "attendance" or "students"
+
+		ctx := context.Background()
+		var buf bytes.Buffer
+		writer := csv.NewWriter(&buf)
+
+		if exportType == "students" {
+			// Export students list
+			writer.Write([]string{"Roll No", "Name", "Branch", "Email", "Parent Phone"})
+
+			query := firestoreClient.Collection("students").Documents(ctx)
+			if branch != "" {
+				query = firestoreClient.Collection("students").Where("branch", "==", branch).Documents(ctx)
+			}
+
+			for {
+				doc, err := query.Next()
+				if err == iterator.Done {
+					break
+				}
+				if err != nil {
+					continue
+				}
+				data := doc.Data()
+				rollNo := doc.Ref.ID
+				if r, ok := data["roll"].(string); ok && r != "" {
+					rollNo = r
+				}
+				name := fmt.Sprint(data["name"])
+				studentBranch := fmt.Sprint(data["branch"])
+				email := fmt.Sprint(data["email"])
+				parentPhone := fmt.Sprint(data["parent_phone"])
+
+				writer.Write([]string{rollNo, name, studentBranch, email, parentPhone})
+			}
+		} else {
+			// Export attendance records
+			writer.Write([]string{"Roll No", "Name", "Subject", "Branch", "Date", "Time", "Status"})
+
+			// Build query
+			query := firestoreClient.Collection("attendance").OrderBy("date", firestore.Desc)
+
+			// Apply filters if teacher
+			if role == "teacher" {
+				teacherID := session.Get("user_id").(string)
+				query = firestoreClient.Collection("attendance").Where("teacher_id", "==", teacherID).OrderBy("date", firestore.Desc)
+			}
+
+			iter := query.Limit(5000).Documents(ctx)
+
+			for {
+				doc, err := iter.Next()
+				if err == iterator.Done {
+					break
+				}
+				if err != nil {
+					continue
+				}
+				data := doc.Data()
+
+				// Apply filters
+				recordBranch := fmt.Sprint(data["branch"])
+				recordSubject := fmt.Sprint(data["subject"])
+				recordDate := fmt.Sprint(data["date"])
+
+				if branch != "" && recordBranch != branch {
+					continue
+				}
+				if subject != "" && recordSubject != subject {
+					continue
+				}
+				if dateFrom != "" && recordDate < dateFrom {
+					continue
+				}
+				if dateTo != "" && recordDate > dateTo {
+					continue
+				}
+
+				roll := fmt.Sprint(data["roll"])
+				name := fmt.Sprint(data["name"])
+				timeStr := fmt.Sprint(data["time"])
+				status := fmt.Sprint(data["status"])
+
+				writer.Write([]string{roll, name, recordSubject, recordBranch, recordDate, timeStr, status})
+			}
+		}
+
+		writer.Flush()
+
+		// Generate filename
+		filename := fmt.Sprintf("attendance_export_%s.csv", time.Now().Format("2006-01-02_150405"))
+		if exportType == "students" {
+			filename = fmt.Sprintf("students_export_%s.csv", time.Now().Format("2006-01-02_150405"))
+		}
+
+		c.Header("Content-Type", "text/csv")
+		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
+		c.Data(http.StatusOK, "text/csv", buf.Bytes())
 	})
 
 	// Scan - This is for STUDENTS to mark attendance
@@ -2608,10 +3179,12 @@ func main() {
 
 	r.POST("/mark_session_attendance", func(c *gin.Context) {
 		var data struct {
-			Roll     string `json:"roll"`
-			Name     string `json:"name"`
-			Token    string `json:"token"`
-			DeviceID string `json:"device_id"`
+			Roll      string  `json:"roll"`
+			Name      string  `json:"name"`
+			Token     string  `json:"token"`
+			DeviceID  string  `json:"device_id"`
+			Latitude  float64 `json:"latitude"`
+			Longitude float64 `json:"longitude"`
 		}
 		if err := c.BindJSON(&data); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Invalid data"})
@@ -2636,6 +3209,26 @@ func main() {
 		if isFinalized || now > endTime {
 			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "This session has expired"})
 			return
+		}
+
+		// Geofencing validation
+		config := getConfig()
+		if config.GeoEnabled && config.CollegeLat != 0 && config.CollegeLng != 0 {
+			if data.Latitude == 0 && data.Longitude == 0 {
+				c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Location access is required. Please enable location services and try again."})
+				return
+			}
+
+			distance := haversineDistance(config.CollegeLat, config.CollegeLng, data.Latitude, data.Longitude)
+			if distance > config.GeoRadius {
+				log.Printf("[GEOFENCE] Denied: Student %s is %.0fm away (limit: %.0fm)", data.Roll, distance, config.GeoRadius)
+				c.JSON(http.StatusBadRequest, gin.H{
+					"success": false,
+					"message": fmt.Sprintf("You must be within %.0fm of the college to mark attendance. You are currently %.0fm away.", config.GeoRadius, distance),
+				})
+				return
+			}
+			log.Printf("[GEOFENCE] Allowed: Student %s is %.0fm away (limit: %.0fm)", data.Roll, distance, config.GeoRadius)
 		}
 
 		// Check if this DEVICE already marked attendance for this session (prevents proxy)
@@ -2682,6 +3275,8 @@ func main() {
 			"timestamp":  currentTime,
 			"status":     "PRESENT",
 			"device_id":  data.DeviceID,
+			"latitude":   data.Latitude,
+			"longitude":  data.Longitude,
 		}
 
 		_, _, err = firestoreClient.Collection("attendance").Add(context.Background(), attendanceRecord)
