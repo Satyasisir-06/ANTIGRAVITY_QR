@@ -8,155 +8,56 @@
     <link rel="stylesheet" href="/static/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        .calculator-section {
-            background: rgba(255, 255, 255, 0.3);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 1.5rem;
-            margin-top: 2rem;
-            border: 1px solid rgba(255, 255, 255, 0.4);
-        }
-
-        .calculator-section h3 {
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .calc-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-        }
-
-        .calc-input-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .calc-input-group label {
-            font-size: 0.85rem;
-            font-weight: 500;
-            color: var(--text-color);
-        }
-
-        .calc-input-group input {
-            padding: 10px 15px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.2);
-            font-size: 1rem;
-        }
-
-        .calc-result {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 1.5rem;
-            border-radius: 15px;
-            text-align: center;
-            margin-top: 1rem;
-        }
-
-        .calc-result h4 {
-            font-size: 0.9rem;
-            opacity: 0.9;
-            margin-bottom: 5px;
-        }
-
-        .calc-result .result-value {
-            font-size: 2rem;
-            font-weight: 700;
-        }
-
-        .calc-result .result-detail {
-            font-size: 0.85rem;
-            opacity: 0.85;
-            margin-top: 5px;
-        }
-
-        .semester-info {
-            background: rgba(102, 126, 234, 0.1);
-            border: 1px solid rgba(102, 126, 234, 0.3);
-            padding: 1rem;
-            border-radius: 12px;
-            margin-bottom: 1.5rem;
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-
-        .semester-info-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .semester-info-item i {
-            color: #667eea;
-        }
-
-        .attendance-warning {
-            background: rgba(255, 193, 7, 0.15);
-            border: 1px solid rgba(255, 193, 7, 0.4);
-            color: #856404;
-            padding: 1rem;
-            border-radius: 12px;
-            margin-top: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .attendance-danger {
-            background: rgba(220, 53, 69, 0.15);
-            border: 1px solid rgba(220, 53, 69, 0.4);
-            color: #721c24;
-        }
-
-        .attendance-success {
-            background: rgba(40, 167, 69, 0.15);
-            border: 1px solid rgba(40, 167, 69, 0.4);
-            color: #155724;
-        }
-
-        .tab-container {
-            margin-top: 2rem;
-        }
-
+        /* Tab Buttons */
         .tab-buttons {
             display: flex;
             gap: 10px;
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
         }
 
         .tab-btn {
-            padding: 10px 20px;
-            border: none;
+            padding: 12px 24px;
+            border: 2px solid transparent;
             background: rgba(255, 255, 255, 0.3);
-            border-radius: 10px;
+            border-radius: 12px;
             cursor: pointer;
-            font-weight: 500;
-            transition: all 0.3s;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95rem;
+        }
+
+        .tab-btn:hover {
+            background: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
         }
 
         .tab-btn.active {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
         }
 
         .tab-content {
             display: none;
+            animation: fadeIn 0.3s ease;
         }
 
         .tab-content.active {
             display: block;
         }
 
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Record Cards */
         .record-card {
-            background: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.35);
             backdrop-filter: blur(10px);
             border-radius: 15px;
             padding: 1.25rem;
@@ -166,20 +67,229 @@
 
         .record-card:hover {
             transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
             border-color: rgba(102, 126, 234, 0.5);
         }
 
-        /* Mobile Responsive Styles */
+        /* Safe Zone Card */
+        .safe-zone-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            padding: 2rem;
+            color: white;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .safe-zone-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -30%;
+            width: 200px;
+            height: 200px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+        }
+
+        /* Status Badges */
+        .status-safe { background: rgba(40, 167, 69, 0.2); color: #28a745; }
+        .status-warning { background: rgba(255, 193, 7, 0.2); color: #d39e00; }
+        .status-danger { background: rgba(220, 53, 69, 0.2); color: #dc3545; }
+
+        /* Calendar Styles */
+        .calendar-container {
+            background: rgba(255, 255, 255, 0.35);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .calendar-nav {
+            display: flex;
+            gap: 10px;
+        }
+
+        .calendar-nav button {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: none;
+            background: rgba(102, 126, 234, 0.2);
+            color: #667eea;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .calendar-nav button:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+        }
+
+        .calendar-day-header {
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.8rem;
+            padding: 10px 5px;
+            color: var(--text-muted);
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .calendar-day:hover:not(.empty) {
+            transform: scale(1.1);
+        }
+
+        .calendar-day.empty { background: transparent; cursor: default; }
+        .calendar-day.present { background: rgba(40, 167, 69, 0.3); color: #28a745; }
+        .calendar-day.absent { background: rgba(220, 53, 69, 0.3); color: #dc3545; }
+        .calendar-day.holiday { background: rgba(255, 193, 7, 0.3); color: #d39e00; }
+        .calendar-day.today { box-shadow: 0 0 0 2px #667eea; }
+        .calendar-day.future { opacity: 0.5; }
+
+        .calendar-legend {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .legend-dot.present { background: #28a745; }
+        .legend-dot.absent { background: #dc3545; }
+        .legend-dot.holiday { background: #ffc107; }
+
+        /* Filter Bar */
+        .filter-bar {
+            background: rgba(255, 255, 255, 0.35);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: end;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 180px;
+        }
+
+        .filter-group label {
+            display: block;
+            font-size: 0.8rem;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .filter-group select,
+        .filter-group input {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.2);
+            font-size: 0.9rem;
+        }
+
+        /* Stats Cards in Calculator */
+        .calc-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .calc-stat-card {
+            padding: 1.5rem;
+            border-radius: 15px;
+            text-align: center;
+            color: white;
+        }
+
+        .calc-stat-card .stat-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin: 5px 0;
+        }
+
+        .calc-stat-card .stat-label {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        /* Mobile Responsive */
         @media (max-width: 576px) {
+            .tab-btn {
+                padding: 10px 16px;
+                font-size: 0.85rem;
+            }
+
+            .tab-btn span {
+                display: none;
+            }
+
+            .calendar-day {
+                font-size: 0.75rem;
+            }
+
+            .safe-zone-card {
+                padding: 1.5rem;
+            }
+
+            .calc-stat-card .stat-value {
+                font-size: 1.8rem;
+            }
+
             .navbar {
                 flex-direction: column;
                 gap: 12px;
                 padding: 10px 0;
-            }
-
-            .navbar .brand {
-                font-size: 1rem;
             }
 
             .nav-links {
@@ -189,111 +299,18 @@
                 width: 100%;
             }
 
-            .nav-links button,
-            .nav-links a {
-                padding: 8px 12px !important;
-                font-size: 0.8rem !important;
-            }
-
-            /* Hide text on mobile for profile button */
             .profile-btn .profile-name {
                 display: none !important;
             }
 
-            .profile-btn {
-                padding: 5px !important;
-            }
-
-            /* Shorter text for report button */
             .report-btn .btn-text {
                 display: none;
-            }
-
-            .report-btn::after {
-                content: "Report";
-                font-size: 0.75rem;
             }
 
             .semester-info {
                 flex-direction: column;
                 gap: 8px;
                 padding: 0.75rem;
-            }
-
-            .semester-info-item {
-                font-size: 0.85rem;
-            }
-
-            .calculator-section {
-                padding: 1rem;
-            }
-
-            .calc-grid {
-                grid-template-columns: 1fr !important;
-                gap: 0.75rem;
-            }
-
-            .calc-result {
-                padding: 1rem;
-            }
-
-            .calc-result .result-value {
-                font-size: 1.5rem;
-            }
-
-            .tab-buttons {
-                flex-wrap: wrap;
-            }
-
-            .tab-btn {
-                padding: 8px 15px;
-                font-size: 0.85rem;
-            }
-
-            /* Profile Modal Mobile */
-            #profileModal>div {
-                padding: 1.25rem !important;
-                width: 95% !important;
-                margin: 10px auto;
-            }
-
-            #profileModal .profile-avatar,
-            #profileModal>div>div:first-child>div:first-child {
-                width: 70px !important;
-                height: 70px !important;
-            }
-
-            #profileModal h2 {
-                font-size: 1.2rem !important;
-            }
-
-            #profileModal input,
-            #profileModal select {
-                font-size: 16px !important;
-                /* Prevent iOS zoom */
-            }
-
-            /* Stats grid in profile */
-            .profile-stats-grid {
-                gap: 8px !important;
-            }
-
-            .profile-stats-grid>div {
-                padding: 10px !important;
-            }
-        }
-
-        @media (max-width: 360px) {
-            .navbar .brand {
-                font-size: 0.9rem;
-            }
-
-            .nav-links {
-                gap: 5px !important;
-            }
-
-            .semester-info-item span {
-                font-size: 0.75rem;
             }
         }
     </style>
@@ -305,27 +322,22 @@
             <div class="brand"><i class="fas fa-user-graduate"></i> <span class="brand-text">Student Portal</span></div>
             <div class="nav-links">
                 <button onclick="toggleDarkMode()"
-                    style="width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); border-radius: 50%; color: var(--text-color); cursor: pointer; transition: all 0.3s; margin: 0; min-width: 40px;">
+                    style="width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); border-radius: 50%; color: var(--text-color); cursor: pointer; transition: all 0.3s;">
                     <i id="theme-icon" class="fas fa-moon"></i>
                 </button>
                 <button onclick="openProfileModal()" class="profile-btn"
                     style="background: rgba(255, 255, 255, 0.25); backdrop-filter: blur(4px); padding: 5px 12px 5px 5px; border-radius: 50px; display: flex; align-items: center; gap: 8px; border: 1px solid rgba(255,255,255,0.4); cursor: pointer;">
-                    <div
-                        style="width: 32px; height: 32px; background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); flex-shrink: 0;">
+                    <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">
                         <i class="fas fa-user"></i>
                     </div>
-                    <span class="profile-name"
-                        style="font-weight: 600; font-size: 0.85rem; color: var(--text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px;">{{
-                        .username }}</span>
+                    <span class="profile-name" style="font-weight: 600; font-size: 0.85rem; color: var(--text-color);">{{ .username }}</span>
                 </button>
                 <button onclick="openGeneralCorrectionModal()" class="report-btn"
-                    style="background: #000000; border: 1px solid rgba(255,255,255,0.2); padding: 8px 14px; border-radius: 25px; color: white; font-weight: 600; display: flex; align-items: center; gap: 6px; cursor: pointer; white-space: nowrap;">
+                    style="background: #000000; border: 1px solid rgba(255,255,255,0.2); padding: 8px 14px; border-radius: 25px; color: white; font-weight: 600; display: flex; align-items: center; gap: 6px; cursor: pointer;">
                     <i class="fas fa-exclamation-triangle"></i>
                     <span class="btn-text">Report</span>
                 </button>
-                <a href="/logout"
-                    style="width: 40px; height: 40px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #e74c3c; text-decoration: none; min-width: 40px; flex-shrink: 0;"
-                    title="Logout">
+                <a href="/logout" style="width: 40px; height: 40px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #e74c3c; text-decoration: none;" title="Logout">
                     <i class="fas fa-sign-out-alt"></i>
                 </a>
             </div>
@@ -333,24 +345,24 @@
 
         <!-- Semester Info Banner -->
         {{ if and .semester_start .semester_end }}
-        <div class="semester-info">
-            <div class="semester-info-item">
-                <i class="fas fa-calendar-alt"></i>
+        <div class="semester-info" style="background: rgba(102, 126, 234, 0.1); border: 1px solid rgba(102, 126, 234, 0.3); padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+            <div class="semester-info-item" style="display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-calendar-alt" style="color: #667eea;"></i>
                 <span><strong>Semester:</strong> {{ .semester_start }} to {{ .semester_end }}</span>
             </div>
-            <div class="semester-info-item">
-                <i class="fas fa-user-tag"></i>
+            <div class="semester-info-item" style="display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-user-tag" style="color: #667eea;"></i>
                 <span><strong>Roll:</strong> {{ .student_id }}</span>
             </div>
-            <div class="semester-info-item">
-                <i class="fas fa-code-branch"></i>
+            <div class="semester-info-item" style="display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-code-branch" style="color: #667eea;"></i>
                 <span><strong>Branch:</strong> {{ .branch }}</span>
             </div>
         </div>
         {{ end }}
 
-        <div class="stats-container"
-            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+        <!-- Stats Cards -->
+        <div class="stats-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
             <div class="stat-card">
                 <h3><i class="fas fa-check-circle" style="color: #28a745;"></i> Total Present</h3>
                 <p class="stat-num" id="stat-present">{{ .total_present }}</p>
@@ -360,15 +372,12 @@
                 <p class="stat-num" id="stat-working">{{ .working_days }}</p>
             </div>
             <div class="stat-card">
-                <h3><i class="fas fa-hourglass-half" style="color: #ffc107;"></i> Semester Days Remaining</h3>
+                <h3><i class="fas fa-hourglass-half" style="color: #ffc107;"></i> Days Remaining</h3>
                 <p class="stat-num" id="stat-rem-days">{{ .remaining_sem_days }}</p>
             </div>
             <div class="stat-card">
                 <h3><i class="fas fa-percentage" style="color: #764ba2;"></i> Overall Percentage</h3>
-                <div style="display: flex; align-items: center; gap: 15px; justify-content: center;">
-                    <p class="stat-num" id="stat-percentage" style="min-width: unset;">{{ printf "%.2f" .percentage }}%
-                    </p>
-                </div>
+                <p class="stat-num" id="stat-percentage">{{ printf "%.2f" .percentage }}%</p>
             </div>
         </div>
 
@@ -376,170 +385,211 @@
         <div class="tab-container">
             <div class="tab-buttons">
                 <button class="tab-btn active" onclick="showTab('records')" data-tab="records">
-                    <i class="fas fa-list"></i> Attendance Records
+                    <i class="fas fa-list-alt"></i> <span>Attendance Records</span>
                 </button>
                 <button class="tab-btn" onclick="showTab('calculator')" data-tab="calculator">
-                    <i class="fas fa-calculator"></i> Attendance Calculator
+                    <i class="fas fa-calculator"></i> <span>Attendance Calculator</span>
                 </button>
-                <button onclick="refreshStudentAttendance()" title="Refresh Attendance Data" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); border-radius: 10px; padding: 10px 15px; cursor: pointer; margin-left: auto;">
-                    <i class="fas fa-sync-alt"></i> <span style="font-size: 0.85rem;">Refresh</span>
+                <button onclick="refreshStudentAttendance()" id="refresh-btn" style="margin-left: auto; background: rgba(255,255,255,0.3); border: 1px solid rgba(255,255,255,0.3); border-radius: 10px; padding: 12px 20px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 600; transition: all 0.3s;">
+                    <i class="fas fa-sync-alt"></i> Refresh
                 </button>
             </div>
 
-            <!-- Attendance Records Tab -->
+            <!-- ==================== ATTENDANCE RECORDS TAB ==================== -->
             <div id="records-tab" class="tab-content active">
                 <!-- Filter Bar -->
-                <div style="background: rgba(255,255,255,0.3); backdrop-filter: blur(10px); border-radius: 15px; padding: 1rem; margin-bottom: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
-                    <div style="flex: 1; min-width: 200px;">
-                        <label style="display: block; font-size: 0.8rem; margin-bottom: 5px; font-weight: 600;">Filter by Subject</label>
-                        <select id="filter-subject" onchange="filterRecords()" style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.2);">
+                <div class="filter-bar">
+                    <div class="filter-group">
+                        <label><i class="fas fa-book"></i> Subject</label>
+                        <select id="filter-subject" onchange="filterRecords()">
                             <option value="">All Subjects</option>
+                            {{ range .records }}
+                            <option value="{{ .Subject }}">{{ .Subject }}</option>
+                            {{ end }}
                         </select>
                     </div>
-                    <div style="flex: 1; min-width: 200px;">
-                        <label style="display: block; font-size: 0.8rem; margin-bottom: 5px; font-weight: 600;">Filter by Status</label>
-                        <select id="filter-status" onchange="filterRecords()" style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.2);">
+                    <div class="filter-group">
+                        <label><i class="fas fa-filter"></i> Status</label>
+                        <select id="filter-status" onchange="filterRecords()">
                             <option value="">All Status</option>
                             <option value="PRESENT">Present Only</option>
                             <option value="ABSENT">Absent Only</option>
                         </select>
                     </div>
-                    <div style="flex: 1; min-width: 200px;">
-                        <label style="display: block; font-size: 0.8rem; margin-bottom: 5px; font-weight: 600;">Search</label>
-                        <input type="text" id="search-records" onkeyup="filterRecords()" placeholder="Search date, subject..." style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.2);">
+                    <div class="filter-group">
+                        <label><i class="fas fa-search"></i> Search</label>
+                        <input type="text" id="search-records" onkeyup="filterRecords()" placeholder="Search date, subject...">
                     </div>
                 </div>
 
-                <!-- Records Grid (Card View) -->
+                <!-- Records Grid -->
                 <div id="records-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem;">
                     {{ range .records }}
                     <div class="record-card" data-subject="{{ .Subject }}" data-status="{{ .Status }}" data-date="{{ .Date }}" data-search="{{ .Date }} {{ .Subject }} {{ .Branch }}">
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
                             <div style="flex: 1;">
-                                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 3px;">{{ .Date }} • {{ .Time }}</div>
-                                <h4 style="margin: 0; font-size: 1rem; color: var(--text-color);">{{ .Subject }}</h4>
-                                <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 3px;">{{ .Branch }}</div>
+                                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px;">
+                                    <i class="fas fa-clock"></i> {{ .Date }} • {{ .Time }}
+                                </div>
+                                <h4 style="margin: 0; font-size: 1.05rem; color: var(--text-color);">{{ .Subject }}</h4>
+                                <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">
+                                    <i class="fas fa-code-branch"></i> {{ .Branch }}
+                                </div>
                             </div>
-                            <div style="text-align: right;">
+                            <div>
                                 {{ if eq .Status "PRESENT" }}
-                                <span style="background: rgba(40, 167, 69, 0.2); color: #28a745; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; display: inline-block;">
+                                <span style="background: rgba(40, 167, 69, 0.2); color: #28a745; padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">
                                     <i class="fas fa-check-circle"></i> Present
                                 </span>
                                 {{ else if eq .Status "Present" }}
-                                <span style="background: rgba(40, 167, 69, 0.2); color: #28a745; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; display: inline-block;">
+                                <span style="background: rgba(40, 167, 69, 0.2); color: #28a745; padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">
                                     <i class="fas fa-check-circle"></i> Present
                                 </span>
                                 {{ else }}
-                                <span style="background: rgba(220, 53, 69, 0.2); color: #dc3545; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; display: inline-block;">
+                                <span style="background: rgba(220, 53, 69, 0.2); color: #dc3545; padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">
                                     <i class="fas fa-times-circle"></i> Absent
                                 </span>
                                 {{ end }}
                             </div>
                         </div>
                         {{ if or (eq .Status "Absent") (eq .Status "ABSENT") }}
-                        <button onclick="openCorrectionForRecord('{{ .Subject }}', '{{ .Date }}', '{{ .TeacherID }}')" style="width: 100%; background: linear-gradient(135deg, #f39c12, #e67e22); color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 10px;">
+                        <button onclick="openCorrectionForRecord('{{ .Subject }}', '{{ .Date }}', '{{ .TeacherID }}')" style="width: 100%; background: linear-gradient(135deg, #f39c12, #e67e22); color: white; border: none; padding: 10px; border-radius: 10px; cursor: pointer; font-weight: 600; margin-top: 8px; transition: all 0.3s;">
                             <i class="fas fa-flag"></i> Report Issue
                         </button>
                         {{ else }}
-                        <div style="text-align: center; padding: 10px; color: #28a745; font-size: 0.85rem; margin-top: 10px;">
-                            <i class="fas fa-check"></i> All Good
+                        <div style="text-align: center; padding: 10px; color: #28a745; font-size: 0.85rem; margin-top: 8px;">
+                            <i class="fas fa-check-double"></i> All Good
                         </div>
                         {{ end }}
                     </div>
                     {{ else }}
-                    <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--text-muted);">
-                        <i class="fas fa-inbox" style="font-size: 3rem; opacity: 0.3; margin-bottom: 1rem;"></i>
-                        <p>No attendance records found.</p>
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 4rem 2rem; color: var(--text-muted);">
+                        <i class="fas fa-inbox" style="font-size: 4rem; opacity: 0.2; margin-bottom: 1rem; display: block;"></i>
+                        <h3 style="margin: 0 0 0.5rem 0;">No Attendance Records</h3>
+                        <p style="margin: 0;">Your attendance records will appear here once classes begin.</p>
                     </div>
                     {{ end }}
                 </div>
             </div>
 
-            <!-- Calculator Tab -->
+            <!-- ==================== CALCULATOR TAB ==================== -->
             <div id="calculator-tab" class="tab-content">
-                <!-- Quick Stats Summary -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
-                    <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 1.5rem; border-radius: 15px; text-align: center;">
-                        <div style="font-size: 0.8rem; opacity: 0.9; margin-bottom: 5px;">Current Attendance</div>
-                        <div id="current-percentage" style="font-size: 2rem; font-weight: 700;">0%</div>
-                        <div id="current-detail" style="font-size: 0.85rem; opacity: 0.85; margin-top: 5px;">0 / 0 classes</div>
-                    </div>
-                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 15px; text-align: center;">
-                        <div style="font-size: 0.8rem; opacity: 0.9; margin-bottom: 5px;">Can Skip</div>
-                        <div id="can-skip" style="font-size: 2rem; font-weight: 700;">0</div>
-                        <div id="skip-detail" style="font-size: 0.85rem; opacity: 0.85; margin-top: 5px;">To maintain target</div>
-                    </div>
-                    <div style="background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%); color: white; padding: 1.5rem; border-radius: 15px; text-align: center;">
-                        <div style="font-size: 0.8rem; opacity: 0.9; margin-bottom: 5px;">Must Attend</div>
-                        <div id="must-attend" style="font-size: 2rem; font-weight: 700;">0</div>
-                        <div id="attend-detail" style="font-size: 0.85rem; opacity: 0.85; margin-top: 5px;">To reach target</div>
+                <!-- Safe Zone Card -->
+                <div class="safe-zone-card">
+                    <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 1rem;">
+                        <div>
+                            <h2 style="margin: 0 0 0.5rem 0; font-size: 1.5rem;"><i class="fas fa-shield-alt"></i> Safe Zone Predictor</h2>
+                            <p style="margin: 0; opacity: 0.9; font-size: 0.95rem;">Predict your attendance future and plan wisely</p>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 0.85rem; opacity: 0.9;">Target Attendance</div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-top: 5px;">
+                                <input type="number" id="calc-target" value="75" min="0" max="100" onchange="calculateAttendance()" style="width: 70px; padding: 8px 12px; border-radius: 8px; border: none; font-size: 1rem; font-weight: 700; text-align: center;">
+                                <span style="font-size: 1.2rem; font-weight: 700;">%</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Alert Message -->
-                <div id="attendance-alert" class="attendance-success" style="margin-bottom: 2rem; padding: 1rem 1.5rem; border-radius: 12px; display: flex; align-items: center; gap: 10px;">
-                    <i class="fas fa-info-circle" style="font-size: 1.5rem;"></i>
-                    <span id="alert-message">Enter your attendance data below to calculate.</span>
+                <!-- Status Alert -->
+                <div id="attendance-alert" class="attendance-success" style="margin-bottom: 2rem; padding: 1.25rem 1.5rem; border-radius: 15px; display: flex; align-items: center; gap: 15px;">
+                    <i class="fas fa-info-circle" style="font-size: 1.8rem;"></i>
+                    <div>
+                        <strong id="alert-title" style="display: block; margin-bottom: 3px;">Status</strong>
+                        <span id="alert-message">Calculating your attendance status...</span>
+                    </div>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="calc-stats-grid">
+                    <div class="calc-stat-card" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
+                        <div class="stat-label"><i class="fas fa-percentage"></i> Current</div>
+                        <div class="stat-value" id="current-percentage">0%</div>
+                        <div class="stat-label" id="current-detail">0 / 0 classes</div>
+                    </div>
+                    <div class="calc-stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        <div class="stat-label"><i class="fas fa-umbrella-beach"></i> Can Skip</div>
+                        <div class="stat-value" id="can-skip">0</div>
+                        <div class="stat-label" id="skip-detail">classes safely</div>
+                    </div>
+                    <div class="calc-stat-card" style="background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);">
+                        <div class="stat-label"><i class="fas fa-running"></i> Must Attend</div>
+                        <div class="stat-value" id="must-attend">0</div>
+                        <div class="stat-label" id="attend-detail">to reach target</div>
+                    </div>
                 </div>
 
                 <!-- Calculator Inputs -->
-                <div style="background: rgba(255,255,255,0.3); backdrop-filter: blur(10px); border-radius: 15px; padding: 1.5rem; margin-bottom: 2rem;">
-                    <h3 style="margin-top: 0; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px;">
-                        <i class="fas fa-calculator"></i> Attendance Calculator
+                <div style="background: rgba(255,255,255,0.35); backdrop-filter: blur(10px); border-radius: 20px; padding: 1.5rem; margin-bottom: 2rem; border: 1px solid rgba(255,255,255,0.4);">
+                    <h3 style="margin: 0 0 1.5rem 0; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-sliders-h"></i> Adjust Values
                     </h3>
-                    
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.25rem;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
                         <div>
-                            <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; color: var(--text-color);">
-                                <i class="fas fa-check"></i> Classes Attended
+                            <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px;">
+                                <i class="fas fa-check" style="color: #28a745;"></i> Classes Attended
                             </label>
-                            <input type="number" id="calc-attended" value="{{ .total_present }}" min="0" onchange="calculateAttendance()" style="width: 100%; padding: 12px 15px; border: 1px solid rgba(255,255,255,0.3); border-radius: 10px; background: rgba(255,255,255,0.2); font-size: 1.1rem; font-weight: 600;">
+                            <input type="number" id="calc-attended" value="{{ .total_present }}" min="0" oninput="calculateAttendance()" style="width: 100%; padding: 14px; border: 2px solid rgba(255,255,255,0.3); border-radius: 12px; background: rgba(255,255,255,0.2); font-size: 1.1rem; font-weight: 600;">
                         </div>
                         <div>
-                            <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; color: var(--text-color);">
-                                <i class="fas fa-calendar"></i> Total Classes Held
+                            <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px;">
+                                <i class="fas fa-calendar" style="color: #667eea;"></i> Total Classes Held
                             </label>
-                            <input type="number" id="calc-total" value="{{ .working_days }}" min="0" onchange="calculateAttendance()" style="width: 100%; padding: 12px 15px; border: 1px solid rgba(255,255,255,0.3); border-radius: 10px; background: rgba(255,255,255,0.2); font-size: 1.1rem; font-weight: 600;">
+                            <input type="number" id="calc-total" value="{{ .working_days }}" min="0" oninput="calculateAttendance()" style="width: 100%; padding: 14px; border: 2px solid rgba(255,255,255,0.3); border-radius: 12px; background: rgba(255,255,255,0.2); font-size: 1.1rem; font-weight: 600;">
                         </div>
                         <div>
-                            <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; color: var(--text-color);">
-                                <i class="fas fa-forward"></i> Future Classes
+                            <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px;">
+                                <i class="fas fa-forward" style="color: #ffc107;"></i> Future Classes
                             </label>
-                            <input type="number" id="calc-future" value="{{ .remaining_sem_days }}" min="0" onchange="calculateAttendance()" style="width: 100%; padding: 12px 15px; border: 1px solid rgba(255,255,255,0.3); border-radius: 10px; background: rgba(255,255,255,0.2); font-size: 1.1rem; font-weight: 600;">
-                        </div>
-                        <div>
-                            <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; color: var(--text-color);">
-                                <i class="fas fa-bullseye"></i> Target Percentage
-                            </label>
-                            <input type="number" id="calc-target" value="75" min="0" max="100" onchange="calculateAttendance()" style="width: 100%; padding: 12px 15px; border: 1px solid rgba(255,255,255,0.3); border-radius: 10px; background: rgba(255,255,255,0.2); font-size: 1.1rem; font-weight: 600;">
+                            <input type="number" id="calc-future" value="{{ .remaining_sem_days }}" min="0" oninput="calculateAttendance()" style="width: 100%; padding: 14px; border: 2px solid rgba(255,255,255,0.3); border-radius: 12px; background: rgba(255,255,255,0.2); font-size: 1.1rem; font-weight: 600;">
                         </div>
                     </div>
                 </div>
 
-                <!-- Scenario Planner -->
-                <div style="background: rgba(255,255,255,0.3); backdrop-filter: blur(10px); border-radius: 15px; padding: 1.5rem;">
-                    <h4 style="margin-top: 0; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px;">
-                        <i class="fas fa-question-circle"></i> What-If Scenario Planner
+                <!-- Calendar View -->
+                <div class="calendar-container">
+                    <div class="calendar-header">
+                        <h3 style="margin: 0; display: flex; align-items: center; gap: 10px;">
+                            <i class="fas fa-calendar-alt"></i> <span id="calendar-month-title">January 2026</span>
+                        </h3>
+                        <div class="calendar-nav">
+                            <button onclick="changeMonth(-1)"><i class="fas fa-chevron-left"></i></button>
+                            <button onclick="changeMonth(1)"><i class="fas fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                    <div class="calendar-grid" id="calendar-grid">
+                        <div class="calendar-day-header">Sun</div>
+                        <div class="calendar-day-header">Mon</div>
+                        <div class="calendar-day-header">Tue</div>
+                        <div class="calendar-day-header">Wed</div>
+                        <div class="calendar-day-header">Thu</div>
+                        <div class="calendar-day-header">Fri</div>
+                        <div class="calendar-day-header">Sat</div>
+                        <!-- Days will be populated by JS -->
+                    </div>
+                    <div class="calendar-legend">
+                        <div class="legend-item"><div class="legend-dot present"></div> Present</div>
+                        <div class="legend-item"><div class="legend-dot absent"></div> Absent</div>
+                        <div class="legend-item"><div class="legend-dot holiday"></div> Holiday</div>
+                    </div>
+                </div>
+
+                <!-- What-If Scenario -->
+                <div style="background: rgba(255,255,255,0.35); backdrop-filter: blur(10px); border-radius: 20px; padding: 1.5rem; margin-top: 2rem; border: 1px solid rgba(255,255,255,0.4);">
+                    <h4 style="margin: 0 0 1.5rem 0; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-crystal-ball"></i> What-If Scenario
                     </h4>
-                    
-                    <div style="display: flex; gap: 1rem; align-items: end; flex-wrap: wrap;">
+                    <div style="display: flex; gap: 1.5rem; align-items: end; flex-wrap: wrap;">
                         <div style="flex: 1; min-width: 200px;">
                             <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px;">
-                                If I skip the next
+                                If I skip the next <span id="skip-count-label">5</span> classes...
                             </label>
-                            <input type="number" id="skip-scenario" value="5" min="0" style="width: 100%; padding: 12px 15px; border: 1px solid rgba(255,255,255,0.3); border-radius: 10px; background: rgba(255,255,255,0.2); font-size: 1.1rem; font-weight: 600;">
+                            <input type="range" id="skip-scenario" min="0" max="30" value="5" oninput="updateSkipLabel(); calculateScenario();" style="width: 100%; height: 8px; border-radius: 4px; cursor: pointer;">
                         </div>
-                        <div style="flex: 1; min-width: 200px;">
-                            <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px;">
-                                Projected Attendance
-                            </label>
-                            <div style="padding: 12px 15px; background: rgba(255,255,255,0.2); border-radius: 10px; border: 1px solid rgba(255,255,255,0.3);">
-                                <strong id="projected-percentage" style="font-size: 1.3rem;">--</strong>
-                            </div>
+                        <div style="flex: 1; min-width: 200px; text-align: center;">
+                            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;">Projected Attendance</div>
+                            <div id="projected-percentage" style="font-size: 2.5rem; font-weight: 700; color: #667eea;">--</div>
                         </div>
-                        <button onclick="calculateScenario()" style="padding: 12px 25px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 1rem;">
-                            <i class="fas fa-magic"></i> Calculate
-                        </button>
                     </div>
                 </div>
             </div>
@@ -547,55 +597,40 @@
     </div>
 
     <!-- Correction Modal -->
-    <div id="correctionModal" class="modal"
-        style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; overflow-y: auto;">
-        <div
-            style="background: white; padding: 2rem; border-radius: 20px; max-width: 500px; width: 90%; position: relative; margin: 20px auto;">
-            <button onclick="closeCorrectionModal()"
-                style="position: absolute; top: 15px; right: 15px; background: #e74c3c; border: none; color: white; font-size: 1.2rem; cursor: pointer; width: 35px; height: 35px; border-radius: 50%;">&times;</button>
+    <div id="correctionModal" class="modal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; overflow-y: auto;">
+        <div style="background: white; padding: 2rem; border-radius: 20px; max-width: 500px; width: 90%; position: relative; margin: 20px auto;">
+            <button onclick="closeCorrectionModal()" style="position: absolute; top: 15px; right: 15px; background: #e74c3c; border: none; color: white; font-size: 1.2rem; cursor: pointer; width: 35px; height: 35px; border-radius: 50%;">&times;</button>
             <h3 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px;">
                 <i class="fas fa-clipboard-check" style="color: #667eea;"></i> Request Attendance Correction
             </h3>
             <form id="correctionForm">
-                <div class="form-group" style="margin-bottom: 1rem;">
+                <div style="margin-bottom: 1rem;">
                     <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Subject *</label>
-                    <select id="correction-subject" required
-                        style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 1rem;">
+                    <select id="correction-subject" required style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 1rem;">
                         <option value="">Loading subjects...</option>
                     </select>
                     <input type="hidden" id="correction-teacher-id">
                 </div>
-                <div class="form-group" style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Date of Absence
-                        *</label>
-                    <input type="date" id="correction-date" required
-                        style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 1rem;">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Date of Absence *</label>
+                    <input type="date" id="correction-date" required style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 1rem;">
                 </div>
-                <div class="form-group" style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Reason for Absence
-                        *</label>
-                    <textarea id="correction-reason" rows="4" placeholder="Explain why you were absent..."
-                        style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 1rem; resize: vertical;"
-                        required></textarea>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Reason for Absence *</label>
+                    <textarea id="correction-reason" rows="4" placeholder="Explain why you were absent..." style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 1rem; resize: vertical;" required></textarea>
                 </div>
-                <div class="form-group" style="margin-bottom: 1.5rem;">
+                <div style="margin-bottom: 1.5rem;">
                     <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">
                         <i class="fas fa-paperclip"></i> Proof (Optional)
                     </label>
-                    <input type="file" id="correction-proof" accept="image/*,.pdf"
-                        style="width: 100%; padding: 10px; border: 2px dashed #ddd; border-radius: 10px;">
-                    <small style="color: #666; display: block; margin-top: 5px;">Medical certificate, letter, etc.
-                        (Image or PDF)</small>
+                    <input type="file" id="correction-proof" accept="image/*,.pdf" style="width: 100%; padding: 10px; border: 2px dashed #ddd; border-radius: 10px;">
+                    <small style="color: #666; display: block; margin-top: 5px;">Medical certificate, letter, etc.</small>
                 </div>
-                <div id="correction-msg" style="margin-bottom: 1rem; padding: 10px; border-radius: 8px; display: none;">
-                </div>
-                <button type="submit" id="correction-submit-btn"
-                    style="width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 15px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 1rem;">
+                <div id="correction-msg" style="margin-bottom: 1rem; padding: 10px; border-radius: 8px; display: none;"></div>
+                <button type="submit" id="correction-submit-btn" style="width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 15px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 1rem;">
                     <i class="fas fa-paper-plane"></i> Submit Request
                 </button>
             </form>
-
-            <!-- My Previous Requests -->
             <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 2px solid #eee;">
                 <h4 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 8px;">
                     <i class="fas fa-history" style="color: #667eea;"></i> My Correction Requests
@@ -610,377 +645,249 @@
     </div>
 
     <!-- Profile Modal -->
-    <div id="profileModal" class="modal"
-        style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; overflow-y: auto;">
-        <div
-            style="background: white; padding: 2rem; border-radius: 20px; max-width: 450px; width: 90%; position: relative; margin: 20px auto;">
-            <button onclick="closeProfileModal()"
-                style="position: absolute; top: 15px; right: 15px; background: #e74c3c; border: 2px solid #c0392b; color: white; font-size: 1.2rem; cursor: pointer; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">&times;</button>
-
-            <!-- Profile Header -->
+    <div id="profileModal" class="modal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
+        <div style="background: white; padding: 2rem; border-radius: 20px; max-width: 450px; width: 90%; position: relative; margin: 20px auto;">
+            <button onclick="closeProfileModal()" style="position: absolute; top: 15px; right: 15px; background: #e74c3c; border: none; color: white; font-size: 1.2rem; cursor: pointer; width: 35px; height: 35px; border-radius: 50%;">&times;</button>
             <div style="text-align: center; margin-bottom: 1.5rem;">
-                <div
-                    style="width: 100px; height: 100px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+                <div style="width: 100px; height: 100px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
                     <i class="fas fa-user-graduate" style="font-size: 2.5rem; color: white;"></i>
                 </div>
                 <h2 style="margin: 0; color: #333;">{{ .username }}</h2>
                 <p style="color: #666; margin: 5px 0; font-size: 0.9rem;">Student</p>
             </div>
-
-            <!-- Profile Details -->
-            <div
-                style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%); border-radius: 15px; padding: 1.25rem;">
-                <!-- Editable Name -->
-                <div
-                    style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(102, 126, 234, 0.2);">
-                    <div
-                        style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                        <i class="fas fa-user" style="color: white;"></i>
-                    </div>
-                    <div style="flex: 1;">
-                        <small style="color: #888; display: block;">Full Name</small>
-                        <div id="name-display">
-                            <strong style="color: #333;">{{ if .student_name }}{{ .student_name }}{{ else }}Not
-                                provided{{ end }}</strong>
-                            <button onclick="editName()"
-                                style="background: none; border: none; color: #667eea; cursor: pointer; margin-left: 8px;"
-                                title="Edit Name">
-                                <i class="fas fa-pen"></i>
-                            </button>
-                        </div>
-                        <div id="name-edit" style="display: none;">
-                            <input type="text" id="new-name" value="{{ .student_name }}"
-                                placeholder="Enter your full name"
-                                style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; width: 100%; font-size: 0.9rem;">
-                        </div>
-                    </div>
-                </div>
-
-                <div
-                    style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(102, 126, 234, 0.2);">
-                    <div
-                        style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+            <div style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%); border-radius: 15px; padding: 1.25rem;">
+                <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(102, 126, 234, 0.2);">
+                    <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
                         <i class="fas fa-id-card" style="color: white;"></i>
                     </div>
                     <div>
-                        <small style="color: #888; display: block;">Roll Number</small>
-                        <strong style="color: #333;">{{ .student_id }}</strong>
+                        <small style="color: #888;">Roll Number</small>
+                        <strong style="display: block; color: #333;">{{ .student_id }}</strong>
                     </div>
                 </div>
-
-                <!-- Editable Email -->
-                <div
-                    style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(102, 126, 234, 0.2);">
-                    <div
-                        style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                        <i class="fas fa-envelope" style="color: white;"></i>
-                    </div>
-                    <div style="flex: 1;">
-                        <small style="color: #888; display: block;">Email</small>
-                        <div id="email-display">
-                            <strong style="color: #333;">{{ if .email }}{{ .email }}{{ else }}Not provided{{ end
-                                }}</strong>
-                            <button onclick="editEmail()"
-                                style="background: none; border: none; color: #667eea; cursor: pointer; margin-left: 8px;"
-                                title="Edit Email">
-                                <i class="fas fa-pen"></i>
-                            </button>
-                        </div>
-                        <div id="email-edit" style="display: none;">
-                            <input type="email" id="new-email" value="{{ .email }}" placeholder="Enter email"
-                                style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; width: 100%; font-size: 0.9rem;">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Branch (Editable only if not set) -->
-                <div
-                    style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(102, 126, 234, 0.2);">
-                    <div
-                        style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(102, 126, 234, 0.2);">
+                    <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
                         <i class="fas fa-code-branch" style="color: white;"></i>
                     </div>
-                    <div style="flex: 1;">
-                        <small style="color: #888; display: block;">Branch {{ if .branch }}<span
-                                style="color: #28a745; font-size: 0.7rem;"><i class="fas fa-lock"></i> Locked</span>{{
-                            end }}</small>
-                        <div id="branch-display">
-                            <strong style="color: #333;">{{ if .branch }}{{ .branch }}{{ else }}Not provided{{ end
-                                }}</strong>
-                            {{ if not .branch }}
-                            <button onclick="editBranch()"
-                                style="background: none; border: none; color: #667eea; cursor: pointer; margin-left: 8px;"
-                                title="Set Branch (One time only)">
-                                <i class="fas fa-pen"></i>
-                            </button>
-                            {{ end }}
-                        </div>
-                        {{ if not .branch }}
-                        <div id="branch-edit" style="display: none;">
-                            <select id="new-branch"
-                                style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; width: 100%; font-size: 0.9rem;">
-                                <option value="">Select Branch</option>
-                                <option value="CSE">CSE - Computer Science</option>
-                                <option value="ECE">ECE - Electronics & Communication</option>
-                                <option value="EEE">EEE - Electrical & Electronics</option>
-                                <option value="MECH">MECH - Mechanical</option>
-                                <option value="CIVIL">CIVIL - Civil Engineering</option>
-                                <option value="IT">IT - Information Technology</option>
-                                <option value="AIDS">AIDS - AI & Data Science</option>
-                                <option value="AIML">AIML - AI & Machine Learning</option>
-                                <option value="CAI">CAI - Computers in Artificial Intelligence</option>
-                            </select>
-                            <small style="color: #e74c3c; display: block; margin-top: 5px;"><i
-                                    class="fas fa-exclamation-triangle"></i> Branch can only be set once!</small>
-                        </div>
-                        {{ end }}
+                    <div>
+                        <small style="color: #888;">Branch</small>
+                        <strong style="display: block; color: #333;">{{ if .branch }}{{ .branch }}{{ else }}Not set{{ end }}</strong>
                     </div>
                 </div>
-
                 <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0;">
-                    <div
-                        style="width: 40px; height: 40px; background: linear-gradient(135deg, #28a745, #20c997); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                    <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #28a745, #20c997); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
                         <i class="fas fa-percentage" style="color: white;"></i>
                     </div>
                     <div>
-                        <small style="color: #888; display: block;">Current Attendance</small>
-                        <strong
-                            style="color: {{ if ge .percentage 75.0 }}#28a745{{ else if ge .percentage 60.0 }}#ffc107{{ else }}#dc3545{{ end }};">{{
-                            printf "%.2f" .percentage }}%</strong>
+                        <small style="color: #888;">Current Attendance</small>
+                        <strong style="display: block; color: {{ if ge .percentage 75.0 }}#28a745{{ else if ge .percentage 60.0 }}#ffc107{{ else }}#dc3545{{ end }};">{{ printf "%.2f" .percentage }}%</strong>
                     </div>
                 </div>
             </div>
-
-            <!-- Save Button -->
-            <div id="save-profile-btn" style="display: none; margin-top: 1rem;">
-                <button onclick="saveProfile()"
-                    style="width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer;">
-                    <i class="fas fa-save"></i> Save Changes
-                </button>
-            </div>
-
-            <!-- Stats Summary -->
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 1rem;">
-                <div
-                    style="background: rgba(40, 167, 69, 0.1); border: 1px solid rgba(40, 167, 69, 0.3); padding: 12px; border-radius: 12px; text-align: center;">
+                <div style="background: rgba(40, 167, 69, 0.1); border: 1px solid rgba(40, 167, 69, 0.3); padding: 12px; border-radius: 12px; text-align: center;">
                     <div style="font-size: 1.5rem; font-weight: 700; color: #28a745;">{{ .total_present }}</div>
                     <small style="color: #666;">Present</small>
                 </div>
-                <div
-                    style="background: rgba(102, 126, 234, 0.1); border: 1px solid rgba(102, 126, 234, 0.3); padding: 12px; border-radius: 12px; text-align: center;">
+                <div style="background: rgba(102, 126, 234, 0.1); border: 1px solid rgba(102, 126, 234, 0.3); padding: 12px; border-radius: 12px; text-align: center;">
                     <div style="font-size: 1.5rem; font-weight: 700; color: #667eea;">{{ .working_days }}</div>
-                    <small style="color: #666;">Working Days</small>
+                    <small style="color: #666;">Total</small>
                 </div>
-                <div
-                    style="background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.3); padding: 12px; border-radius: 12px; text-align: center;">
+                <div style="background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.3); padding: 12px; border-radius: 12px; text-align: center;">
                     <div style="font-size: 1.5rem; font-weight: 700; color: #ffc107;">{{ .remaining_sem_days }}</div>
-                    <small style="color: #666;">Remaining</small>
+                    <small style="color: #666;">Left</small>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Attendance Detail Modal -->
-    <div id="attendanceDetailModal" class="modal"
-        style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; overflow-y: auto;">
-        <div
-            style="background: white; padding: 2rem; border-radius: 20px; max-width: 450px; width: 90%; position: relative; margin: 20px auto;">
-            <button onclick="closeAttendanceDetail()"
-                style="position: absolute; top: 15px; right: 15px; background: #e74c3c; border: none; color: white; font-size: 1.2rem; cursor: pointer; width: 35px; height: 35px; border-radius: 50%;">&times;</button>
-            <h3 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px;">
-                <i class="fas fa-clipboard-list" style="color: #667eea;"></i> Attendance Record Details
-            </h3>
-            <div id="attendanceDetailContent">
-                <!-- Populated by JavaScript -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Inline tab switching as backup -->
+    <script src="/static/backjs.js"></script>
     <script>
+        // ==================== TAB SWITCHING ====================
         function showTab(tabId) {
-            console.log('showTab called with:', tabId);
-            // Hide all tabs
             document.querySelectorAll('.tab-content').forEach(function(tab) {
                 tab.classList.remove('active');
-                tab.style.display = 'none';
             });
-
-            // Remove active class from all buttons
             document.querySelectorAll('.tab-btn').forEach(function(btn) {
                 btn.classList.remove('active');
             });
-
-            // Show selected tab
             var selectedTab = document.getElementById(tabId + '-tab');
             if (selectedTab) {
                 selectedTab.classList.add('active');
-                selectedTab.style.display = 'block';
             }
-
-            // Activate button
             var clickedBtn = document.querySelector('.tab-btn[data-tab="' + tabId + '"]');
             if (clickedBtn) {
                 clickedBtn.classList.add('active');
             }
-
-            // Save preference
             localStorage.setItem('activeStudentTab', tabId);
-        }
-    </script>
-
-    <script src="/static/backjs.js"></script>
-    <script>
-        // Debug logging
-        console.log('backjs.js loaded, showTab exists:', typeof showTab === 'function');
-
-        // Initialize calculator and restore tab on page load using global functions from backjs.js
-        document.addEventListener('DOMContentLoaded', function () {
-            console.log('DOM loaded, calling calculateAttendance and showTab');
-            if (typeof calculateAttendance === 'function') {
-                console.log('calculateAttendance function found');
-                calculateAttendance();
-            } else {
-                console.log('calculateAttendance function NOT found');
-            }
-            const savedTab = localStorage.getItem('activeStudentTab') || 'records';
-            console.log('Restoring saved tab:', savedTab);
-            if (typeof showTab === 'function') {
-                console.log('showTab function found, calling it');
-                showTab(savedTab);
-            } else {
-                console.log('showTab function NOT found');
-            }
-
-            // Refresh attendance data when page becomes visible (e.g., after marking attendance)
-            document.addEventListener('visibilitychange', function () {
-                if (!document.hidden && typeof refreshStudentAttendance === 'function') {
-                    refreshStudentAttendance();
-                }
-            });
-        });
-
-        // Function to refresh student attendance data from server
-        async function refreshStudentAttendance() {
-            try {
-                const res = await fetch('/student/refresh_attendance');
-                const data = await res.json();
-
-                if (data.success) {
-                    // Update stat numbers
-                    const presentEl = document.getElementById('stat-present');
-                    const workingEl = document.getElementById('stat-working');
-                    const remainingEl = document.getElementById('stat-rem-days');
-                    const percentageEl = document.getElementById('stat-percentage');
-
-                    if (presentEl) presentEl.textContent = data.total_present;
-                    if (workingEl) workingEl.textContent = data.working_days;
-                    if (remainingEl) remainingEl.textContent = data.remaining_sem_days;
-                    if (percentageEl) percentageEl.textContent = data.percentage.toFixed(2) + '%';
-
-                    // Update calculator inputs
-                    const calcAttended = document.getElementById('calc-attended');
-                    const calcTotal = document.getElementById('calc-total');
-                    const calcFuture = document.getElementById('calc-future');
-
-                    if (calcAttended) calcAttended.value = data.total_present;
-                    if (calcTotal) calcTotal.value = data.working_days;
-                    if (calcFuture) calcFuture.value = data.remaining_sem_days;
-
-                    // Recalculate attendance
-                    if (typeof calculateAttendance === 'function') calculateAttendance();
-
-                    // Update attendance records table
-                    updateAttendanceRecordsTable(data.records);
-
-                    // Update profile modal stats if open
-                    const profilePresent = document.querySelector('#profileModal .profile-stats-grid > div:first-child div:first-child');
-                    if (profilePresent) profilePresent.textContent = data.total_present;
-                    const profileWorking = document.querySelector('#profileModal .profile-stats-grid > div:nth-child(2) div:first-child');
-                    if (profileWorking) profileWorking.textContent = data.working_days;
-                    const profileRemaining = document.querySelector('#profileModal .profile-stats-grid > div:nth-child(3) div:first-child');
-                    if (profileRemaining) profileRemaining.textContent = data.remaining_sem_days;
-
-                    // Show success toast
-                    showToast({name: 'Attendance Updated', roll: data.total_present + ' classes', branch: data.percentage.toFixed(1) + '%'});
-                }
-            } catch (e) {
-                console.error('Error refreshing attendance:', e);
-                showToast({name: 'Error', roll: 'Failed to refresh', branch: ''});
-            }
-        }
-
-        // Update attendance records table with fresh data
-        function updateAttendanceRecordsTable(records) {
-            const grid = document.querySelector('#records-grid');
-            if (!grid) return;
-
-            if (!records || records.length === 0) {
-                grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--text-muted);"><i class="fas fa-inbox" style="font-size: 3rem; opacity: 0.3; margin-bottom: 1rem;"></i><p>No attendance records found.</p></div>';
-                return;
-            }
-
-            let html = '';
-            let subjects = new Set();
             
-            records.forEach(function(record) {
-                subjects.add(record.Subject);
-                const statusClass = (record.Status === 'PRESENT' || record.Status === 'Present') ? 'present' : 'absent';
-                const statusBg = (record.Status === 'PRESENT' || record.Status === 'Present') ? 'rgba(40, 167, 69, 0.2)' : 'rgba(220, 53, 69, 0.2)';
-                const statusColor = (record.Status === 'PRESENT' || record.Status === 'Present') ? '#28a745' : '#dc3545';
-                const statusIcon = (record.Status === 'PRESENT' || record.Status === 'Present') ? '<i class="fas fa-check-circle"></i> Present' : '<i class="fas fa-times-circle"></i> Absent';
-                
-                const actionHtml = (record.Status === 'Absent' || record.Status === 'ABSENT')
-                    ? `<button onclick="openCorrectionForRecord('${record.Subject}', '${record.Date}', '${record.TeacherID || ''}')" style="width: 100%; background: linear-gradient(135deg, #f39c12, #e67e22); color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 10px;"><i class="fas fa-flag"></i> Report Issue</button>`
-                    : '<div style="text-align: center; padding: 10px; color: #28a745; font-size: 0.85rem; margin-top: 10px;"><i class="fas fa-check"></i> All Good</div>';
-
-                html += `<div class="record-card" data-subject="${record.Subject}" data-status="${record.Status}" data-date="${record.Date}" data-search="${record.Date} ${record.Subject} ${record.Branch}">
-                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
-                        <div style="flex: 1;">
-                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 3px;">${record.Date} • ${record.Time}</div>
-                            <h4 style="margin: 0; font-size: 1rem; color: var(--text-color);">${record.Subject}</h4>
-                            <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 3px;">${record.Branch}</div>
-                        </div>
-                        <div style="text-align: right;">
-                            <span style="background: ${statusBg}; color: ${statusColor}; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; display: inline-block;">
-                                ${statusIcon}
-                            </span>
-                        </div>
-                    </div>
-                    ${actionHtml}
-                </div>`;
-            });
-
-            grid.innerHTML = html;
-
-            // Populate subject filter
-            const subjectFilter = document.getElementById('filter-subject');
-            if (subjectFilter && subjects.size > 0) {
-                let options = '<option value="">All Subjects</option>';
-                subjects.forEach(function(subject) {
-                    options += `<option value="${subject}">${subject}</option>`;
-                });
-                subjectFilter.innerHTML = options;
+            if (tabId === 'calculator') {
+                calculateAttendance();
+                renderCalendar();
             }
         }
 
-        // Filter records
-        function filterRecords() {
-            const subjectFilter = document.getElementById('filter-subject').value.toLowerCase();
-            const statusFilter = document.getElementById('filter-status').value.toUpperCase();
-            const searchText = document.getElementById('search-records').value.toLowerCase();
+        // ==================== ATTENDANCE CALCULATOR ====================
+        function calculateAttendance() {
+            var attended = parseInt(document.getElementById('calc-attended').value) || 0;
+            var total = parseInt(document.getElementById('calc-total').value) || 0;
+            var future = parseInt(document.getElementById('calc-future').value) || 0;
+            var target = parseInt(document.getElementById('calc-target').value) || 75;
 
-            const cards = document.querySelectorAll('.record-card');
-            let visibleCount = 0;
+            var currentPercentage = total > 0 ? (attended / total * 100) : 0;
+            document.getElementById('current-percentage').textContent = currentPercentage.toFixed(1) + '%';
+            document.getElementById('current-detail').textContent = attended + ' / ' + total + ' classes';
+
+            var totalFinal = total + future;
+            var classesNeededForTarget = Math.ceil((target / 100) * totalFinal);
+            var mustAttendMore = Math.max(0, classesNeededForTarget - attended);
+
+            document.getElementById('must-attend').textContent = mustAttendMore;
+            document.getElementById('attend-detail').textContent = mustAttendMore > future ? 'Impossible!' : 'to reach ' + target + '%';
+
+            var maxSkippable = future - mustAttendMore;
+            var canSkip = Math.max(0, maxSkippable);
+
+            document.getElementById('can-skip').textContent = canSkip;
+            document.getElementById('skip-detail').textContent = 'classes safely';
+
+            var alertDiv = document.getElementById('attendance-alert');
+            var alertTitle = document.getElementById('alert-title');
+            var alertMsg = document.getElementById('alert-message');
+
+            if (currentPercentage >= target) {
+                alertDiv.className = 'attendance-success';
+                alertTitle.innerHTML = '<i class="fas fa-check-circle"></i> Safe Zone';
+                if (canSkip > 0) {
+                    alertMsg.innerHTML = 'Great job! You can skip up to <strong>' + canSkip + '</strong> future classes and still maintain ' + target + '% attendance.';
+                } else {
+                    alertMsg.innerHTML = 'You are exactly at ' + target + '%. Attend all remaining classes to stay safe.';
+                }
+            } else if (mustAttendMore <= future) {
+                alertDiv.className = 'attendance-warning';
+                alertTitle.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Warning Zone';
+                alertMsg.innerHTML = 'You need to attend at least <strong>' + mustAttendMore + '</strong> more classes to reach ' + target + '%. Be careful!';
+            } else {
+                alertDiv.className = 'attendance-danger attendance-warning';
+                alertTitle.innerHTML = '<i class="fas fa-times-circle"></i> Danger Zone';
+                alertMsg.innerHTML = 'It is <strong>impossible</strong> to reach ' + target + '% this semester. You need ' + mustAttendMore + ' classes but only ' + future + ' remain.';
+            }
+
+            calculateScenario();
+        }
+
+        function calculateScenario() {
+            var attended = parseInt(document.getElementById('calc-attended').value) || 0;
+            var total = parseInt(document.getElementById('calc-total').value) || 0;
+            var future = parseInt(document.getElementById('calc-future').value) || 0;
+            var skipCount = parseInt(document.getElementById('skip-scenario').value) || 0;
+
+            var totalFinal = total + future;
+            var attendedFinal = attended + Math.max(0, future - skipCount);
+            var projectedPercentage = totalFinal > 0 ? (attendedFinal / totalFinal * 100) : 0;
+
+            var resultEl = document.getElementById('projected-percentage');
+            resultEl.textContent = projectedPercentage.toFixed(1) + '%';
+
+            if (projectedPercentage >= 75) {
+                resultEl.style.color = '#28a745';
+            } else if (projectedPercentage >= 60) {
+                resultEl.style.color = '#ffc107';
+            } else {
+                resultEl.style.color = '#dc3545';
+            }
+        }
+
+        function updateSkipLabel() {
+            document.getElementById('skip-count-label').textContent = document.getElementById('skip-scenario').value;
+        }
+
+        // ==================== CALENDAR ====================
+        var currentCalendarDate = new Date();
+        var attendanceData = {};
+
+        // Build attendance data from records
+        {{ range .records }}
+        attendanceData['{{ .Date }}'] = '{{ .Status }}';
+        {{ end }}
+
+        function renderCalendar() {
+            var year = currentCalendarDate.getFullYear();
+            var month = currentCalendarDate.getMonth();
+            var today = new Date();
+
+            var monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            document.getElementById('calendar-month-title').textContent = monthNames[month] + ' ' + year;
+
+            var grid = document.getElementById('calendar-grid');
+            // Keep headers
+            var headers = grid.querySelectorAll('.calendar-day-header');
+            grid.innerHTML = '';
+            headers.forEach(function(h) { grid.appendChild(h); });
+
+            var firstDay = new Date(year, month, 1).getDay();
+            var daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            // Empty cells before first day
+            for (var i = 0; i < firstDay; i++) {
+                var emptyCell = document.createElement('div');
+                emptyCell.className = 'calendar-day empty';
+                grid.appendChild(emptyCell);
+            }
+
+            // Day cells
+            for (var day = 1; day <= daysInMonth; day++) {
+                var cell = document.createElement('div');
+                cell.className = 'calendar-day';
+                cell.textContent = day;
+
+                var dateStr = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+                var cellDate = new Date(year, month, day);
+
+                if (cellDate.toDateString() === today.toDateString()) {
+                    cell.classList.add('today');
+                }
+
+                if (cellDate > today) {
+                    cell.classList.add('future');
+                } else if (attendanceData[dateStr]) {
+                    var status = attendanceData[dateStr].toUpperCase();
+                    if (status === 'PRESENT') {
+                        cell.classList.add('present');
+                    } else if (status === 'ABSENT') {
+                        cell.classList.add('absent');
+                    }
+                } else if (cellDate.getDay() === 0 || cellDate.getDay() === 6) {
+                    // Weekend - treat as holiday
+                    cell.classList.add('holiday');
+                }
+
+                grid.appendChild(cell);
+            }
+        }
+
+        function changeMonth(delta) {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + delta);
+            renderCalendar();
+        }
+
+        // ==================== FILTER RECORDS ====================
+        function filterRecords() {
+            var subjectFilter = document.getElementById('filter-subject').value.toLowerCase();
+            var statusFilter = document.getElementById('filter-status').value.toUpperCase();
+            var searchText = document.getElementById('search-records').value.toLowerCase();
+
+            var cards = document.querySelectorAll('.record-card');
+            var visibleCount = 0;
 
             cards.forEach(function(card) {
-                const subject = card.dataset.subject.toLowerCase();
-                const status = card.dataset.status.toUpperCase();
-                const searchData = card.dataset.search.toLowerCase();
+                var subject = (card.dataset.subject || '').toLowerCase();
+                var status = (card.dataset.status || '').toUpperCase();
+                var searchData = (card.dataset.search || '').toLowerCase();
 
-                const matchSubject = !subjectFilter || subject.includes(subjectFilter);
-                const matchStatus = !statusFilter || status === statusFilter;
-                const matchSearch = !searchText || searchData.includes(searchText);
+                var matchSubject = !subjectFilter || subject.includes(subjectFilter);
+                var matchStatus = !statusFilter || status === statusFilter;
+                var matchSearch = !searchText || searchData.includes(searchText);
 
                 if (matchSubject && matchStatus && matchSearch) {
                     card.style.display = 'block';
@@ -989,19 +896,94 @@
                     card.style.display = 'none';
                 }
             });
-
-            // Show no results message if needed
-            const grid = document.querySelector('#records-grid');
-            if (grid && visibleCount === 0) {
-                const noResults = grid.querySelector('.no-results');
-                if (!noResults) {
-                    grid.insertAdjacentHTML('beforeend', '<div class="no-results" style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: var(--text-muted);"><i class="fas fa-search" style="font-size: 2rem; opacity: 0.3; margin-bottom: 1rem;"></i><p>No records match your filters.</p></div>');
-                }
-            } else {
-                const noResults = grid ? grid.querySelector('.no-results') : null;
-                if (noResults) noResults.remove();
-            }
         }
+
+        // ==================== REFRESH DATA ====================
+        async function refreshStudentAttendance() {
+            var btn = document.getElementById('refresh-btn');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+            btn.disabled = true;
+
+            try {
+                var res = await fetch('/student/refresh_attendance');
+                var data = await res.json();
+
+                if (data.success) {
+                    document.getElementById('stat-present').textContent = data.total_present;
+                    document.getElementById('stat-working').textContent = data.working_days;
+                    document.getElementById('stat-rem-days').textContent = data.remaining_sem_days;
+                    document.getElementById('stat-percentage').textContent = data.percentage.toFixed(2) + '%';
+
+                    document.getElementById('calc-attended').value = data.total_present;
+                    document.getElementById('calc-total').value = data.working_days;
+                    document.getElementById('calc-future').value = data.remaining_sem_days;
+
+                    // Update attendance data for calendar
+                    attendanceData = {};
+                    if (data.records) {
+                        data.records.forEach(function(r) {
+                            attendanceData[r.Date] = r.Status;
+                        });
+                    }
+
+                    calculateAttendance();
+                    renderCalendar();
+                }
+            } catch (e) {
+                console.error('Error refreshing:', e);
+            }
+
+            btn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+            btn.disabled = false;
+        }
+
+        // ==================== MODALS ====================
+        function openProfileModal() {
+            document.getElementById('profileModal').style.display = 'flex';
+        }
+
+        function closeProfileModal() {
+            document.getElementById('profileModal').style.display = 'none';
+        }
+
+        function openGeneralCorrectionModal() {
+            document.getElementById('correctionModal').style.display = 'flex';
+        }
+
+        function closeCorrectionModal() {
+            document.getElementById('correctionModal').style.display = 'none';
+        }
+
+        function openCorrectionForRecord(subject, date, teacherId) {
+            document.getElementById('correctionModal').style.display = 'flex';
+            // Pre-fill the form
+            setTimeout(function() {
+                var subjectSelect = document.getElementById('correction-subject');
+                for (var i = 0; i < subjectSelect.options.length; i++) {
+                    if (subjectSelect.options[i].value === subject) {
+                        subjectSelect.selectedIndex = i;
+                        break;
+                    }
+                }
+                document.getElementById('correction-date').value = date;
+                document.getElementById('correction-teacher-id').value = teacherId;
+            }, 100);
+        }
+
+        // ==================== INIT ====================
+        document.addEventListener('DOMContentLoaded', function() {
+            var savedTab = localStorage.getItem('activeStudentTab') || 'records';
+            showTab(savedTab);
+            calculateAttendance();
+            renderCalendar();
+
+            // Refresh on visibility change
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden) {
+                    refreshStudentAttendance();
+                }
+            });
+        });
     </script>
 </body>
 
