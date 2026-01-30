@@ -366,6 +366,9 @@
                 <button class="tab-btn" onclick="showTab('calculator')" data-tab="calculator">
                     <i class="fas fa-calculator"></i> Attendance Calculator
                 </button>
+                <button onclick="refreshStudentAttendance()" title="Refresh Attendance Data" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); border-radius: 10px; padding: 10px 15px; cursor: pointer; margin-left: auto;">
+                    <i class="fas fa-sync-alt"></i> <span style="font-size: 0.85rem;">Refresh</span>
+                </button>
             </div>
 
             <!-- Attendance Records Tab -->
@@ -754,519 +757,99 @@
 
     <script src="/static/backjs.js"></script>
     <script>
-        // Tab switching
-        function showTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(tabName + '-tab').classList.add('active');
-            event.target.closest('.tab-btn').classList.add('active');
-        }
-
-        // Attendance Detail Modal
-        function showAttendanceDetail(row) {
-            const date = row.dataset.date;
-            const time = row.dataset.time;
-            const subject = row.dataset.subject;
-            const branch = row.dataset.branch;
-            const status = row.dataset.status;
-            const teacher = row.dataset.teacher || 'N/A';
-
-            const isPresent = status === 'PRESENT' || status === 'Present';
-            const statusColor = isPresent ? '#28a745' : '#dc3545';
-            const statusIcon = isPresent ? 'check-circle' : 'times-circle';
-            const statusText = isPresent ? 'Present' : 'Absent';
-
-            document.getElementById('attendanceDetailContent').innerHTML = `
-                <div style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1)); padding: 20px; border-radius: 15px;">
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <div style="width: 80px; height: 80px; background: ${statusColor}; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
-                            <i class="fas fa-${statusIcon}" style="font-size: 2.5rem; color: white;"></i>
-                        </div>
-                        <h2 style="margin: 0; color: ${statusColor}; font-size: 1.5rem;">${statusText}</h2>
-                    </div>
-                    
-                    <div style="background: white; border-radius: 12px; padding: 15px;">
-                        <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #eee;">
-                            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                <i class="fas fa-calendar" style="color: white;"></i>
-                            </div>
-                            <div>
-                                <small style="color: #888;">Date</small>
-                                <strong style="display: block; color: #333;">${date}</strong>
-                            </div>
-                        </div>
-                        
-                        <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #eee;">
-                            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #f39c12, #e67e22); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                <i class="fas fa-clock" style="color: white;"></i>
-                            </div>
-                            <div>
-                                <small style="color: #888;">Time</small>
-                                <strong style="display: block; color: #333;">${time}</strong>
-                            </div>
-                        </div>
-                        
-                        <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #eee;">
-                            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #a18cd1, #fbc2eb); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                <i class="fas fa-book" style="color: white;"></i>
-                            </div>
-                            <div>
-                                <small style="color: #888;">Subject</small>
-                                <strong style="display: block; color: #333;">${subject}</strong>
-                            </div>
-                        </div>
-                        
-                        <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #eee;">
-                            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #28a745, #20c997); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                <i class="fas fa-code-branch" style="color: white;"></i>
-                            </div>
-                            <div>
-                                <small style="color: #888;">Branch</small>
-                                <strong style="display: block; color: #333;">${branch}</strong>
-                            </div>
-                        </div>
-                        
-                        <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0;">
-                            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #3498db, #2980b9); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                <i class="fas fa-chalkboard-teacher" style="color: white;"></i>
-                            </div>
-                            <div>
-                                <small style="color: #888;">Teacher ID</small>
-                                <strong style="display: block; color: #333;">${teacher}</strong>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    ${!isPresent ? `
-                        <div style="margin-top: 15px; text-align: center;">
-                            <button onclick="closeAttendanceDetail(); openCorrectionForRecord('${subject}', '${date}', '${teacher}')" 
-                                style="background: linear-gradient(135deg, #f39c12, #e67e22); color: white; border: none; padding: 12px 25px; border-radius: 10px; cursor: pointer; font-weight: 600;">
-                                <i class="fas fa-flag"></i> Report Correction
-                            </button>
-                        </div>
-                    ` : ''}
-                </div>
-            `;
-            document.getElementById('attendanceDetailModal').style.display = 'flex';
-        }
-
-        function closeAttendanceDetail() {
-            document.getElementById('attendanceDetailModal').style.display = 'none';
-        }
-
-        // Attendance Calculator
-        function calculateAttendance() {
-            const attended = parseInt(document.getElementById('calc-attended').value) || 0;
-            const total = parseInt(document.getElementById('calc-total').value) || 0;
-            const future = parseInt(document.getElementById('calc-future').value) || 0;
-            const target = parseInt(document.getElementById('calc-target').value) || 75;
-
-            // Current percentage
-            const currentPercentage = total > 0 ? (attended / total * 100) : 0;
-            document.getElementById('current-percentage').textContent = currentPercentage.toFixed(2) + '%';
-            document.getElementById('current-detail').textContent = `${attended} / ${total} classes`;
-
-            // Total classes by end of semester
-            const totalFinal = total + future;
-
-            // Classes needed to reach target at end of semester
-            const classesNeededForTarget = Math.ceil((target / 100) * totalFinal);
-            const mustAttendMore = Math.max(0, classesNeededForTarget - attended);
-
-            document.getElementById('must-attend').textContent = mustAttendMore;
-            document.getElementById('attend-detail').textContent = mustAttendMore > future ?
-                `Need ${mustAttendMore - future} more than remaining!` :
-                `Out of ${future} remaining classes`;
-
-            // Classes can skip
-            const maxSkippable = future - mustAttendMore;
-            const canSkip = Math.max(0, maxSkippable);
-
-            document.getElementById('can-skip').textContent = canSkip;
-            document.getElementById('skip-detail').textContent = `While maintaining ${target}%`;
-
-            // Alert message
-            const alertDiv = document.getElementById('attendance-alert');
-            const alertMsg = document.getElementById('alert-message');
-
-            if (currentPercentage >= target) {
-                alertDiv.className = 'attendance-success';
-                if (canSkip > 0) {
-                    alertMsg.innerHTML = `<strong>Great!</strong> You're above ${target}%. You can safely skip up to <strong>${canSkip}</strong> future classes.`;
-                } else {
-                    alertMsg.innerHTML = `<strong>Good!</strong> You're at ${target}%. Attend all remaining classes to maintain your percentage.`;
-                }
-            } else if (currentPercentage >= target - 10) {
-                alertDiv.className = 'attendance-warning';
-                alertMsg.innerHTML = `<strong>Warning!</strong> Your attendance is ${currentPercentage.toFixed(1)}%. You need to attend at least <strong>${mustAttendMore}</strong> more classes to reach ${target}%.`;
-            } else {
-                alertDiv.className = 'attendance-danger attendance-warning';
-                alertMsg.innerHTML = `<strong>Critical!</strong> Your attendance is only ${currentPercentage.toFixed(1)}%. You must attend <strong>${mustAttendMore}</strong> classes to reach ${target}%.`;
-            }
-        }
-
-        // Scenario Calculator
-        function calculateScenario() {
-            const attended = parseInt(document.getElementById('calc-attended').value) || 0;
-            const total = parseInt(document.getElementById('calc-total').value) || 0;
-            const future = parseInt(document.getElementById('calc-future').value) || 0;
-            const skipCount = parseInt(document.getElementById('skip-scenario').value) || 0;
-
-            const totalFinal = total + future;
-            const attendedFinal = attended + (future - skipCount);
-            const projectedPercentage = totalFinal > 0 ? (attendedFinal / totalFinal * 100) : 0;
-
-            const resultEl = document.getElementById('projected-percentage');
-            resultEl.textContent = projectedPercentage.toFixed(2) + '%';
-
-            if (projectedPercentage >= 75) {
-                resultEl.style.color = '#28a745';
-            } else if (projectedPercentage >= 65) {
-                resultEl.style.color = '#ffc107';
-            } else {
-                resultEl.style.color = '#dc3545';
-            }
-        }
-
-        // Modal functions
-        let subjectsData = [];
-
-        async function openGeneralCorrectionModal() {
-            document.getElementById('correctionModal').style.display = 'flex';
-            await loadSubjectsForCorrection();
-            await loadMyCorrections();
-        }
-
-        // Open correction modal pre-filled with specific record data
-        async function openCorrectionForRecord(subject, date, teacherId) {
-            document.getElementById('correctionModal').style.display = 'flex';
-            await loadSubjectsForCorrection();
-            await loadMyCorrections();
-
-            // Pre-fill the form with the record data
-            const subjectSelect = document.getElementById('correction-subject');
-            const dateInput = document.getElementById('correction-date');
-            const teacherInput = document.getElementById('correction-teacher-id');
-
-            // Set the subject
-            for (let i = 0; i < subjectSelect.options.length; i++) {
-                if (subjectSelect.options[i].value === subject) {
-                    subjectSelect.selectedIndex = i;
-                    break;
-                }
-            }
-
-            // Set the date
-            if (date) {
-                dateInput.value = date;
-            }
-
-            // Set the teacher ID
-            if (teacherId) {
-                teacherInput.value = teacherId;
-            } else {
-                // Try to get teacher ID from subjects data
-                const subjectData = subjectsData.find(s => s.subject === subject);
-                if (subjectData) {
-                    teacherInput.value = subjectData.teacher_id || '';
-                }
-            }
-
-            // Pre-fill a default reason
-            document.getElementById('correction-reason').value = 'I was present in this class but was marked absent. Please verify and correct my attendance.';
-        }
-
-        function closeCorrectionModal() {
-            document.getElementById('correctionModal').style.display = 'none';
-            document.getElementById('correctionForm').reset();
-            document.getElementById('correction-msg').style.display = 'none';
-        }
-
-        async function loadSubjectsForCorrection() {
-            const select = document.getElementById('correction-subject');
-            try {
-                const res = await fetch('/student/get_subjects');
-                const data = await res.json();
-                if (data.success && data.subjects.length > 0) {
-                    subjectsData = data.subjects;
-                    select.innerHTML = '<option value="">Select a subject</option>';
-                    data.subjects.forEach(s => {
-                        select.innerHTML += `<option value="${s.subject}" data-teacher="${s.teacher_id}">${s.subject} (${s.teacher_name || 'Unknown Teacher'})</option>`;
-                    });
-                } else {
-                    select.innerHTML = '<option value="">No subjects found</option>';
-                }
-            } catch (err) {
-                select.innerHTML = '<option value="">Error loading subjects</option>';
-            }
-        }
-
-        // Update teacher ID when subject changes
-        document.getElementById('correction-subject').addEventListener('change', function () {
-            const selected = this.options[this.selectedIndex];
-            document.getElementById('correction-teacher-id').value = selected.dataset.teacher || '';
-        });
-
-        async function loadMyCorrections() {
-            const listDiv = document.getElementById('my-corrections-list');
-            listDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
-            try {
-                const res = await fetch('/student/my_corrections');
-                const data = await res.json();
-                console.log('My corrections response:', data);
-                if (data.success && data.requests && data.requests.length > 0) {
-                    const pending = data.requests.filter(r => r.status === 'PENDING');
-                    const history = data.requests.filter(r => r.status !== 'PENDING');
-
-                    let html = '';
-
-                    if (pending.length > 0) {
-                        html += '<h5 style="margin: 0 0 10px 0; color: #f39c12; font-size: 0.9rem;">⚠️ Pending Requests</h5>';
-                        html += pending.map(r => renderCorrectionCard(r)).join('');
-                    } else {
-                        html += '<div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 10px; margin-bottom: 15px; font-size: 0.9rem; color: #888;">No pending requests</div>';
-                    }
-
-                    if (history.length > 0) {
-                        html += '<h5 style="margin: 20px 0 10px 0; color: #667eea; font-size: 0.9rem; border-top: 1px solid #eee; padding-top: 15px;">📜 History</h5>';
-                        html += history.map(r => renderCorrectionCard(r)).join('');
-                    }
-
-                    listDiv.innerHTML = html;
-                } else {
-                    listDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;"><i class="fas fa-inbox"></i><br>No correction requests yet</div>';
-                }
-            } catch (err) {
-                console.error('Error loading corrections:', err);
-                listDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #dc3545;"><i class="fas fa-exclamation-triangle"></i> Error loading requests</div>';
-            }
-        }
-
-        function renderCorrectionCard(r) {
-            const statusColor = r.status === 'APPROVED' ? '#28a745' : r.status === 'REJECTED' ? '#dc3545' : '#ffc107';
-            const statusIcon = r.status === 'APPROVED' ? 'check-circle' : r.status === 'REJECTED' ? 'times-circle' : 'clock';
-            let createdAt = 'N/A';
-            if (r.created_at) {
-                if (r.created_at.seconds) createdAt = new Date(r.created_at.seconds * 1000).toLocaleDateString();
-                else if (typeof r.created_at === 'string') createdAt = new Date(r.created_at).toLocaleDateString();
-            }
-            return `
-                <div style="background: #f8f9fa; border-radius: 10px; padding: 12px; margin-bottom: 10px; border-left: 4px solid ${statusColor};">
-                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
-                        <strong style="color: #333;">${r.subject}</strong>
-                        <span style="background: ${statusColor}; color: white; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">
-                            <i class="fas fa-${statusIcon}"></i> ${r.status}
-                        </span>
-                    </div>
-                    <div style="font-size: 0.85rem; color: #666;">
-                        <div><i class="fas fa-calendar"></i> Date: ${r.absent_date}</div>
-                        <div><i class="fas fa-user-tie"></i> Teacher: ${r.teacher_name || 'N/A'}</div>
-                        ${r.teacher_remarks ? `<div style="margin-top: 5px; padding: 8px; background: rgba(0,0,0,0.05); border-radius: 5px;"><i class="fas fa-comment"></i> <em>"${r.teacher_remarks}"</em></div>` : ''}
-                    </div>
-                </div>
-            `;
-        }
-
-        document.getElementById('correctionForm').addEventListener('submit', async function (e) {
-            e.preventDefault();
-
-            const btn = document.getElementById('correction-submit-btn');
-            const msgDiv = document.getElementById('correction-msg');
-            const originalBtnText = btn.innerHTML;
-
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
-
-            const formData = new FormData();
-            formData.append('subject', document.getElementById('correction-subject').value);
-            formData.append('teacher_id', document.getElementById('correction-teacher-id').value);
-            formData.append('absent_date', document.getElementById('correction-date').value);
-            formData.append('reason', document.getElementById('correction-reason').value);
-
-            const proofFile = document.getElementById('correction-proof').files[0];
-            if (proofFile) {
-                formData.append('proof', proofFile);
-            }
-
-            try {
-                const res = await fetch('/student/submit_correction', {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await res.json();
-
-                msgDiv.style.display = 'block';
-                if (data.success) {
-                    msgDiv.style.background = 'rgba(40, 167, 69, 0.1)';
-                    msgDiv.style.color = '#28a745';
-                    msgDiv.innerHTML = '<i class="fas fa-check-circle"></i> ' + data.message;
-                    document.getElementById('correctionForm').reset();
-                    loadMyCorrections(); // Refresh the list
-                } else {
-                    msgDiv.style.background = 'rgba(220, 53, 69, 0.1)';
-                    msgDiv.style.color = '#dc3545';
-                    msgDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + data.message;
-                }
-            } catch (err) {
-                msgDiv.style.display = 'block';
-                msgDiv.style.background = 'rgba(220, 53, 69, 0.1)';
-                msgDiv.style.color = '#dc3545';
-                msgDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Network error. Please try again.';
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = originalBtnText;
-            }
-        });
-
-        function openProfileModal() {
-            document.getElementById('profileModal').style.display = 'flex';
-        }
-
-        function closeProfileModal() {
-            document.getElementById('profileModal').style.display = 'none';
-            // Reset edit modes
-            const nameEdit = document.getElementById('name-edit');
-            const emailEdit = document.getElementById('email-edit');
-            const branchEdit = document.getElementById('branch-edit');
-            if (nameEdit) nameEdit.style.display = 'none';
-            if (emailEdit) emailEdit.style.display = 'none';
-            if (branchEdit) branchEdit.style.display = 'none';
-            document.getElementById('name-display').style.display = 'block';
-            document.getElementById('email-display').style.display = 'block';
-            const branchDisplay = document.getElementById('branch-display');
-            if (branchDisplay) branchDisplay.style.display = 'block';
-            document.getElementById('save-profile-btn').style.display = 'none';
-            editingName = false;
-            editingEmail = false;
-            editingBranch = false;
-        }
-
-        // Profile editing functions
-        let editingEmail = false;
-        let editingBranch = false;
-        let editingName = false;
-
-        function editName() {
-            editingName = true;
-            document.getElementById('name-display').style.display = 'none';
-            document.getElementById('name-edit').style.display = 'block';
-            document.getElementById('save-profile-btn').style.display = 'block';
-        }
-
-        function editEmail() {
-            editingEmail = true;
-            document.getElementById('email-display').style.display = 'none';
-            document.getElementById('email-edit').style.display = 'block';
-            document.getElementById('save-profile-btn').style.display = 'block';
-        }
-
-        function editBranch() {
-            editingBranch = true;
-            document.getElementById('branch-display').style.display = 'none';
-            document.getElementById('branch-edit').style.display = 'block';
-            document.getElementById('save-profile-btn').style.display = 'block';
-        }
-
-        async function saveProfile() {
-            const newName = document.getElementById('new-name')?.value || '';
-            const newEmail = document.getElementById('new-email')?.value || '';
-            const branchSelect = document.getElementById('new-branch');
-            const newBranch = branchSelect ? branchSelect.value : '';
-
-            const formData = new FormData();
-            if (editingName && newName) {
-                formData.append('name', newName);
-            }
-            if (editingEmail && newEmail) {
-                formData.append('email', newEmail);
-            }
-            if (editingBranch && newBranch) {
-                formData.append('branch', newBranch);
-            }
-
-            try {
-                const response = await fetch('/student/update_profile', {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await response.json();
-
-                if (data.error) {
-                    if (data.branch_locked) {
-                        alert('⚠️ Branch has already been set and cannot be changed.');
-                    } else {
-                        alert('Error: ' + data.error);
-                    }
-                    return;
-                }
-
-                alert('✅ Profile updated successfully!');
-                // Reload the page to show updated data
-                window.location.reload();
-            } catch (err) {
-                alert('Error updating profile: ' + err.message);
-            }
-        }
-
-        // Dark mode toggle
-        function toggleDarkMode() {
-            document.body.classList.toggle('dark-mode');
-            const icon = document.getElementById('theme-icon');
-            if (document.body.classList.contains('dark-mode')) {
-                icon.classList.remove('fa-moon');
-                icon.classList.add('fa-sun');
-                localStorage.setItem('darkMode', 'true');
-            } else {
-                icon.classList.remove('fa-sun');
-                icon.classList.add('fa-moon');
-                localStorage.setItem('darkMode', 'false');
-            }
-        }
-
-        // Load saved theme
-        if (localStorage.getItem('darkMode') === 'true') {
-            document.body.classList.add('dark-mode');
-            document.getElementById('theme-icon').classList.remove('fa-moon');
-            document.getElementById('theme-icon').classList.add('fa-sun');
-        }
-
-        // Initialize calculator on page load
+        // Initialize calculator and restore tab on page load using global functions from backjs.js
         document.addEventListener('DOMContentLoaded', function () {
-            calculateAttendance();
-
-            // Restore active tab
+            if (typeof calculateAttendance === 'function') calculateAttendance();
             const savedTab = localStorage.getItem('activeStudentTab') || 'records';
-            showTab(savedTab);
+            if (typeof showTab === 'function') showTab(savedTab);
+
+            // Refresh attendance data when page becomes visible (e.g., after marking attendance)
+            document.addEventListener('visibilitychange', function () {
+                if (!document.hidden && typeof refreshStudentAttendance === 'function') {
+                    refreshStudentAttendance();
+                }
+            });
         });
 
-        // Tab Navigation Function
-        function showTab(tabId) {
-            // Hide all tabs
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-                tab.style.display = 'none';
-            });
+        // Function to refresh student attendance data from server
+        async function refreshStudentAttendance() {
+            try {
+                const res = await fetch('/student/refresh_attendance');
+                const data = await res.json();
 
-            // Remove active class from all buttons
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
+                if (data.success) {
+                    // Update stat numbers
+                    const presentEl = document.getElementById('stat-present');
+                    const workingEl = document.getElementById('stat-working');
+                    const remainingEl = document.getElementById('stat-rem-days');
+                    const percentageEl = document.getElementById('stat-percentage');
 
-            // Show selected tab
-            const selectedTab = document.getElementById(tabId + '-tab');
-            if (selectedTab) {
-                selectedTab.classList.add('active');
-                selectedTab.style.display = 'block';
+                    if (presentEl) presentEl.textContent = data.total_present;
+                    if (workingEl) workingEl.textContent = data.working_days;
+                    if (remainingEl) remainingEl.textContent = data.remaining_sem_days;
+                    if (percentageEl) percentageEl.textContent = data.percentage.toFixed(2) + '%';
+
+                    // Update calculator inputs
+                    const calcAttended = document.getElementById('calc-attended');
+                    const calcTotal = document.getElementById('calc-total');
+                    const calcFuture = document.getElementById('calc-future');
+
+                    if (calcAttended) calcAttended.value = data.total_present;
+                    if (calcTotal) calcTotal.value = data.working_days;
+                    if (calcFuture) calcFuture.value = data.remaining_sem_days;
+
+                    // Recalculate attendance
+                    if (typeof calculateAttendance === 'function') calculateAttendance();
+
+                    // Update attendance records table
+                    updateAttendanceRecordsTable(data.records);
+
+                    // Update profile modal stats if open
+                    const profilePresent = document.querySelector('#profileModal .profile-stats-grid > div:first-child div:first-child');
+                    if (profilePresent) profilePresent.textContent = data.total_present;
+                    const profileWorking = document.querySelector('#profileModal .profile-stats-grid > div:nth-child(2) div:first-child');
+                    if (profileWorking) profileWorking.textContent = data.working_days;
+                    const profileRemaining = document.querySelector('#profileModal .profile-stats-grid > div:nth-child(3) div:first-child');
+                    if (profileRemaining) profileRemaining.textContent = data.remaining_sem_days;
+
+                    // Show success toast
+                    showToast({name: 'Attendance Updated', roll: data.total_present + ' classes', branch: data.percentage.toFixed(1) + '%'});
+                }
+            } catch (e) {
+                console.error('Error refreshing attendance:', e);
+                showToast({name: 'Error', roll: 'Failed to refresh', branch: ''});
+            }
+        }
+
+        // Update attendance records table with fresh data
+        function updateAttendanceRecordsTable(records) {
+            const tbody = document.querySelector('#records-tab tbody');
+            if (!tbody) return;
+
+            if (!records || records.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No records found.</td></tr>';
+                return;
             }
 
-            // Activate button
-            const clickedBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
-            if (clickedBtn) {
-                clickedBtn.classList.add('active');
-            }
+            let html = '';
+            records.forEach(function(record) {
+                const statusClass = (record.Status === 'PRESENT' || record.Status === 'Present') ? 'status-present' : 'status-absent';
+                const statusIcon = (record.Status === 'PRESENT' || record.Status === 'Present') ? '<i class="fas fa-check-circle"></i> Present' : '<i class="fas fa-times-circle"></i> Absent';
+                const actionHtml = (record.Status === 'Absent' || record.Status === 'ABSENT')
+                    ? `<button onclick="openCorrectionForRecord('${record.Subject}', '${record.Date}', '${record.TeacherID || ''}')" class="btn-small" style="background: linear-gradient(135deg, #f39c12, #e67e22); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.75rem;"><i class="fas fa-flag"></i> Report</button>`
+                    : '<span style="color: #999; font-size: 0.75rem;"><i class="fas fa-check"></i> OK</span>';
 
-            // Save preference
-            localStorage.setItem('activeStudentTab', tabId);
+                html += `<tr onclick="showAttendanceDetail(this)" style="cursor: pointer;" data-date="${record.Date}" data-time="${record.Time}" data-subject="${record.Subject}" data-branch="${record.Branch}" data-status="${record.Status}" data-teacher="${record.TeacherID || ''}">
+                    <td data-label="Date">${record.Date}</td>
+                    <td data-label="Time">${record.Time}</td>
+                    <td data-label="Subject">${record.Subject}</td>
+                    <td data-label="Branch">${record.Branch}</td>
+                    <td data-label="Status"><span class="${statusClass}">${statusIcon}</span></td>
+                    <td data-label="Action">${actionHtml}</td>
+                </tr>`;
+            });
+
+            tbody.innerHTML = html;
         }
     </script>
 </body>

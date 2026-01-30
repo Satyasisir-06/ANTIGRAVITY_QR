@@ -2052,6 +2052,114 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"success": true, "requests": requests})
 	})
 
+	// Student: Refresh attendance data (called when returning to dashboard after marking attendance)
+	r.GET("/student/refresh_attendance", func(c *gin.Context) {
+		session := sessions.Default(c)
+		userID := session.Get("user_id")
+		if userID == nil || session.Get("role") != "student" {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Not authorized"})
+			return
+		}
+		studentID := userID.(string)
+
+		// Fetch attendance records
+		records := []Attendance{}
+		totalPresent := 0
+		iter := firestoreClient.Collection("attendance").Where("roll", "==", studentID).Documents(context.Background())
+		for {
+			doc, err := iter.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				break
+			}
+			var a Attendance
+			doc.DataTo(&a)
+			a.ID = doc.Ref.ID
+			records = append(records, a)
+			if a.Status == "PRESENT" {
+				totalPresent++
+			}
+		}
+
+		// Fetch config for working days calculation
+		config := getConfig()
+		now := time.Now()
+		var semesterStart, semesterEnd time.Time
+		remainingSemDays := 0
+		workingDays := 0
+
+		if config.StartDate != "" {
+			semesterStart, _ = time.Parse("2006-01-02", config.StartDate)
+		}
+		if config.EndDate != "" {
+			semesterEnd, _ = time.Parse("2006-01-02", config.EndDate)
+		}
+
+		// Fetch holidays
+		holidays := make(map[string]bool)
+		holidayIter := firestoreClient.Collection("holidays").Documents(context.Background())
+		for {
+			hDoc, err := holidayIter.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				break
+			}
+			var h Holiday
+			hDoc.DataTo(&h)
+			holidays[h.Date] = true
+		}
+
+		// Calculate remaining semester days
+		if !semesterEnd.IsZero() && now.Before(semesterEnd) {
+			for d := now; !d.After(semesterEnd); d = d.AddDate(0, 0, 1) {
+				dateStr := d.Format("2006-01-02")
+				if d.Weekday() == time.Sunday || d.Weekday() == time.Saturday {
+					continue
+				}
+				if holidays[dateStr] {
+					continue
+				}
+				remainingSemDays++
+			}
+		}
+
+		// Calculate total working days
+		if !semesterStart.IsZero() {
+			endCalc := now
+			if !semesterEnd.IsZero() && now.After(semesterEnd) {
+				endCalc = semesterEnd
+			}
+			for d := semesterStart; !d.After(endCalc); d = d.AddDate(0, 0, 1) {
+				dateStr := d.Format("2006-01-02")
+				if d.Weekday() == time.Sunday || d.Weekday() == time.Saturday {
+					continue
+				}
+				if holidays[dateStr] {
+					continue
+				}
+				workingDays++
+			}
+		}
+
+		var percentage float64 = 0.0
+		if workingDays > 0 {
+			percentage = (float64(totalPresent) / float64(workingDays)) * 100
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"success":            true,
+			"total_present":      totalPresent,
+			"working_days":       workingDays,
+			"remaining_sem_days": remainingSemDays,
+			"percentage":         percentage,
+			"records":            records,
+		})
+	})
+
 	// Student: Get subjects for correction dropdown (from their attendance records)
 	r.GET("/student/get_subjects", func(c *gin.Context) {
 		session := sessions.Default(c)

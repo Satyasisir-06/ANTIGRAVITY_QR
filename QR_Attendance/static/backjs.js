@@ -1,3 +1,104 @@
+// --- Student Panel Tab & Calculator Logic ---
+function showTab(tabId) {
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+        tab.style.display = 'none';
+    });
+
+    // Remove active class from all buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+
+    // Show selected tab
+    const selectedTab = document.getElementById(tabId + '-tab');
+    if (selectedTab) {
+        selectedTab.classList.add('active');
+        selectedTab.style.display = 'block';
+    }
+
+    // Activate button
+    const clickedBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+    if (clickedBtn) {
+        clickedBtn.classList.add('active');
+    }
+
+    // Save preference
+    localStorage.setItem('activeStudentTab', tabId);
+}
+
+function calculateAttendance() {
+    const attended = parseInt(document.getElementById('calc-attended').value) || 0;
+    const total = parseInt(document.getElementById('calc-total').value) || 0;
+    const future = parseInt(document.getElementById('calc-future').value) || 0;
+    const target = parseInt(document.getElementById('calc-target').value) || 75;
+
+    // Current percentage
+    const currentPercentage = total > 0 ? (attended / total * 100) : 0;
+    document.getElementById('current-percentage').textContent = currentPercentage.toFixed(2) + '%';
+    document.getElementById('current-detail').textContent = `${attended} / ${total} classes`;
+
+    // Total classes by end of semester
+    const totalFinal = total + future;
+
+    // Classes needed to reach target at end of semester
+    const classesNeededForTarget = Math.ceil((target / 100) * totalFinal);
+    const mustAttendMore = Math.max(0, classesNeededForTarget - attended);
+
+    document.getElementById('must-attend').textContent = mustAttendMore;
+    document.getElementById('attend-detail').textContent = mustAttendMore > future ?
+        `Need ${mustAttendMore - future} more than remaining!` :
+        `Out of ${future} remaining classes`;
+
+    // Classes can skip
+    const maxSkippable = future - mustAttendMore;
+    const canSkip = Math.max(0, maxSkippable);
+
+    document.getElementById('can-skip').textContent = canSkip;
+    document.getElementById('skip-detail').textContent = `While maintaining ${target}%`;
+
+    // Alert message
+    const alertDiv = document.getElementById('attendance-alert');
+    const alertMsg = document.getElementById('alert-message');
+
+    if (currentPercentage >= target) {
+        alertDiv.className = 'attendance-success';
+        if (canSkip > 0) {
+            alertMsg.innerHTML = `<strong>Great!</strong> You're above ${target}%. You can safely skip up to <strong>${canSkip}</strong> future classes.`;
+        } else {
+            alertMsg.innerHTML = `<strong>Good!</strong> You're at ${target}%. Attend all remaining classes to maintain your percentage.`;
+        }
+    } else if (currentPercentage >= target - 10) {
+        alertDiv.className = 'attendance-warning';
+        alertMsg.innerHTML = `<strong>Warning!</strong> Your attendance is ${currentPercentage.toFixed(1)}%. You need to attend at least <strong>${mustAttendMore}</strong> more classes to reach ${target}%.`;
+    } else {
+        alertDiv.className = 'attendance-danger attendance-warning';
+        alertMsg.innerHTML = `<strong>Critical!</strong> Your attendance is only ${currentPercentage.toFixed(1)}%. You must attend <strong>${mustAttendMore}</strong> classes to reach ${target}%.`;
+    }
+}
+
+function calculateScenario() {
+    const attended = parseInt(document.getElementById('calc-attended').value) || 0;
+    const total = parseInt(document.getElementById('calc-total').value) || 0;
+    const future = parseInt(document.getElementById('calc-future').value) || 0;
+    const skipCount = parseInt(document.getElementById('skip-scenario').value) || 0;
+
+    const totalFinal = total + future;
+    const attendedFinal = attended + (future - skipCount);
+    const projectedPercentage = totalFinal > 0 ? (attendedFinal / totalFinal * 100) : 0;
+
+    const resultEl = document.getElementById('projected-percentage');
+    resultEl.textContent = projectedPercentage.toFixed(2) + '%';
+
+    if (projectedPercentage >= 75) {
+        resultEl.style.color = '#28a745';
+    } else if (projectedPercentage >= 65) {
+        resultEl.style.color = '#ffc107';
+    } else {
+        resultEl.style.color = '#dc3545';
+    }
+}
 let timerInterval;
 const activeQRTimers = {};
 const activeClassTimers = {};
