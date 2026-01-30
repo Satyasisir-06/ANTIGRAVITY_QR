@@ -431,7 +431,8 @@ func teacherDashboard(c *gin.Context) {
 	// Active Sessions - Auto-finalize expired ones
 	activeSessions := []Session{}
 	now := time.Now()
-	sessIter := firestoreClient.Collection("sessions").Where("is_finalized", "==", false).Where("teacher_id", "==", teacherID).Documents(context.Background())
+	// NOTE: Removed .Where("teacher_id", "==", teacherID) to avoid composite index requirement
+	sessIter := firestoreClient.Collection("sessions").Where("is_finalized", "==", false).Documents(context.Background())
 	for {
 		doc, err := sessIter.Next()
 		if err == iterator.Done {
@@ -442,6 +443,13 @@ func teacherDashboard(c *gin.Context) {
 			break
 		}
 		var s Session
+		doc.DataTo(&s)
+		s.ID = doc.Ref.ID
+
+		// Filter for this teacher
+		if s.TeacherID != teacherID {
+			continue
+		}
 		doc.DataTo(&s)
 		s.ID = doc.Ref.ID
 
@@ -1161,8 +1169,9 @@ func main() {
 			return
 		}
 
-		// Get all finalized sessions, ordered by start_time descending
-		iter := firestoreClient.Collection("sessions").Where("is_finalized", "==", true).OrderBy("start_time", firestore.Desc).Limit(50).Documents(context.Background())
+		// Get all finalized sessions
+		// Note: Removed OrderBy to avoid needing a Firestore composite index
+		iter := firestoreClient.Collection("sessions").Where("is_finalized", "==", true).Limit(100).Documents(context.Background())
 		var history []map[string]interface{}
 
 		for {

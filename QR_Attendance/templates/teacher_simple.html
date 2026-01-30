@@ -766,6 +766,48 @@
                 font-size: 16px !important;
                 /* Prevent iOS zoom */
             }
+
+            /* Correction requests mobile fix */
+            #correction-requests-list>div {
+                text-align: left !important;
+            }
+
+            #correction-requests-list div[style*="background"] {
+                padding: 12px !important;
+            }
+
+            /* Fix right alignment on mobile */
+            .section-card>div {
+                width: 100%;
+            }
+
+            /* Stats row fix */
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 8px !important;
+            }
+
+            .mini-stat {
+                padding: 12px !important;
+            }
+
+            .mini-stat .number {
+                font-size: 1.4rem !important;
+            }
+
+            .mini-stat .label {
+                font-size: 0.7rem !important;
+            }
+
+            /* Teacher Attendance Record fix */
+            #my-attendance-record div {
+                text-align: left !important;
+            }
+
+            /* Full width cards on mobile */
+            .container-wide {
+                padding: 10px !important;
+            }
         }
 
         @media (max-width: 360px) {
