@@ -37,6 +37,28 @@
                 font-size: 2rem !important;
             }
         }
+        
+        .location-status {
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .location-status.getting {
+            background: rgba(102, 126, 234, 0.15);
+            color: #667eea;
+        }
+        .location-status.success {
+            background: rgba(40, 167, 69, 0.15);
+            color: #28a745;
+        }
+        .location-status.error {
+            background: rgba(255, 107, 107, 0.15);
+            color: #dc3545;
+        }
     </style>
 </head>
 
@@ -63,10 +85,18 @@
                     <strong>{{ .subject }}</strong> ({{ .branch }})
                 </div>
 
+                <!-- Location Status -->
+                <div id="locationStatus" class="location-status getting">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>Getting your location...</span>
+                </div>
+
                 <form id="scanForm">
                     <input type="hidden" id="s_subject" value="{{ .subject }}">
                     <input type="hidden" id="s_branch" value="{{ .branch }}">
                     <input type="hidden" id="s_exp" value="{{ .exp }}">
+                    <input type="hidden" id="s_latitude" value="">
+                    <input type="hidden" id="s_longitude" value="">
 
                     <div class="form-group">
                         <label>Roll Number</label>
@@ -77,7 +107,7 @@
                         <input type="text" id="s_name" placeholder="Enter Name" required>
                     </div>
 
-                    <button type="submit">Submit Attendance</button>
+                    <button type="submit" id="submitBtn">Submit Attendance</button>
                 </form>
                 <p id="msg" style="margin-top: 10px; color: var(--danger-color);"></p>
             </div>
@@ -86,6 +116,11 @@
     </div>
 
     <script>
+        // Location variables
+        let userLatitude = 0;
+        let userLongitude = 0;
+        let locationObtained = false;
+
         // Generate or get unique device ID
         function getDeviceId() {
             let deviceId = localStorage.getItem('qr_device_id');
@@ -111,6 +146,52 @@
             }
         }
 
+        // Get user location
+        function getUserLocation() {
+            const statusDiv = document.getElementById('locationStatus');
+            
+            if (!navigator.geolocation) {
+                statusDiv.className = 'location-status error';
+                statusDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i><span>Location not supported by your browser</span>';
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    userLatitude = position.coords.latitude;
+                    userLongitude = position.coords.longitude;
+                    locationObtained = true;
+                    
+                    document.getElementById('s_latitude').value = userLatitude;
+                    document.getElementById('s_longitude').value = userLongitude;
+                    
+                    statusDiv.className = 'location-status success';
+                    statusDiv.innerHTML = '<i class="fas fa-map-marker-alt"></i><span>Location verified</span>';
+                },
+                (error) => {
+                    let errorMsg = 'Could not get location';
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMsg = 'Location access denied. Please enable location.';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMsg = 'Location information unavailable';
+                            break;
+                        case error.TIMEOUT:
+                            errorMsg = 'Location request timed out';
+                            break;
+                    }
+                    statusDiv.className = 'location-status error';
+                    statusDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i><span>' + errorMsg + '</span>';
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        }
+
         // Get token from URL
         const urlToken = window.location.search.split('token=')[1];
 
@@ -118,15 +199,19 @@
         if (urlToken && hasSubmittedForSession(urlToken)) {
             document.getElementById('attendanceForm')?.style.setProperty('display', 'none');
             document.getElementById('alreadyMarked')?.style.setProperty('display', 'block');
+        } else {
+            // Get location when page loads
+            getUserLocation();
         }
 
         document.getElementById('scanForm')?.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const btn = e.target.querySelector('button');
+            const btn = document.getElementById('submitBtn');
             const msg = document.getElementById('msg');
 
             btn.disabled = true;
             btn.innerText = "Processing...";
+            msg.innerText = "";
 
             const deviceId = getDeviceId();
 
@@ -135,10 +220,12 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        roll: document.getElementById('s_roll').value,
-                        name: document.getElementById('s_name').value,
+                        roll: document.getElementById('s_roll').value.trim(),
+                        name: document.getElementById('s_name').value.trim(),
                         token: urlToken,
-                        device_id: deviceId
+                        device_id: deviceId,
+                        latitude: userLatitude,
+                        longitude: userLongitude
                     })
                 });
                 const result = await res.json();
@@ -154,7 +241,7 @@
                 }
             } catch (err) {
                 console.error(err);
-                msg.innerText = "Network Error";
+                msg.innerText = "Network Error. Please try again.";
                 btn.disabled = false;
                 btn.innerText = "Submit Attendance";
             }

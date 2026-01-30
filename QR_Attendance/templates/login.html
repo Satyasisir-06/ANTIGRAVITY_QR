@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Login | QR Attendance</title>
+    <title>{{ if .reset_mode }}Reset Password{{ else }}Login{{ end }} | QR Attendance</title>
     <link rel="stylesheet" href="/static/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="manifest" href="/static/manifest.json">
@@ -46,11 +46,96 @@
                 font-size: 1.3rem !important;
             }
         }
+
+        .reset-step {
+            display: none;
+        }
+        .reset-step.active {
+            display: block;
+        }
+        .success-message {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            background: rgba(40, 167, 69, 0.15);
+            border: 1px solid rgba(40, 167, 69, 0.4);
+            color: #155724;
+            text-align: center;
+        }
+        .error-message {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            background: rgba(255, 107, 107, 0.15);
+            border: 1px solid rgba(255, 107, 107, 0.4);
+            color: #c0392b;
+            text-align: center;
+        }
+        .info-box {
+            margin-top: 1rem;
+            padding: 12px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            font-size: 0.85rem;
+            color: #555;
+        }
     </style>
 </head>
 
 <body>
     <div class="glass-container animate-pop">
+        {{ if .reset_mode }}
+        <!-- Password Reset Form -->
+        <div style="text-align: center; margin-bottom: 1rem;">
+            <i class="fas fa-key fa-2x"
+                style="color: white; margin-bottom: 8px; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+            <h1 style="font-size: 1.8rem; margin-bottom: 5px;">Reset Password</h1>
+            <p style="margin-bottom: 1rem; font-size: 0.95rem;">Enter your new password</p>
+        </div>
+
+        {{ if .error }}
+        <div class="error-message">
+            <i class="fas fa-exclamation-circle"></i> {{ .error }}
+        </div>
+        {{ end }}
+
+        <form action="/reset_password" method="POST">
+            <input type="hidden" name="token" value="{{ .reset_token }}">
+            
+            <div class="form-group">
+                <label>New Password</label>
+                <div style="position: relative;">
+                    <i class="fas fa-lock" style="position: absolute; left: 15px; top: 15px; color: #a18cd1;"></i>
+                    <input type="password" id="newPass" name="new_password" placeholder="Enter new password (min 6 chars)"
+                        style="padding-left: 40px; padding-right: 40px;" required minlength="6">
+                    <i class="fas fa-eye" id="toggleNewPass"
+                        style="position: absolute; right: 15px; top: 15px; color: #a18cd1; cursor: pointer;"
+                        onclick="togglePassword('newPass', 'toggleNewPass')"></i>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Confirm Password</label>
+                <div style="position: relative;">
+                    <i class="fas fa-lock" style="position: absolute; left: 15px; top: 15px; color: #a18cd1;"></i>
+                    <input type="password" id="confirmPass" name="confirm_password" placeholder="Confirm new password"
+                        style="padding-left: 40px; padding-right: 40px;" required minlength="6">
+                    <i class="fas fa-eye" id="toggleConfirmPass"
+                        style="position: absolute; right: 15px; top: 15px; color: #a18cd1; cursor: pointer;"
+                        onclick="togglePassword('confirmPass', 'toggleConfirmPass')"></i>
+                </div>
+            </div>
+
+            <button type="submit">Reset Password <i class="fas fa-check"></i></button>
+        </form>
+
+        <div style="margin-top: 1rem; text-align: center;">
+            <a href="/login" style="color: var(--primary-color);">Back to Login</a>
+        </div>
+
+        {{ else }}
+        <!-- Normal Login/Register Flow -->
         <div style="text-align: center; margin-bottom: 1rem;">
             <i class="fas fa-qrcode fa-2x"
                 style="color: white; margin-bottom: 8px; background: linear-gradient(135deg, #FF9A9E, #FECFEF); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
@@ -59,9 +144,14 @@
         </div>
 
         {{ if .error }}
-        <div
-            style="padding: 10px; border-radius: 8px; margin-bottom: 1rem; background: rgba(255, 107, 107, 0.2); border: 1px solid rgba(255, 107, 107, 0.5); color: #c0392b; text-align: center;">
-            {{ .error }}
+        <div class="error-message">
+            <i class="fas fa-exclamation-circle"></i> {{ .error }}
+        </div>
+        {{ end }}
+
+        {{ if .success }}
+        <div class="success-message">
+            <i class="fas fa-check-circle"></i> {{ .success }}
         </div>
         {{ end }}
 
@@ -135,85 +225,170 @@
             <p><a href="#" onclick="openForgotPassword()" style="color: #888; text-decoration: underline;">Forgot Password?</a></p>
         </div>
         {{ end }}
+        {{ end }}
 
     </div>
 
     <!-- Forgot Password Modal -->
-    <div id="forgotPasswordModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-        <div class="glass-container" style="max-width: 400px; width: 90%; margin: 20px auto; position: relative;">
+    <div id="forgotPasswordModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; overflow-y: auto;">
+        <div class="glass-container" style="max-width: 420px; width: 90%; margin: 20px auto; position: relative;">
             <button onclick="closeForgotPassword()" style="position: absolute; top: 10px; right: 10px; background: #e74c3c; border: none; color: white; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 1.2rem;">&times;</button>
             
-            <div style="text-align: center; margin-bottom: 1.5rem;">
-                <i class="fas fa-key fa-2x" style="color: #a18cd1; margin-bottom: 10px;"></i>
-                <h2 style="font-size: 1.3rem; margin-bottom: 5px;">Password Recovery</h2>
-                <p style="font-size: 0.9rem; color: #666;">Enter your username to view your password hint</p>
-            </div>
-            
-            <div class="form-group">
-                <label>Username / Roll Number</label>
-                <div style="position: relative;">
-                    <i class="fas fa-user" style="position: absolute; left: 15px; top: 15px; color: #a18cd1;"></i>
-                    <input type="text" id="forgot-username" placeholder="Enter your username" style="padding-left: 40px;">
+            <!-- Step 1: Enter Username -->
+            <div id="reset-step-1" class="reset-step active">
+                <div style="text-align: center; margin-bottom: 1.5rem;">
+                    <i class="fas fa-unlock-alt fa-2x" style="color: #667eea; margin-bottom: 10px;"></i>
+                    <h2 style="font-size: 1.3rem; margin-bottom: 5px;">Reset Your Password</h2>
+                    <p style="font-size: 0.9rem; color: #666;">Enter your username to receive a reset link via email</p>
+                </div>
+                
+                <div class="form-group">
+                    <label>Username / Roll Number</label>
+                    <div style="position: relative;">
+                        <i class="fas fa-user" style="position: absolute; left: 15px; top: 15px; color: #a18cd1;"></i>
+                        <input type="text" id="forgot-username" placeholder="Enter your username" style="padding-left: 40px;">
+                    </div>
+                </div>
+                
+                <div id="reset-error" style="display: none; padding: 10px; border-radius: 8px; margin-bottom: 1rem; background: rgba(255, 107, 107, 0.15); border: 1px solid rgba(255, 107, 107, 0.4); color: #c0392b; text-align: center; font-size: 0.9rem;"></div>
+                
+                <button id="sendResetBtn" onclick="sendResetLink()" style="width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 14px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 1rem;">
+                    <i class="fas fa-paper-plane"></i> Send Reset Link
+                </button>
+                
+                <div class="info-box">
+                    <i class="fas fa-info-circle" style="color: #667eea;"></i>
+                    <strong>How it works:</strong><br>
+                    1. Enter your username<br>
+                    2. Check your registered email<br>
+                    3. Click the reset link<br>
+                    4. Set your new password
                 </div>
             </div>
             
-            <button onclick="checkPasswordHint()" style="width: 100%; background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer;">
-                <i class="fas fa-search"></i> Get Password Hint
-            </button>
-            
-            <div id="password-hint-result" style="display: none; margin-top: 1rem; padding: 15px; border-radius: 10px; text-align: center;"></div>
-            
-            <div style="margin-top: 1.5rem; padding: 15px; background: rgba(102, 126, 234, 0.1); border-radius: 10px; border: 1px solid rgba(102, 126, 234, 0.3);">
-                <p style="font-size: 0.85rem; color: #666; margin: 0;">
-                    <i class="fas fa-info-circle" style="color: #667eea;"></i>
-                    <strong>Can't remember?</strong> Contact your administrator or teacher to reset your password.
-                </p>
+            <!-- Step 2: Success Message -->
+            <div id="reset-step-2" class="reset-step">
+                <div style="text-align: center; padding: 20px 0;">
+                    <i class="fas fa-envelope-circle-check fa-3x" style="color: #28a745; margin-bottom: 15px;"></i>
+                    <h2 style="font-size: 1.3rem; margin-bottom: 10px; color: #28a745;">Check Your Email!</h2>
+                    <p style="font-size: 0.95rem; color: #555; margin-bottom: 20px;">
+                        If an account exists with the username <strong id="sent-username"></strong>, we've sent a password reset link to your registered email address.
+                    </p>
+                    <div style="background: rgba(40, 167, 69, 0.1); border-radius: 10px; padding: 15px; margin-bottom: 20px;">
+                        <p style="margin: 0; font-size: 0.9rem; color: #155724;">
+                            <i class="fas fa-clock"></i> The link will expire in <strong>1 hour</strong>
+                        </p>
+                    </div>
+                    <p style="font-size: 0.85rem; color: #888;">
+                        Didn't receive it? Check your spam folder or <a href="#" onclick="showStep1()" style="color: #667eea;">try again</a>
+                    </p>
+                </div>
+                
+                <button onclick="closeForgotPassword()" style="width: 100%; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border: none; padding: 14px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 1rem;">
+                    <i class="fas fa-check"></i> Got it, Close
+                </button>
             </div>
         </div>
     </div>
 
     <script>
+        function togglePassword(inputId, iconId) {
+            const input = document.getElementById(inputId);
+            const icon = document.getElementById(iconId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
         function openForgotPassword() {
             document.getElementById('forgotPasswordModal').style.display = 'flex';
+            showStep1();
         }
         
         function closeForgotPassword() {
             document.getElementById('forgotPasswordModal').style.display = 'none';
             document.getElementById('forgot-username').value = '';
-            document.getElementById('password-hint-result').style.display = 'none';
+            document.getElementById('reset-error').style.display = 'none';
+            showStep1();
+        }
+
+        function showStep1() {
+            document.getElementById('reset-step-1').classList.add('active');
+            document.getElementById('reset-step-2').classList.remove('active');
+            document.getElementById('reset-error').style.display = 'none';
+        }
+
+        function showStep2(username) {
+            document.getElementById('sent-username').textContent = username;
+            document.getElementById('reset-step-1').classList.remove('active');
+            document.getElementById('reset-step-2').classList.add('active');
         }
         
-        async function checkPasswordHint() {
+        async function sendResetLink() {
             const username = document.getElementById('forgot-username').value.trim();
+            const errorDiv = document.getElementById('reset-error');
+            const btn = document.getElementById('sendResetBtn');
+            
             if (!username) {
-                alert('Please enter your username');
+                errorDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Please enter your username';
+                errorDiv.style.display = 'block';
                 return;
             }
             
-            const resultDiv = document.getElementById('password-hint-result');
-            resultDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
-            resultDiv.style.display = 'block';
-            resultDiv.style.background = 'rgba(102, 126, 234, 0.1)';
-            resultDiv.style.color = '#333';
+            // Show loading state
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+            errorDiv.style.display = 'none';
             
             try {
-                const response = await fetch('/api/password_hint?username=' + encodeURIComponent(username));
+                const response = await fetch('/api/password_reset_request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username: username })
+                });
+                
                 const data = await response.json();
                 
-                if (data.success) {
-                    resultDiv.style.background = 'rgba(40, 167, 69, 0.1)';
-                    resultDiv.style.border = '1px solid rgba(40, 167, 69, 0.3)';
-                    resultDiv.innerHTML = '<i class="fas fa-lightbulb" style="color: #28a745;"></i><br><strong>Password Hint:</strong><br>' + data.hint + '<br><br><small style="color: #666;">Registered Email: ' + (data.email || 'Not provided') + '</small>';
-                } else {
-                    resultDiv.style.background = 'rgba(231, 76, 60, 0.1)';
-                    resultDiv.style.border = '1px solid rgba(231, 76, 60, 0.3)';
-                    resultDiv.innerHTML = '<i class="fas fa-exclamation-circle" style="color: #e74c3c;"></i><br>' + data.message;
+                if (response.status === 429) {
+                    errorDiv.innerHTML = '<i class="fas fa-clock"></i> Too many requests. Please wait a few minutes.';
+                    errorDiv.style.display = 'block';
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Reset Link';
+                    return;
                 }
+                
+                // Always show success to prevent username enumeration
+                showStep2(username);
+                
             } catch (err) {
-                resultDiv.style.background = 'rgba(231, 76, 60, 0.1)';
-                resultDiv.innerHTML = '<i class="fas fa-exclamation-circle" style="color: #e74c3c;"></i><br>Error checking username. Please try again.';
+                errorDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Network error. Please try again.';
+                errorDiv.style.display = 'block';
             }
+            
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Reset Link';
         }
+
+        // Handle Enter key in forgot password input
+        document.addEventListener('DOMContentLoaded', function() {
+            const forgotInput = document.getElementById('forgot-username');
+            if (forgotInput) {
+                forgotInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        sendResetLink();
+                    }
+                });
+            }
+        });
     </script>
     <script src="/static/backjs.js"></script>
 </body>
