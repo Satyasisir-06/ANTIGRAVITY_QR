@@ -755,13 +755,61 @@
         </div>
     </div>
 
+    <!-- Inline tab switching as backup -->
+    <script>
+        function showTab(tabId) {
+            console.log('showTab called with:', tabId);
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(function(tab) {
+                tab.classList.remove('active');
+                tab.style.display = 'none';
+            });
+
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-btn').forEach(function(btn) {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab
+            var selectedTab = document.getElementById(tabId + '-tab');
+            if (selectedTab) {
+                selectedTab.classList.add('active');
+                selectedTab.style.display = 'block';
+            }
+
+            // Activate button
+            var clickedBtn = document.querySelector('.tab-btn[data-tab="' + tabId + '"]');
+            if (clickedBtn) {
+                clickedBtn.classList.add('active');
+            }
+
+            // Save preference
+            localStorage.setItem('activeStudentTab', tabId);
+        }
+    </script>
+
     <script src="/static/backjs.js"></script>
     <script>
+        // Debug logging
+        console.log('backjs.js loaded, showTab exists:', typeof showTab === 'function');
+
         // Initialize calculator and restore tab on page load using global functions from backjs.js
         document.addEventListener('DOMContentLoaded', function () {
-            if (typeof calculateAttendance === 'function') calculateAttendance();
+            console.log('DOM loaded, calling calculateAttendance and showTab');
+            if (typeof calculateAttendance === 'function') {
+                console.log('calculateAttendance function found');
+                calculateAttendance();
+            } else {
+                console.log('calculateAttendance function NOT found');
+            }
             const savedTab = localStorage.getItem('activeStudentTab') || 'records';
-            if (typeof showTab === 'function') showTab(savedTab);
+            console.log('Restoring saved tab:', savedTab);
+            if (typeof showTab === 'function') {
+                console.log('showTab function found, calling it');
+                showTab(savedTab);
+            } else {
+                console.log('showTab function NOT found');
+            }
 
             // Refresh attendance data when page becomes visible (e.g., after marking attendance)
             document.addEventListener('visibilitychange', function () {
