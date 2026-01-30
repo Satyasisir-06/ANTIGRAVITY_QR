@@ -360,10 +360,10 @@
         <!-- Tab Navigation -->
         <div class="tab-container">
             <div class="tab-buttons">
-                <button class="tab-btn active" onclick="showTab('records')">
+                <button class="tab-btn active" onclick="showTab('records')" data-tab="records">
                     <i class="fas fa-list"></i> Attendance Records
                 </button>
-                <button class="tab-btn" onclick="showTab('calculator')">
+                <button class="tab-btn" onclick="showTab('calculator')" data-tab="calculator">
                     <i class="fas fa-calculator"></i> Attendance Calculator
                 </button>
             </div>
@@ -1260,7 +1260,7 @@
             }
 
             // Activate button
-            const clickedBtn = document.querySelector(`.tab-btn[onclick="showTab('${tabId}')"]`);
+            const clickedBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
             if (clickedBtn) {
                 clickedBtn.classList.add('active');
             }
