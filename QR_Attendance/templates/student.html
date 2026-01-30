@@ -1214,7 +1214,41 @@
         // Initialize calculator on page load
         document.addEventListener('DOMContentLoaded', function () {
             calculateAttendance();
+
+            // Restore active tab
+            const savedTab = localStorage.getItem('activeStudentTab') || 'records';
+            showTab(savedTab);
         });
+
+        // Tab Navigation Function
+        function showTab(tabId) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+                tab.style.display = 'none';
+            });
+
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab
+            const selectedTab = document.getElementById(tabId + '-tab');
+            if (selectedTab) {
+                selectedTab.classList.add('active');
+                selectedTab.style.display = 'block';
+            }
+
+            // Activate button
+            const clickedBtn = document.querySelector(`.tab-btn[onclick="showTab('${tabId}')"]`);
+            if (clickedBtn) {
+                clickedBtn.classList.add('active');
+            }
+
+            // Save preference
+            localStorage.setItem('activeStudentTab', tabId);
+        }
     </script>
 </body>
 
