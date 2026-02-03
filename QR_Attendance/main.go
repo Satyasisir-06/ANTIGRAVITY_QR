@@ -28,6 +28,7 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"github.com/skip2/go-qrcode"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/api/iterator"
@@ -168,6 +169,7 @@ type Attendance struct {
 	Branch    string    `json:"branch,omitempty" firestore:"branch,omitempty"`
 	Date      string    `json:"date,omitempty" firestore:"date,omitempty"`
 	Time      string    `json:"time,omitempty" firestore:"time,omitempty"`
+	TeacherID string    `json:"teacher_id,omitempty" firestore:"teacher_id,omitempty"`
 	Timestamp time.Time `json:"timestamp" firestore:"timestamp"`
 }
 
@@ -986,46 +988,115 @@ func viewAttendanceHandler(c *gin.Context) {
 	branch := c.Query("branch")
 	date := c.Query("date")
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	limit := 50
-
-	query := firestoreClient.Collection("attendance").Where("teacher_id", "==", teacherID).OrderBy("timestamp", firestore.Desc)
-	if subject != "" {
-		query = query.Where("subject", "==", subject)
-	}
-	if branch != "" {
-		query = query.Where("branch", "==", branch)
-	}
-	if date != "" {
-		query = query.Where("date", "==", date)
-	}
-
-	// Pagination in Firestore is tricky without cursors.
-	// For now, simpler implementation: fetching all (up to reasonable limit) or just basic Limit
-	// We'll limit to 500 for safety and slice in Go if needed, or just standard Limit
-	query = query.Limit(limit).Offset((page - 1) * limit)
+	limit := 100
 
 	records := []Attendance{}
-	iter := query.Documents(context.Background())
+
+	// Try to fetch by teacher_id first (simple query without OrderBy to avoid index requirement)
+	iter := firestoreClient.Collection("attendance").Where("teacher_id", "==", teacherID).Documents(context.Background())
 	for {
 		doc, err := iter.Next()
 		if err == iterator.Done {
 			break
 		}
 		if err != nil {
-			log.Printf("[VIEW_ATTENDANCE] Error fetching doc: %v", err)
+			log.Printf("[VIEW_ATTENDANCE] Error fetching by teacher_id: %v", err)
 			break
 		}
 		var a Attendance
 		doc.DataTo(&a)
 		a.ID = doc.Ref.ID
+
+		// Apply filters in Go
+		if subject != "" && a.Subject != subject {
+			continue
+		}
+		if branch != "" && a.Branch != branch {
+			continue
+		}
+		if date != "" && a.Date != date {
+			continue
+		}
+
 		records = append(records, a)
 	}
 
+	// If no records found by teacher_id, also try fetching by subjects this teacher teaches
+	if len(records) == 0 {
+		log.Printf("[VIEW_ATTENDANCE] No records by teacher_id, trying by subjects for: %s", teacherID)
+
+		// Get subjects this teacher teaches
+		subIter := firestoreClient.Collection("subjects").Where("teacher_id", "==", teacherID).Documents(context.Background())
+		teacherSubjects := []string{}
+		for {
+			subDoc, err := subIter.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				continue
+			}
+			if subName, ok := subDoc.Data()["name"].(string); ok {
+				teacherSubjects = append(teacherSubjects, subName)
+			}
+		}
+
+		// Fetch attendance for those subjects
+		for _, subj := range teacherSubjects {
+			attIter := firestoreClient.Collection("attendance").Where("subject", "==", subj).Documents(context.Background())
+			for {
+				doc, err := attIter.Next()
+				if err == iterator.Done {
+					break
+				}
+				if err != nil {
+					continue
+				}
+				var a Attendance
+				doc.DataTo(&a)
+				a.ID = doc.Ref.ID
+
+				// Apply filters
+				if branch != "" && a.Branch != branch {
+					continue
+				}
+				if date != "" && a.Date != date {
+					continue
+				}
+
+				records = append(records, a)
+			}
+		}
+	}
+
+	// Sort by timestamp descending (newest first)
+	sort.Slice(records, func(i, j int) bool {
+		return records[i].Timestamp.After(records[j].Timestamp)
+	})
+
+	// Apply pagination
+	start := (page - 1) * limit
+	end := start + limit
+	if start > len(records) {
+		start = len(records)
+	}
+	if end > len(records) {
+		end = len(records)
+	}
+	paginatedRecords := records[start:end]
+
+	totalPages := (len(records) + limit - 1) / limit
+	if totalPages < 1 {
+		totalPages = 1
+	}
+
+	log.Printf("[VIEW_ATTENDANCE] Teacher %s: Found %d total records, showing %d-%d", teacherID, len(records), start, end)
+
 	c.HTML(http.StatusOK, "view.html", gin.H{
-		"records":     records,
+		"records":     paginatedRecords,
 		"role":        role,
 		"page":        page,
-		"total_pages": page + 1, // Naive
+		"total_pages": totalPages,
 		"prev_page":   page - 1,
 		"next_page":   page + 1,
 		"f_subject":   subject,
@@ -1194,6 +1265,11 @@ func updateSettingsHandlers(c *gin.Context) {
 // ... Additional handlers for other pages
 
 func main() {
+	// Load .env file if it exists
+	if err := godotenv.Load(); err != nil {
+		log.Println("[CONFIG] No .env file found, using system environment variables")
+	}
+
 	initFirebase()
 	r := gin.Default()
 	r.LoadHTMLGlob("templates/*")
@@ -1245,6 +1321,177 @@ func main() {
 	r.POST("/teacher/delete_subject", deleteSubjectHandler)
 	r.POST("/teacher/start_session", startSessionHandler)
 	r.POST("/teacher/finalize_session", finalizeSessionHandler)
+
+	// JSON API for starting session (used by JavaScript in teacher dashboard)
+	r.POST("/start_session", func(c *gin.Context) {
+		session := sessions.Default(c)
+		userID := session.Get("user_id")
+		if userID == nil || session.Get("role") != "teacher" {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Not authorized"})
+			return
+		}
+		teacherID := userID.(string)
+
+		var data struct {
+			Subject   string `json:"subject"`
+			Branch    string `json:"branch"`
+			ClassType string `json:"class_type"`
+		}
+		if err := c.BindJSON(&data); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Invalid request"})
+			return
+		}
+
+		now := time.Now()
+		duration := 1.0
+		if data.ClassType == "Lab" {
+			duration = 3.0
+		}
+		endTime := now.Add(time.Duration(duration) * time.Hour)
+		qrToken := fmt.Sprintf("%d-%s", now.UnixNano(), teacherID)
+
+		// Get teacher name
+		teacherName := teacherID
+		teacherDoc, err := firestoreClient.Collection("teachers").Doc(teacherID).Get(context.Background())
+		if err == nil && teacherDoc.Exists() {
+			if v := teacherDoc.Data()["name"]; v != nil && fmt.Sprint(v) != "" {
+				teacherName = fmt.Sprint(v)
+			}
+		}
+
+		newSession := map[string]interface{}{
+			"teacher_id":   teacherID,
+			"teacher_name": teacherName,
+			"subject":      data.Subject,
+			"branch":       data.Branch,
+			"class_type":   data.ClassType,
+			"start_time":   float64(now.Unix()),
+			"end_time":     float64(endTime.Unix()),
+			"is_finalized": false,
+			"qr_token":     qrToken,
+			"date":         now.Format("2006-01-02"),
+			"time":         now.Format("15:04:05"),
+		}
+
+		ref, _, err := firestoreClient.Collection("sessions").Add(context.Background(), newSession)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
+			return
+		}
+
+		log.Printf("[SESSION] Created session %s for teacher %s, subject: %s, branch: %s", ref.ID, teacherID, data.Subject, data.Branch)
+
+		c.JSON(http.StatusOK, gin.H{
+			"success":       true,
+			"session_id":    ref.ID,
+			"token":         qrToken,
+			"end_time":      now.Format("15:04") + " - " + endTime.Format("15:04"),
+			"end_timestamp": endTime.Unix(),
+		})
+	})
+
+	// JSON API for finalizing session (used by JavaScript)
+	r.POST("/finalize_session", func(c *gin.Context) {
+		session := sessions.Default(c)
+		userID := session.Get("user_id")
+		role := session.Get("role")
+		if userID == nil || (role != "teacher" && role != "admin") {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Not authorized"})
+			return
+		}
+
+		var data struct {
+			SessionID string `json:"session_id"`
+		}
+		if err := c.BindJSON(&data); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Invalid request"})
+			return
+		}
+
+		// Get session details first
+		sessionDoc, err := firestoreClient.Collection("sessions").Doc(data.SessionID).Get(context.Background())
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"success": false, "message": "Session not found"})
+			return
+		}
+
+		sessionData := sessionDoc.Data()
+		subject, _ := sessionData["subject"].(string)
+		branch, _ := sessionData["branch"].(string)
+		teacherID, _ := sessionData["teacher_id"].(string)
+		date, _ := sessionData["date"].(string)
+
+		// Mark session as finalized
+		_, err = firestoreClient.Collection("sessions").Doc(data.SessionID).Update(context.Background(), []firestore.Update{
+			{Path: "is_finalized", Value: true},
+		})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to finalize session"})
+			return
+		}
+
+		// Get all students who marked attendance for this session
+		presentStudents := make(map[string]bool)
+		attIter := firestoreClient.Collection("attendance").Where("session_id", "==", data.SessionID).Documents(context.Background())
+		for {
+			doc, err := attIter.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				continue
+			}
+			roll, _ := doc.Data()["roll"].(string)
+			presentStudents[roll] = true
+		}
+
+		// Get all students in the branch and mark absent for those who didn't attend
+		studIter := firestoreClient.Collection("students").Where("branch", "==", branch).Documents(context.Background())
+		absentCount := 0
+		for {
+			doc, err := studIter.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				continue
+			}
+			studentData := doc.Data()
+			roll := doc.Ref.ID
+			if studentData["roll"] != nil {
+				roll = fmt.Sprint(studentData["roll"])
+			}
+			name, _ := studentData["name"].(string)
+
+			if !presentStudents[roll] {
+				// Mark as absent
+				absentRecord := map[string]interface{}{
+					"session_id": data.SessionID,
+					"roll":       roll,
+					"name":       name,
+					"subject":    subject,
+					"branch":     branch,
+					"teacher_id": teacherID,
+					"date":       date,
+					"time":       time.Now().Format("15:04:05"),
+					"timestamp":  time.Now(),
+					"status":     "ABSENT",
+				}
+				firestoreClient.Collection("attendance").Add(context.Background(), absentRecord)
+				absentCount++
+			}
+		}
+
+		log.Printf("[FINALIZE] Session %s finalized. Present: %d, Absent: %d", data.SessionID, len(presentStudents), absentCount)
+
+		c.JSON(http.StatusOK, gin.H{
+			"success":       true,
+			"message":       "Session finalized",
+			"present_count": len(presentStudents),
+			"absent_count":  absentCount,
+		})
+	})
+
 	r.POST("/teacher/update_profile", func(c *gin.Context) {
 		session := sessions.Default(c)
 		userID := session.Get("user_id")
@@ -1396,11 +1643,12 @@ func main() {
 				}
 			}
 
-			// Parse times for display
+			// Parse times for display - use IST timezone
+			ist, _ := time.LoadLocation("Asia/Kolkata")
 			startTime, _ := data["start_time"].(float64)
 			endTime, _ := data["end_time"].(float64)
-			startTimeStr := time.Unix(int64(startTime), 0).Format("15:04")
-			endTimeStr := time.Unix(int64(endTime), 0).Format("15:04")
+			startTimeStr := time.Unix(int64(startTime), 0).In(ist).Format("15:04")
+			endTimeStr := time.Unix(int64(endTime), 0).In(ist).Format("15:04")
 
 			history = append(history, map[string]interface{}{
 				"session_id":    sessionID,
@@ -1684,6 +1932,89 @@ func main() {
 			}
 		}
 		c.JSON(http.StatusOK, gin.H{"count": len(records), "records": records})
+	})
+
+	// Debug endpoint to check teacher data
+	r.GET("/debug_teacher", func(c *gin.Context) {
+		session := sessions.Default(c)
+		userID := session.Get("user_id")
+		role := session.Get("role")
+
+		if userID == nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Not logged in"})
+			return
+		}
+
+		teacherID := userID.(string)
+		result := gin.H{
+			"user_id":          teacherID,
+			"role":             role,
+			"subjects_count":   0,
+			"subjects":         []map[string]interface{}{},
+			"attendance_count": 0,
+			"attendance":       []map[string]interface{}{},
+		}
+
+		// Get subjects for this teacher
+		subIter := firestoreClient.Collection("subjects").Where("teacher_id", "==", teacherID).Documents(context.Background())
+		subjects := []map[string]interface{}{}
+		subjectNames := []string{}
+		for {
+			doc, err := subIter.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				continue
+			}
+			data := doc.Data()
+			data["_id"] = doc.Ref.ID
+			subjects = append(subjects, data)
+			if name, ok := data["name"].(string); ok {
+				subjectNames = append(subjectNames, name)
+			}
+		}
+		result["subjects"] = subjects
+		result["subjects_count"] = len(subjects)
+		result["subject_names"] = subjectNames
+
+		// Get attendance by teacher_id
+		attIter := firestoreClient.Collection("attendance").Where("teacher_id", "==", teacherID).Documents(context.Background())
+		attendance := []map[string]interface{}{}
+		for {
+			doc, err := attIter.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				continue
+			}
+			data := doc.Data()
+			data["_id"] = doc.Ref.ID
+			attendance = append(attendance, data)
+		}
+		result["attendance"] = attendance
+		result["attendance_count"] = len(attendance)
+
+		// Also get all attendance to see if any exists
+		allIter := firestoreClient.Collection("attendance").Limit(10).Documents(context.Background())
+		allAttendance := []map[string]interface{}{}
+		for {
+			doc, err := allIter.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				continue
+			}
+			data := doc.Data()
+			data["_id"] = doc.Ref.ID
+			allAttendance = append(allAttendance, data)
+		}
+		result["all_attendance_sample"] = allAttendance
+		result["all_attendance_sample_count"] = len(allAttendance)
+
+		c.JSON(http.StatusOK, result)
 	})
 
 	// Settings & Config Handlers
@@ -2709,6 +3040,116 @@ func main() {
 		}
 
 		c.JSON(http.StatusOK, gin.H{"success": true, "subjects": subjects})
+	})
+
+	// Teacher: Refresh attendance records (dynamic fetch)
+	r.GET("/teacher/refresh_attendance", func(c *gin.Context) {
+		session := sessions.Default(c)
+		userID := session.Get("user_id")
+		if userID == nil || session.Get("role") != "teacher" {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Not authorized"})
+			return
+		}
+		teacherID := userID.(string)
+
+		// Get filter parameters
+		subject := c.Query("subject")
+		branch := c.Query("branch")
+		date := c.Query("date")
+
+		records := []Attendance{}
+
+		// Try to fetch by teacher_id first
+		iter := firestoreClient.Collection("attendance").Where("teacher_id", "==", teacherID).Documents(context.Background())
+		for {
+			doc, err := iter.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				log.Printf("[TEACHER REFRESH] Error fetching by teacher_id: %v", err)
+				break
+			}
+			var a Attendance
+			doc.DataTo(&a)
+			a.ID = doc.Ref.ID
+
+			// Apply filters in Go
+			if subject != "" && a.Subject != subject {
+				continue
+			}
+			if branch != "" && a.Branch != branch {
+				continue
+			}
+			if date != "" && a.Date != date {
+				continue
+			}
+
+			records = append(records, a)
+		}
+
+		// If no records found by teacher_id, also try fetching by subjects this teacher teaches
+		if len(records) == 0 {
+			log.Printf("[TEACHER REFRESH] No records by teacher_id, trying by subjects for: %s", teacherID)
+
+			// Get subjects this teacher teaches
+			subIter := firestoreClient.Collection("subjects").Where("teacher_id", "==", teacherID).Documents(context.Background())
+			teacherSubjects := []string{}
+			for {
+				subDoc, err := subIter.Next()
+				if err == iterator.Done {
+					break
+				}
+				if err != nil {
+					continue
+				}
+				if subName, ok := subDoc.Data()["name"].(string); ok {
+					teacherSubjects = append(teacherSubjects, subName)
+				}
+			}
+
+			// Fetch attendance for those subjects
+			for _, subj := range teacherSubjects {
+				if subject != "" && subj != subject {
+					continue
+				}
+				attIter := firestoreClient.Collection("attendance").Where("subject", "==", subj).Documents(context.Background())
+				for {
+					doc, err := attIter.Next()
+					if err == iterator.Done {
+						break
+					}
+					if err != nil {
+						continue
+					}
+					var a Attendance
+					doc.DataTo(&a)
+					a.ID = doc.Ref.ID
+
+					// Apply filters
+					if branch != "" && a.Branch != branch {
+						continue
+					}
+					if date != "" && a.Date != date {
+						continue
+					}
+
+					records = append(records, a)
+				}
+			}
+		}
+
+		// Sort by timestamp descending
+		sort.Slice(records, func(i, j int) bool {
+			return records[i].Timestamp.After(records[j].Timestamp)
+		})
+
+		log.Printf("[TEACHER REFRESH] Found %d records for teacher %s", len(records), teacherID)
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"records": records,
+		})
 	})
 
 	// Teacher: Get correction requests for their subjects

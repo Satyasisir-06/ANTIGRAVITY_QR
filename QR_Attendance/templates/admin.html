@@ -180,7 +180,7 @@
                                             In</span>
                                         <div id="timer-{{ $s.ID }}"
                                             style="font-size: 1.2rem; font-weight: 700; font-family: monospace; color: #e74c3c;"
-                                            data-end="{{ $s.EndTime }}">--:--:--</div>
+                                            data-end="{{ printf "%.0f" $s.EndTime }}">--:--:--</div>
                                     </div>
                                     <form method="POST" action="/teacher/finalize_session" style="margin: 0;">
                                         <input type="hidden" name="session_id" value="{{ $s.ID }}">
@@ -384,9 +384,8 @@
         {
             "server_now": {{ .server_now }},
             "sessions": [
-                {{ range $i, $s := .active_sessions }}
-                {"id": "{{ $s.ID }}", "subject": "{{ $s.Subject }}", "end_time": "{{ $s.EndTime }}", "start_timestamp": {{ $s.StartTimestamp }}, "end_timestamp": {{ $s.EndTime }}, "date": "{{ $s.Date }}", "start_time": "{{ $s.Time }}" }{{ if .Next }},{{ end }}
-                {{ end }}
+                {{ $last := len .active_sessions }}{{ range $i, $s := .active_sessions }}{{ if $i }},{{ end }}
+                {"id": "{{ $s.ID }}", "subject": "{{ $s.Subject }}", "end_time": {{ printf "%.0f" $s.EndTime }}, "start_timestamp": {{ printf "%.0f" $s.StartTimestamp }}, "end_timestamp": {{ printf "%.0f" $s.EndTime }}, "date": "{{ $s.Date }}", "start_time": "{{ $s.Time }}" }{{ end }}
             ]
         }
     </script>
@@ -558,13 +557,19 @@
             }
         }
 
-        // Session countdown timers
+        // Session countdown timers - uses server time offset for accuracy
         function updateSessionTimers() {
+            // Use server clock offset for accurate timing
+            const offset = window.serverClockOffset || 0;
+            const now = Math.floor((Date.now() + offset) / 1000);
+            
             document.querySelectorAll('[id^="timer-"]').forEach(el => {
-                const endTime = parseFloat(el.dataset.end);
-                if (!endTime) return;
+                const endTime = parseInt(el.dataset.end, 10);
+                if (!endTime || isNaN(endTime)) {
+                    el.textContent = '--:--:--';
+                    return;
+                }
 
-                const now = Math.floor(Date.now() / 1000);
                 const remaining = endTime - now;
 
                 if (remaining <= 0) {
@@ -623,8 +628,8 @@
         updateSessionTimers();
         setInterval(updateSessionTimers, 1000);
 
-        // Auto-refresh page every 120 seconds to get new sessions (was 60, reduced for performance)
-        setTimeout(() => location.reload(), 120000);
+        // Auto-refresh REMOVED - was causing pages to reload unexpectedly
+        // Use the Refresh button or navigate back to refresh data instead
 
         // Dark mode toggle
         function toggleDarkMode() {

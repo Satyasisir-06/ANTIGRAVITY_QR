@@ -1611,7 +1611,8 @@
                 if (result.success) {
                     await renderTimetable();
                     closeAddClassModal();
-                    showToast('Class added successfully!', 'success');
+                    showToast('Class added! Reloading...', 'success');
+                    setTimeout(() => location.reload(), 1000);
                 } else {
                     alert(result.error || 'Failed to save class');
                 }
@@ -1636,7 +1637,8 @@
                 const result = await response.json();
                 if (result.success) {
                     await renderTimetable();
-                    showToast('Class deleted!', 'info');
+                    showToast('Class deleted! Reloading...', 'info');
+                    setTimeout(() => location.reload(), 1000);
                 } else {
                     alert(result.error || 'Failed to delete class');
                 }
@@ -1660,7 +1662,8 @@
                 if (result.success) {
                     timetableData = {};
                     await renderTimetable();
-                    showToast('Timetable cleared!', 'info');
+                    showToast('Timetable cleared! Reloading...', 'info');
+                    setTimeout(() => location.reload(), 1000);
                 } else {
                     alert(result.error || 'Failed to clear timetable');
                 }
@@ -1733,7 +1736,6 @@
         function updateSessionTimers() {
             const timeElements = document.querySelectorAll('.time-remaining');
             const now = Math.floor(Date.now() / 1000);
-            let hasExpired = false;
 
             timeElements.forEach(el => {
                 const endTime = parseInt(el.dataset.end);
@@ -1743,7 +1745,8 @@
                     el.textContent = 'ENDED';
                     el.parentElement.style.background = 'rgba(40, 167, 69, 0.15)';
                     el.parentElement.style.color = '#28a745';
-                    hasExpired = true;
+                    // Mark as ended but don't trigger reload
+                    el.dataset.ended = 'true';
                 } else {
                     const hours = Math.floor(remaining / 3600);
                     const minutes = Math.floor((remaining % 3600) / 60);
@@ -1765,12 +1768,8 @@
                 }
             });
 
-            // If any session expired, reload page after 2 seconds to refresh
-            if (hasExpired) {
-                setTimeout(() => {
-                    window.location.reload();
-                }, 2000);
-            }
+            // Auto-reload REMOVED - was causing constant page refreshes
+            // Teachers can manually refresh or finalize sessions when needed
         }
 
         // Update every second

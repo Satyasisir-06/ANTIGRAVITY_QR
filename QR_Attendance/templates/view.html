@@ -22,7 +22,7 @@
 
         <!-- Filter Form -->
         <form action="/view_attendance" method="GET"
-            style="display: flex; gap: 10px; margin-bottom: 2rem; flex-wrap: wrap;">
+            style="display: flex; gap: 10px; margin-bottom: 2rem; flex-wrap: wrap; align-items: flex-end;">
             <div style="flex: 1;">
                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Subject</label>
                 <input type="text" name="subject" placeholder="Filter by Subject" value="{{ .f_subject }}">
@@ -51,6 +51,9 @@
             </div>
             <button type="submit" style="width: auto; padding: 0 30px;">Filter</button>
             <a href="/view_attendance" style="padding: 12px; color: var(--text-color);">Clear</a>
+            <button type="button" id="refresh-btn" onclick="refreshTeacherRecords()" style="width: auto; padding: 12px 20px; background: rgba(102, 126, 234, 0.2); border: 1px solid rgba(102, 126, 234, 0.3); border-radius: 8px; color: var(--text-color); cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-sync-alt"></i> <span id="refresh-text">Refresh</span>
+            </button>
         </form>
 
         <div class="table-container">
@@ -128,6 +131,73 @@
             } catch (e) {
                 alert('Error deleting record');
             }
+        }
+
+        async function refreshTeacherRecords() {
+            const btn = document.getElementById('refresh-btn');
+            const btnText = document.getElementById('refresh-text');
+            btn.disabled = true;
+            btnText.textContent = 'Refreshing...';
+
+            try {
+                // Get current filter values
+                const filterForm = document.querySelector('form');
+                const formData = new FormData(filterForm);
+                const subject = formData.get('subject') || '';
+                const branch = formData.get('branch') || '';
+                const date = formData.get('date') || '';
+
+                const url = new URL('/teacher/refresh_attendance', window.location.origin);
+                if (subject) url.searchParams.append('subject', subject);
+                if (branch) url.searchParams.append('branch', branch);
+                if (date) url.searchParams.append('date', date);
+
+                const res = await fetch(url.toString());
+                const data = await res.json();
+
+                if (data.success && data.records) {
+                    // Rebuild table rows
+                    const tbody = document.querySelector('table tbody');
+                    tbody.innerHTML = '';
+
+                    if (data.records.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No records found.</td></tr>';
+                    } else {
+                        data.records.forEach(record => {
+                            // Handle both lowercase (from JSON) and uppercase field names
+                            const status = (record.status || record.Status || 'ABSENT').toUpperCase();
+                            const roll = record.roll || record.Roll || '';
+                            const name = record.name || record.Name || '';
+                            const subject = record.subject || record.Subject || '';
+                            const branch = record.branch || record.Branch || '';
+                            const date = record.date || record.Date || '';
+                            const time = record.time || record.Time || '00:00:00';
+                            const id = record.id || record.ID || '';
+                            
+                            const statusHtml = status === 'PRESENT' 
+                                ? '<span class="status-present"><i class="fas fa-check-circle"></i> Present</span>'
+                                : '<span class="status-absent"><i class="fas fa-times-circle"></i> Absent</span>';
+                            
+                            const row = `<tr id="row-${id}">
+                                <td data-label="Roll No">${roll}</td>
+                                <td data-label="Name">${name}</td>
+                                <td data-label="Subject">${subject}</td>
+                                <td data-label="Branch">${branch}</td>
+                                <td data-label="Date">${date}</td>
+                                <td data-label="Time">${time}</td>
+                                <td data-label="Status">${statusHtml}</td>
+                            </tr>`;
+                            tbody.insertAdjacentHTML('beforeend', row);
+                        });
+                    }
+                }
+            } catch (e) {
+                console.error('Error refreshing:', e);
+                alert('Error refreshing records: ' + e.message);
+            }
+
+            btn.disabled = false;
+            btnText.textContent = 'Refresh';
         }
     </script>
 </body>

@@ -360,7 +360,7 @@ function createSessionCardHtml(s) {
                 </div>
                 <div style="display: flex; flex-direction: column; justify-content: space-between;">
                     <div style="font-size: 0.85rem; color: #666;">
-                        <i class="fas fa-qrcode"></i> <a href="/scan_session?token=${s.token}" target="_blank" style="color: var(--primary-color);">Open Scan Link</a>
+                        <i class="fas fa-qrcode"></i> <a href="/scan?token=${s.token}" target="_blank" style="color: var(--primary-color);">Open Scan Link</a>
                     </div>
                     <button onclick="finalizeAttendance(${s.id}, false, this)" class="danger" style="width: 100%; padding: 8px; font-size: 0.9rem;">
                         <i class="fas fa-flag-checkered"></i> Finalize
