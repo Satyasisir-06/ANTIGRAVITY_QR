@@ -7,6 +7,7 @@ require (
 	firebase.google.com/go/v4 v4.13.0
 	github.com/gin-contrib/sessions v0.0.5
 	github.com/gin-gonic/gin v1.9.1
+	github.com/joho/godotenv v1.5.1
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	golang.org/x/crypto v0.18.0
 	google.golang.org/api v0.150.0
