@@ -35,6 +35,18 @@ import (
 	"google.golang.org/api/option"
 )
 
+func init() {
+	// Force timezone to Asia/Kolkata
+	loc, err := time.LoadLocation("Asia/Kolkata")
+	if err != nil {
+		// Fallback for Windows if tzdata is missing
+		log.Printf("Warning: Could not load Asia/Kolkata location: %v. Using FixedZone.", err)
+		loc = time.FixedZone("IST", 5*3600+30*60) // UTC+5:30
+	}
+	time.Local = loc
+	log.Println("Global timezone set to:", time.Local)
+}
+
 // ==================== RATE LIMITER ====================
 
 type RateLimiter struct {

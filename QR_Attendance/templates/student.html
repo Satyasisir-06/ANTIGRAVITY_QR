@@ -7,19 +7,19 @@
     <meta name="theme-color" content="#a18cd1">
     <meta name="description" content="Student Attendance Dashboard - QR Attendance System">
     <title>Student Dashboard | QR Attendance</title>
-    
+
     <!-- Critical CSS first -->
     <link rel="stylesheet" href="/static/style.css">
     <link rel="stylesheet" href="/static/performance.css">
-    
+
     <!-- Defer non-critical CSS -->
     <link rel="preconnect" href="https://cdnjs.cloudflare.com">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    
+
     <!-- Preload critical resources -->
     <link rel="preload" href="/static/backjs.js" as="script">
     <link rel="preload" href="/static/performance.js" as="script">
-    
+
     <style>
         /* Tab Buttons */
         .tab-buttons {
@@ -64,8 +64,15 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         /* Record Cards */
@@ -102,14 +109,25 @@
             right: -30%;
             width: 200px;
             height: 200px;
-            background: rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 50%;
         }
 
         /* Status Badges */
-        .status-safe { background: rgba(40, 167, 69, 0.2); color: #28a745; }
-        .status-warning { background: rgba(255, 193, 7, 0.2); color: #d39e00; }
-        .status-danger { background: rgba(220, 53, 69, 0.2); color: #dc3545; }
+        .status-safe {
+            background: rgba(40, 167, 69, 0.2);
+            color: #28a745;
+        }
+
+        .status-warning {
+            background: rgba(255, 193, 7, 0.2);
+            color: #d39e00;
+        }
+
+        .status-danger {
+            background: rgba(220, 53, 69, 0.2);
+            color: #dc3545;
+        }
 
         /* Calendar Styles */
         .calendar-container {
@@ -182,12 +200,33 @@
             transform: scale(1.1);
         }
 
-        .calendar-day.empty { background: transparent; cursor: default; }
-        .calendar-day.present { background: rgba(40, 167, 69, 0.3); color: #28a745; }
-        .calendar-day.absent { background: rgba(220, 53, 69, 0.3); color: #dc3545; }
-        .calendar-day.holiday { background: rgba(255, 193, 7, 0.3); color: #d39e00; }
-        .calendar-day.today { box-shadow: 0 0 0 2px #667eea; }
-        .calendar-day.future { opacity: 0.5; }
+        .calendar-day.empty {
+            background: transparent;
+            cursor: default;
+        }
+
+        .calendar-day.present {
+            background: rgba(40, 167, 69, 0.3);
+            color: #28a745;
+        }
+
+        .calendar-day.absent {
+            background: rgba(220, 53, 69, 0.3);
+            color: #dc3545;
+        }
+
+        .calendar-day.holiday {
+            background: rgba(255, 193, 7, 0.3);
+            color: #d39e00;
+        }
+
+        .calendar-day.today {
+            box-shadow: 0 0 0 2px #667eea;
+        }
+
+        .calendar-day.future {
+            opacity: 0.5;
+        }
 
         .calendar-legend {
             display: flex;
@@ -210,9 +249,17 @@
             border-radius: 50%;
         }
 
-        .legend-dot.present { background: #28a745; }
-        .legend-dot.absent { background: #dc3545; }
-        .legend-dot.holiday { background: #ffc107; }
+        .legend-dot.present {
+            background: #28a745;
+        }
+
+        .legend-dot.absent {
+            background: #dc3545;
+        }
+
+        .legend-dot.holiday {
+            background: #ffc107;
+        }
 
         /* Filter Bar */
         .filter-bar {
@@ -313,7 +360,12 @@
             }
 
             .profile-btn .profile-name {
-                display: none !important;
+                display: block !important;
+                font-size: 0.75rem !important;
+                max-width: 100px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
             }
 
             .report-btn .btn-text {
@@ -340,17 +392,21 @@
                 </button>
                 <button onclick="openProfileModal()" class="profile-btn"
                     style="background: rgba(255, 255, 255, 0.25); backdrop-filter: blur(4px); padding: 5px 12px 5px 5px; border-radius: 50px; display: flex; align-items: center; gap: 8px; border: 1px solid rgba(255,255,255,0.4); cursor: pointer;">
-                    <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">
+                    <div
+                        style="width: 32px; height: 32px; background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">
                         <i class="fas fa-user"></i>
                     </div>
-                    <span class="profile-name" style="font-weight: 600; font-size: 0.85rem; color: var(--text-color);">{{ .username }}</span>
+                    <span class="profile-name"
+                        style="font-weight: 600; font-size: 0.85rem; color: var(--text-color);">{{ .username }}</span>
                 </button>
                 <button onclick="openGeneralCorrectionModal()" class="report-btn"
                     style="background: #000000; border: 1px solid rgba(255,255,255,0.2); padding: 8px 14px; border-radius: 25px; color: white; font-weight: 600; display: flex; align-items: center; gap: 6px; cursor: pointer;">
                     <i class="fas fa-exclamation-triangle"></i>
                     <span class="btn-text">Report</span>
                 </button>
-                <a href="/logout" style="width: 40px; height: 40px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #e74c3c; text-decoration: none;" title="Logout">
+                <a href="/logout"
+                    style="width: 40px; height: 40px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #e74c3c; text-decoration: none;"
+                    title="Logout">
                     <i class="fas fa-sign-out-alt"></i>
                 </a>
             </div>
@@ -358,7 +414,8 @@
 
         <!-- Semester Info Banner -->
         {{ if and .semester_start .semester_end }}
-        <div class="semester-info" style="background: rgba(102, 126, 234, 0.1); border: 1px solid rgba(102, 126, 234, 0.3); padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+        <div class="semester-info"
+            style="background: rgba(102, 126, 234, 0.1); border: 1px solid rgba(102, 126, 234, 0.3); padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
             <div class="semester-info-item" style="display: flex; align-items: center; gap: 8px;">
                 <i class="fas fa-calendar-alt" style="color: #667eea;"></i>
                 <span><strong>Semester:</strong> {{ .semester_start }} to {{ .semester_end }}</span>
@@ -375,7 +432,8 @@
         {{ end }}
 
         <!-- Stats Cards -->
-        <div class="stats-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+        <div class="stats-container"
+            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
             <div class="stat-card">
                 <h3><i class="fas fa-check-circle" style="color: #28a745;"></i> Total Present</h3>
                 <p class="stat-num" id="stat-present">{{ .total_present }}</p>
@@ -403,7 +461,8 @@
                 <button class="tab-btn" onclick="showTab('calculator')" data-tab="calculator">
                     <i class="fas fa-calculator"></i> <span>Attendance Calculator</span>
                 </button>
-                <button onclick="refreshStudentAttendance()" id="refresh-btn" style="margin-left: auto; background: rgba(255,255,255,0.3); border: 1px solid rgba(255,255,255,0.3); border-radius: 10px; padding: 12px 20px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 600; transition: all 0.3s;">
+                <button onclick="refreshStudentAttendance()" id="refresh-btn"
+                    style="margin-left: auto; background: rgba(255,255,255,0.3); border: 1px solid rgba(255,255,255,0.3); border-radius: 10px; padding: 12px 20px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 600; transition: all 0.3s;">
                     <i class="fas fa-sync-alt"></i> Refresh
                 </button>
             </div>
@@ -431,15 +490,19 @@
                     </div>
                     <div class="filter-group">
                         <label><i class="fas fa-search"></i> Search</label>
-                        <input type="text" id="search-records" onkeyup="filterRecords()" placeholder="Search date, subject...">
+                        <input type="text" id="search-records" onkeyup="filterRecords()"
+                            placeholder="Search date, subject...">
                     </div>
                 </div>
 
                 <!-- Records Grid -->
-                <div id="records-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem;">
+                <div id="records-grid"
+                    style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem;">
                     {{ range .records }}
-                    <div class="record-card" data-subject="{{ .Subject }}" data-status="{{ .Status }}" data-date="{{ .Date }}" data-search="{{ .Date }} {{ .Subject }} {{ .Branch }}">
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                    <div class="record-card" data-subject="{{ .Subject }}" data-status="{{ .Status }}"
+                        data-date="{{ .Date }}" data-search="{{ .Date }} {{ .Subject }} {{ .Branch }}">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
                             <div style="flex: 1;">
                                 <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px;">
                                     <i class="fas fa-clock"></i> {{ .Date }} • {{ .Time }}
@@ -451,33 +514,39 @@
                             </div>
                             <div>
                                 {{ if eq .Status "PRESENT" }}
-                                <span style="background: rgba(40, 167, 69, 0.2); color: #28a745; padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">
+                                <span
+                                    style="background: rgba(40, 167, 69, 0.2); color: #28a745; padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">
                                     <i class="fas fa-check-circle"></i> Present
                                 </span>
                                 {{ else if eq .Status "Present" }}
-                                <span style="background: rgba(40, 167, 69, 0.2); color: #28a745; padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">
+                                <span
+                                    style="background: rgba(40, 167, 69, 0.2); color: #28a745; padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">
                                     <i class="fas fa-check-circle"></i> Present
                                 </span>
                                 {{ else }}
-                                <span style="background: rgba(220, 53, 69, 0.2); color: #dc3545; padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">
+                                <span
+                                    style="background: rgba(220, 53, 69, 0.2); color: #dc3545; padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">
                                     <i class="fas fa-times-circle"></i> Absent
                                 </span>
                                 {{ end }}
                             </div>
                         </div>
                         {{ if or (eq .Status "Absent") (eq .Status "ABSENT") }}
-                        <button onclick="openCorrectionForRecord('{{ .Subject }}', '{{ .Date }}', '{{ .TeacherID }}')" style="width: 100%; background: linear-gradient(135deg, #f39c12, #e67e22); color: white; border: none; padding: 10px; border-radius: 10px; cursor: pointer; font-weight: 600; margin-top: 8px; transition: all 0.3s;">
+                        <button onclick="openCorrectionForRecord('{{ .Subject }}', '{{ .Date }}', '{{ .TeacherID }}')"
+                            style="width: 100%; background: linear-gradient(135deg, #f39c12, #e67e22); color: white; border: none; padding: 10px; border-radius: 10px; cursor: pointer; font-weight: 600; margin-top: 8px; transition: all 0.3s;">
                             <i class="fas fa-flag"></i> Report Issue
                         </button>
                         {{ else }}
-                        <div style="text-align: center; padding: 10px; color: #28a745; font-size: 0.85rem; margin-top: 8px;">
+                        <div
+                            style="text-align: center; padding: 10px; color: #28a745; font-size: 0.85rem; margin-top: 8px;">
                             <i class="fas fa-check-double"></i> All Good
                         </div>
                         {{ end }}
                     </div>
                     {{ else }}
                     <div style="grid-column: 1 / -1; text-align: center; padding: 4rem 2rem; color: var(--text-muted);">
-                        <i class="fas fa-inbox" style="font-size: 4rem; opacity: 0.2; margin-bottom: 1rem; display: block;"></i>
+                        <i class="fas fa-inbox"
+                            style="font-size: 4rem; opacity: 0.2; margin-bottom: 1rem; display: block;"></i>
                         <h3 style="margin: 0 0 0.5rem 0;">No Attendance Records</h3>
                         <p style="margin: 0;">Your attendance records will appear here once classes begin.</p>
                     </div>
@@ -489,15 +558,20 @@
             <div id="calculator-tab" class="tab-content">
                 <!-- Safe Zone Card -->
                 <div class="safe-zone-card">
-                    <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 1rem;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 1rem;">
                         <div>
-                            <h2 style="margin: 0 0 0.5rem 0; font-size: 1.5rem;"><i class="fas fa-shield-alt"></i> Safe Zone Predictor</h2>
-                            <p style="margin: 0; opacity: 0.9; font-size: 0.95rem;">Predict your attendance future and plan wisely</p>
+                            <h2 style="margin: 0 0 0.5rem 0; font-size: 1.5rem;"><i class="fas fa-shield-alt"></i> Safe
+                                Zone Predictor</h2>
+                            <p style="margin: 0; opacity: 0.9; font-size: 0.95rem;">Predict your attendance future and
+                                plan wisely</p>
                         </div>
                         <div style="text-align: right;">
                             <div style="font-size: 0.85rem; opacity: 0.9;">Target Attendance</div>
                             <div style="display: flex; align-items: center; gap: 8px; margin-top: 5px;">
-                                <input type="number" id="calc-target" value="75" min="0" max="100" onchange="calculateAttendance()" style="width: 70px; padding: 8px 12px; border-radius: 8px; border: none; font-size: 1rem; font-weight: 700; text-align: center;">
+                                <input type="number" id="calc-target" value="75" min="0" max="100"
+                                    onchange="calculateAttendance()"
+                                    style="width: 70px; padding: 8px 12px; border-radius: 8px; border: none; font-size: 1rem; font-weight: 700; text-align: center;">
                                 <span style="font-size: 1.2rem; font-weight: 700;">%</span>
                             </div>
                         </div>
@@ -505,7 +579,8 @@
                 </div>
 
                 <!-- Status Alert -->
-                <div id="attendance-alert" class="attendance-success" style="margin-bottom: 2rem; padding: 1.25rem 1.5rem; border-radius: 15px; display: flex; align-items: center; gap: 15px;">
+                <div id="attendance-alert" class="attendance-success"
+                    style="margin-bottom: 2rem; padding: 1.25rem 1.5rem; border-radius: 15px; display: flex; align-items: center; gap: 15px;">
                     <i class="fas fa-info-circle" style="font-size: 1.8rem;"></i>
                     <div>
                         <strong id="alert-title" style="display: block; margin-bottom: 3px;">Status</strong>
@@ -533,28 +608,36 @@
                 </div>
 
                 <!-- Calculator Inputs -->
-                <div style="background: rgba(255,255,255,0.35); backdrop-filter: blur(10px); border-radius: 20px; padding: 1.5rem; margin-bottom: 2rem; border: 1px solid rgba(255,255,255,0.4);">
+                <div
+                    style="background: rgba(255,255,255,0.35); backdrop-filter: blur(10px); border-radius: 20px; padding: 1.5rem; margin-bottom: 2rem; border: 1px solid rgba(255,255,255,0.4);">
                     <h3 style="margin: 0 0 1.5rem 0; display: flex; align-items: center; gap: 10px;">
                         <i class="fas fa-sliders-h"></i> Adjust Values
                     </h3>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+                    <div
+                        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
                         <div>
                             <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px;">
                                 <i class="fas fa-check" style="color: #28a745;"></i> Classes Attended
                             </label>
-                            <input type="number" id="calc-attended" value="{{ .total_present }}" min="0" oninput="calculateAttendance()" style="width: 100%; padding: 14px; border: 2px solid rgba(255,255,255,0.3); border-radius: 12px; background: rgba(255,255,255,0.2); font-size: 1.1rem; font-weight: 600;">
+                            <input type="number" id="calc-attended" value="{{ .total_present }}" min="0"
+                                oninput="calculateAttendance()"
+                                style="width: 100%; padding: 14px; border: 2px solid rgba(255,255,255,0.3); border-radius: 12px; background: rgba(255,255,255,0.2); font-size: 1.1rem; font-weight: 600;">
                         </div>
                         <div>
                             <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px;">
                                 <i class="fas fa-calendar" style="color: #667eea;"></i> Total Classes Held
                             </label>
-                            <input type="number" id="calc-total" value="{{ .working_days }}" min="0" oninput="calculateAttendance()" style="width: 100%; padding: 14px; border: 2px solid rgba(255,255,255,0.3); border-radius: 12px; background: rgba(255,255,255,0.2); font-size: 1.1rem; font-weight: 600;">
+                            <input type="number" id="calc-total" value="{{ .working_days }}" min="0"
+                                oninput="calculateAttendance()"
+                                style="width: 100%; padding: 14px; border: 2px solid rgba(255,255,255,0.3); border-radius: 12px; background: rgba(255,255,255,0.2); font-size: 1.1rem; font-weight: 600;">
                         </div>
                         <div>
                             <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px;">
                                 <i class="fas fa-forward" style="color: #ffc107;"></i> Future Classes
                             </label>
-                            <input type="number" id="calc-future" value="{{ .remaining_sem_days }}" min="0" oninput="calculateAttendance()" style="width: 100%; padding: 14px; border: 2px solid rgba(255,255,255,0.3); border-radius: 12px; background: rgba(255,255,255,0.2); font-size: 1.1rem; font-weight: 600;">
+                            <input type="number" id="calc-future" value="{{ .remaining_sem_days }}" min="0"
+                                oninput="calculateAttendance()"
+                                style="width: 100%; padding: 14px; border: 2px solid rgba(255,255,255,0.3); border-radius: 12px; background: rgba(255,255,255,0.2); font-size: 1.1rem; font-weight: 600;">
                         </div>
                     </div>
                 </div>
@@ -581,14 +664,21 @@
                         <!-- Days will be populated by JS -->
                     </div>
                     <div class="calendar-legend">
-                        <div class="legend-item"><div class="legend-dot present"></div> Present</div>
-                        <div class="legend-item"><div class="legend-dot absent"></div> Absent</div>
-                        <div class="legend-item"><div class="legend-dot holiday"></div> Holiday</div>
+                        <div class="legend-item">
+                            <div class="legend-dot present"></div> Present
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot absent"></div> Absent
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot holiday"></div> Holiday
+                        </div>
                     </div>
                 </div>
 
                 <!-- What-If Scenario -->
-                <div style="background: rgba(255,255,255,0.35); backdrop-filter: blur(10px); border-radius: 20px; padding: 1.5rem; margin-top: 2rem; border: 1px solid rgba(255,255,255,0.4);">
+                <div
+                    style="background: rgba(255,255,255,0.35); backdrop-filter: blur(10px); border-radius: 20px; padding: 1.5rem; margin-top: 2rem; border: 1px solid rgba(255,255,255,0.4);">
                     <h4 style="margin: 0 0 1.5rem 0; display: flex; align-items: center; gap: 10px;">
                         <i class="fas fa-crystal-ball"></i> What-If Scenario
                     </h4>
@@ -597,11 +687,15 @@
                             <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px;">
                                 If I skip the next <span id="skip-count-label">5</span> classes...
                             </label>
-                            <input type="range" id="skip-scenario" min="0" max="30" value="5" oninput="updateSkipLabel(); calculateScenario();" style="width: 100%; height: 8px; border-radius: 4px; cursor: pointer;">
+                            <input type="range" id="skip-scenario" min="0" max="30" value="5"
+                                oninput="updateSkipLabel(); calculateScenario();"
+                                style="width: 100%; height: 8px; border-radius: 4px; cursor: pointer;">
                         </div>
                         <div style="flex: 1; min-width: 200px; text-align: center;">
-                            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;">Projected Attendance</div>
-                            <div id="projected-percentage" style="font-size: 2.5rem; font-weight: 700; color: #667eea;">--</div>
+                            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;">Projected
+                                Attendance</div>
+                            <div id="projected-percentage" style="font-size: 2.5rem; font-weight: 700; color: #667eea;">
+                                --</div>
                         </div>
                     </div>
                 </div>
@@ -610,37 +704,50 @@
     </div>
 
     <!-- Correction Modal -->
-    <div id="correctionModal" class="modal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; overflow-y: auto;">
-        <div style="background: white; padding: 2rem; border-radius: 20px; max-width: 500px; width: 90%; position: relative; margin: 20px auto;">
-            <button onclick="closeCorrectionModal()" style="position: absolute; top: 15px; right: 15px; background: #e74c3c; border: none; color: white; font-size: 1.2rem; cursor: pointer; width: 35px; height: 35px; border-radius: 50%;">&times;</button>
+    <div id="correctionModal" class="modal"
+        style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; overflow-y: auto;">
+        <div
+            style="background: white; padding: 2rem; border-radius: 20px; max-width: 500px; width: 90%; position: relative; margin: 20px auto;">
+            <button onclick="closeCorrectionModal()"
+                style="position: absolute; top: 15px; right: 15px; background: #e74c3c; border: none; color: white; font-size: 1.2rem; cursor: pointer; width: 35px; height: 35px; border-radius: 50%;">&times;</button>
             <h3 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px;">
                 <i class="fas fa-clipboard-check" style="color: #667eea;"></i> Request Attendance Correction
             </h3>
             <form id="correctionForm">
                 <div style="margin-bottom: 1rem;">
                     <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Subject *</label>
-                    <select id="correction-subject" required style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 1rem;">
+                    <select id="correction-subject" required
+                        style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 1rem;">
                         <option value="">Loading subjects...</option>
                     </select>
                     <input type="hidden" id="correction-teacher-id">
                 </div>
                 <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Date of Absence *</label>
-                    <input type="date" id="correction-date" required style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 1rem;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Date of Absence
+                        *</label>
+                    <input type="date" id="correction-date" required
+                        style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 1rem;">
                 </div>
                 <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Reason for Absence *</label>
-                    <textarea id="correction-reason" rows="4" placeholder="Explain why you were absent..." style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 1rem; resize: vertical;" required></textarea>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">Reason for Absence
+                        *</label>
+                    <textarea id="correction-reason" rows="4" placeholder="Explain why you were absent..."
+                        style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 1rem; resize: vertical;"
+                        required></textarea>
                 </div>
                 <div style="margin-bottom: 1.5rem;">
                     <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">
                         <i class="fas fa-paperclip"></i> Proof (Optional)
                     </label>
-                    <input type="file" id="correction-proof" accept="image/*,.pdf" style="width: 100%; padding: 10px; border: 2px dashed #ddd; border-radius: 10px;">
-                    <small style="color: #666; display: block; margin-top: 5px;">Medical certificate, letter, etc.</small>
+                    <input type="file" id="correction-proof" accept="image/*,.pdf"
+                        style="width: 100%; padding: 10px; border: 2px dashed #ddd; border-radius: 10px;">
+                    <small style="color: #666; display: block; margin-top: 5px;">Medical certificate, letter,
+                        etc.</small>
                 </div>
-                <div id="correction-msg" style="margin-bottom: 1rem; padding: 10px; border-radius: 8px; display: none;"></div>
-                <button type="submit" id="correction-submit-btn" style="width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 15px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 1rem;">
+                <div id="correction-msg" style="margin-bottom: 1rem; padding: 10px; border-radius: 8px; display: none;">
+                </div>
+                <button type="submit" id="correction-submit-btn"
+                    style="width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 15px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 1rem;">
                     <i class="fas fa-paper-plane"></i> Submit Request
                 </button>
             </form>
@@ -658,19 +765,26 @@
     </div>
 
     <!-- Profile Modal -->
-    <div id="profileModal" class="modal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
-        <div style="background: white; padding: 2rem; border-radius: 20px; max-width: 450px; width: 90%; position: relative; margin: 20px auto;">
-            <button onclick="closeProfileModal()" style="position: absolute; top: 15px; right: 15px; background: #e74c3c; border: none; color: white; font-size: 1.2rem; cursor: pointer; width: 35px; height: 35px; border-radius: 50%;">&times;</button>
+    <div id="profileModal" class="modal"
+        style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
+        <div
+            style="background: white; padding: 2rem; border-radius: 20px; max-width: 450px; width: 90%; position: relative; margin: 20px auto;">
+            <button onclick="closeProfileModal()"
+                style="position: absolute; top: 15px; right: 15px; background: #e74c3c; border: none; color: white; font-size: 1.2rem; cursor: pointer; width: 35px; height: 35px; border-radius: 50%;">&times;</button>
             <div style="text-align: center; margin-bottom: 1.5rem;">
-                <div style="width: 100px; height: 100px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
+                <div
+                    style="width: 100px; height: 100px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
                     <i class="fas fa-user-graduate" style="font-size: 2.5rem; color: white;"></i>
                 </div>
                 <h2 style="margin: 0; color: #333;">{{ .username }}</h2>
                 <p style="color: #666; margin: 5px 0; font-size: 0.9rem;">Student</p>
             </div>
-            <div style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%); border-radius: 15px; padding: 1.25rem;">
-                <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(102, 126, 234, 0.2);">
-                    <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+            <div
+                style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%); border-radius: 15px; padding: 1.25rem;">
+                <div
+                    style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(102, 126, 234, 0.2);">
+                    <div
+                        style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
                         <i class="fas fa-id-card" style="color: white;"></i>
                     </div>
                     <div>
@@ -678,35 +792,44 @@
                         <strong style="display: block; color: #333;">{{ .student_id }}</strong>
                     </div>
                 </div>
-                <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(102, 126, 234, 0.2);">
-                    <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                <div
+                    style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(102, 126, 234, 0.2);">
+                    <div
+                        style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
                         <i class="fas fa-code-branch" style="color: white;"></i>
                     </div>
                     <div>
                         <small style="color: #888;">Branch</small>
-                        <strong style="display: block; color: #333;">{{ if .branch }}{{ .branch }}{{ else }}Not set{{ end }}</strong>
+                        <strong style="display: block; color: #333;">{{ if .branch }}{{ .branch }}{{ else }}Not set{{
+                            end }}</strong>
                     </div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0;">
-                    <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #28a745, #20c997); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                    <div
+                        style="width: 40px; height: 40px; background: linear-gradient(135deg, #28a745, #20c997); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
                         <i class="fas fa-percentage" style="color: white;"></i>
                     </div>
                     <div>
                         <small style="color: #888;">Current Attendance</small>
-                        <strong style="display: block; color: {{ if ge .percentage 75.0 }}#28a745{{ else if ge .percentage 60.0 }}#ffc107{{ else }}#dc3545{{ end }};">{{ printf "%.2f" .percentage }}%</strong>
+                        <strong
+                            style="display: block; color: {{ if ge .percentage 75.0 }}#28a745{{ else if ge .percentage 60.0 }}#ffc107{{ else }}#dc3545{{ end }};">{{
+                            printf "%.2f" .percentage }}%</strong>
                     </div>
                 </div>
             </div>
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 1rem;">
-                <div style="background: rgba(40, 167, 69, 0.1); border: 1px solid rgba(40, 167, 69, 0.3); padding: 12px; border-radius: 12px; text-align: center;">
+                <div
+                    style="background: rgba(40, 167, 69, 0.1); border: 1px solid rgba(40, 167, 69, 0.3); padding: 12px; border-radius: 12px; text-align: center;">
                     <div style="font-size: 1.5rem; font-weight: 700; color: #28a745;">{{ .total_present }}</div>
                     <small style="color: #666;">Present</small>
                 </div>
-                <div style="background: rgba(102, 126, 234, 0.1); border: 1px solid rgba(102, 126, 234, 0.3); padding: 12px; border-radius: 12px; text-align: center;">
+                <div
+                    style="background: rgba(102, 126, 234, 0.1); border: 1px solid rgba(102, 126, 234, 0.3); padding: 12px; border-radius: 12px; text-align: center;">
                     <div style="font-size: 1.5rem; font-weight: 700; color: #667eea;">{{ .working_days }}</div>
                     <small style="color: #666;">Total</small>
                 </div>
-                <div style="background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.3); padding: 12px; border-radius: 12px; text-align: center;">
+                <div
+                    style="background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.3); padding: 12px; border-radius: 12px; text-align: center;">
                     <div style="font-size: 1.5rem; font-weight: 700; color: #ffc107;">{{ .remaining_sem_days }}</div>
                     <small style="color: #666;">Left</small>
                 </div>
@@ -719,10 +842,10 @@
     <script>
         // ==================== TAB SWITCHING ====================
         function showTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(function(tab) {
+            document.querySelectorAll('.tab-content').forEach(function (tab) {
                 tab.classList.remove('active');
             });
-            document.querySelectorAll('.tab-btn').forEach(function(btn) {
+            document.querySelectorAll('.tab-btn').forEach(function (btn) {
                 btn.classList.remove('active');
             });
             var selectedTab = document.getElementById(tabId + '-tab');
@@ -734,7 +857,7 @@
                 clickedBtn.classList.add('active');
             }
             localStorage.setItem('activeStudentTab', tabId);
-            
+
             if (tabId === 'calculator') {
                 calculateAttendance();
                 renderCalendar();
@@ -821,9 +944,9 @@
         var attendanceData = {};
 
         // Build attendance data from records
-        {{ range .records }}
+        { { range.records } }
         attendanceData['{{ .Date }}'] = '{{ .Status }}';
-        {{ end }}
+        { { end } }
 
         function renderCalendar() {
             var year = currentCalendarDate.getFullYear();
@@ -837,7 +960,7 @@
             // Keep headers
             var headers = grid.querySelectorAll('.calendar-day-header');
             grid.innerHTML = '';
-            headers.forEach(function(h) { grid.appendChild(h); });
+            headers.forEach(function (h) { grid.appendChild(h); });
 
             var firstDay = new Date(year, month, 1).getDay();
             var daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -894,7 +1017,7 @@
             var cards = document.querySelectorAll('.record-card');
             var visibleCount = 0;
 
-            cards.forEach(function(card) {
+            cards.forEach(function (card) {
                 var subject = (card.dataset.subject || '').toLowerCase();
                 var status = (card.dataset.status || '').toUpperCase();
                 var searchData = (card.dataset.search || '').toLowerCase();
@@ -935,7 +1058,7 @@
                     // Update attendance data for calendar
                     attendanceData = {};
                     if (data.records) {
-                        data.records.forEach(function(r) {
+                        data.records.forEach(function (r) {
                             var date = r.date || r.Date || '';
                             var status = r.status || r.Status || 'ABSENT';
                             attendanceData[date] = status;
@@ -970,7 +1093,7 @@
 
             // Build HTML for all records
             var html = '';
-            records.forEach(function(r) {
+            records.forEach(function (r) {
                 // Handle both lowercase (from JSON) and uppercase (from template) field names
                 var status = (r.status || r.Status || 'ABSENT').toUpperCase();
                 var subject = r.subject || r.Subject || 'Unknown';
@@ -978,7 +1101,7 @@
                 var date = r.date || r.Date || '';
                 var time = r.time || r.Time || '00:00:00';
                 var teacherId = r.teacher_id || r.TeacherID || '';
-                
+
                 var statusClass = status === 'PRESENT' ? 'PRESENT' : 'ABSENT';
                 var statusDisplay = status === 'PRESENT' ? 'Present' : 'Absent';
                 var statusColor = status === 'PRESENT' ? '#28a745' : '#dc3545';
@@ -1035,7 +1158,7 @@
         function openCorrectionForRecord(subject, date, teacherId) {
             document.getElementById('correctionModal').style.display = 'flex';
             // Pre-fill the form
-            setTimeout(function() {
+            setTimeout(function () {
                 var subjectSelect = document.getElementById('correction-subject');
                 for (var i = 0; i < subjectSelect.options.length; i++) {
                     if (subjectSelect.options[i].value === subject) {
@@ -1049,14 +1172,14 @@
         }
 
         // ==================== INIT ====================
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             var savedTab = localStorage.getItem('activeStudentTab') || 'records';
             showTab(savedTab);
             calculateAttendance();
             renderCalendar();
 
             // Refresh on visibility change
-            document.addEventListener('visibilitychange', function() {
+            document.addEventListener('visibilitychange', function () {
                 if (!document.hidden) {
                     refreshStudentAttendance();
                 }

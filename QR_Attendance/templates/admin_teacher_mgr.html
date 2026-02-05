@@ -258,29 +258,31 @@
             <div class="card">
                 <h3>Attendance Log ({{ .today }})</h3>
                 {{ if .attendance }}
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Teacher</th>
-                            <th>Time</th>
-                            <th>Status</th>
-                            <th>Method</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {{ range .attendance }}
-                        <tr>
-                            <td>
-                                <div>{{ .Name }}</div>
-                                <div style="font-size: 0.8rem; color: #64748b;">{{ .TeacherID }}</div>
-                            </td>
-                            <td>{{ .Time }}</td>
-                            <td><span class="badge badge-present">{{ .Status }}</span></td>
-                            <td>QR / Auto</td>
-                        </tr>
-                        {{ end }}
-                    </tbody>
-                </table>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Teacher</th>
+                                <th>Time</th>
+                                <th>Status</th>
+                                <th>Method</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{ range .attendance }}
+                            <tr>
+                                <td>
+                                    <div>{{ .Name }}</div>
+                                    <div style="font-size: 0.8rem; color: #64748b;">{{ .TeacherID }}</div>
+                                </td>
+                                <td>{{ .Time }}</td>
+                                <td><span class="badge badge-present">{{ .Status }}</span></td>
+                                <td>QR / Auto</td>
+                            </tr>
+                            {{ end }}
+                        </tbody>
+                    </table>
+                </div>
                 {{ else }}
                 <div class="empty-state">No attendance marked today yet.</div>
                 {{ end }}
@@ -292,39 +294,41 @@
             <div class="card">
                 <h3>Pending Requests</h3>
                 {{ if .issues }}
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Teacher</th>
-                            <th>Reason</th>
-                            <th>Proof</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {{ range .issues }}
-                        <tr id="issue-{{ .ID }}">
-                            <td>{{ .Date }}</td>
-                            <td>{{ .Name }}</td>
-                            <td>{{ .Reason }}</td>
-                            <td>
-                                {{ if .ProofURL }}
-                                <a href="{{ .ProofURL }}" target="_blank" style="color: var(--primary);">View</a>
-                                {{ else }}
-                                -
-                                {{ end }}
-                            </td>
-                            <td>
-                                <button class="action-btn btn-approve"
-                                    onclick="handleIssue('{{ .ID }}', 'APPROVE')">Approve</button>
-                                <button class="action-btn btn-reject"
-                                    onclick="handleIssue('{{ .ID }}', 'REJECT')">Reject</button>
-                            </td>
-                        </tr>
-                        {{ end }}
-                    </tbody>
-                </table>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Teacher</th>
+                                <th>Reason</th>
+                                <th>Proof</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{ range .issues }}
+                            <tr id="issue-{{ .ID }}">
+                                <td>{{ .Date }}</td>
+                                <td>{{ .Name }}</td>
+                                <td>{{ .Reason }}</td>
+                                <td>
+                                    {{ if .ProofURL }}
+                                    <a href="{{ .ProofURL }}" target="_blank" style="color: var(--primary);">View</a>
+                                    {{ else }}
+                                    -
+                                    {{ end }}
+                                </td>
+                                <td>
+                                    <button class="action-btn btn-approve"
+                                        onclick="handleIssue('{{ .ID }}', 'APPROVE')">Approve</button>
+                                    <button class="action-btn btn-reject"
+                                        onclick="handleIssue('{{ .ID }}', 'REJECT')">Reject</button>
+                                </td>
+                            </tr>
+                            {{ end }}
+                        </tbody>
+                    </table>
+                </div>
                 {{ else }}
                 <div class="empty-state">No pending requests.</div>
                 {{ end }}
@@ -336,43 +340,45 @@
             <div class="card">
                 <h3>Leave/Permission Requests</h3>
                 {{ if .permission_requests }}
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Teacher</th>
-                            <th>Type</th>
-                            <th>Date(s)</th>
-                            <th>Time</th>
-                            <th>Reason</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {{ range .permission_requests }}
-                        <tr id="perm-{{ .ID }}">
-                            <td>
-                                <div>{{ .TeacherName }}</div>
-                                <div style="font-size: 0.8rem; color: #64748b;">{{ .TeacherID }}</div>
-                            </td>
-                            <td><span class="badge badge-pending">{{ .Title }}</span></td>
-                            <td>
-                                {{ .StartDate }}
-                                {{ if and .EndDate (ne .EndDate .StartDate) }} - {{ .EndDate }}{{ end }}
-                            </td>
-                            <td>
-                                {{ if .TimeFrom }}{{ .TimeFrom }} - {{ .TimeTo }}{{ else }}-{{ end }}
-                            </td>
-                            <td style="max-width: 200px;">{{ .Reason }}</td>
-                            <td>
-                                <button class="action-btn btn-approve"
-                                    onclick="handlePermission('{{ .ID }}', 'APPROVE')">Approve</button>
-                                <button class="action-btn btn-reject"
-                                    onclick="handlePermission('{{ .ID }}', 'REJECT')">Reject</button>
-                            </td>
-                        </tr>
-                        {{ end }}
-                    </tbody>
-                </table>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Teacher</th>
+                                <th>Type</th>
+                                <th>Date(s)</th>
+                                <th>Time</th>
+                                <th>Reason</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{ range .permission_requests }}
+                            <tr id="perm-{{ .ID }}">
+                                <td>
+                                    <div>{{ .TeacherName }}</div>
+                                    <div style="font-size: 0.8rem; color: #64748b;">{{ .TeacherID }}</div>
+                                </td>
+                                <td><span class="badge badge-pending">{{ .Title }}</span></td>
+                                <td>
+                                    {{ .StartDate }}
+                                    {{ if and .EndDate (ne .EndDate .StartDate) }} - {{ .EndDate }}{{ end }}
+                                </td>
+                                <td>
+                                    {{ if .TimeFrom }}{{ .TimeFrom }} - {{ .TimeTo }}{{ else }}-{{ end }}
+                                </td>
+                                <td style="max-width: 200px;">{{ .Reason }}</td>
+                                <td>
+                                    <button class="action-btn btn-approve"
+                                        onclick="handlePermission('{{ .ID }}', 'APPROVE')">Approve</button>
+                                    <button class="action-btn btn-reject"
+                                        onclick="handlePermission('{{ .ID }}', 'REJECT')">Reject</button>
+                                </td>
+                            </tr>
+                            {{ end }}
+                        </tbody>
+                    </table>
+                </div>
                 {{ else }}
                 <div class="empty-state">No pending leave/permission requests.</div>
                 {{ end }}
@@ -383,26 +389,28 @@
         <div id="history" class="tab-content">
             <div class="card">
                 <h3>Recent Activity (Last 50)</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Teacher</th>
-                            <th>Time</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {{ range .history }}
-                        <tr>
-                            <td>{{ .Date }}</td>
-                            <td>{{ .Name }}</td>
-                            <td>{{ .Time }}</td>
-                            <td><span class="badge badge-present">{{ .Status }}</span></td>
-                        </tr>
-                        {{ end }}
-                    </tbody>
-                </table>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Teacher</th>
+                                <th>Time</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{ range .history }}
+                            <tr>
+                                <td>{{ .Date }}</td>
+                                <td>{{ .Name }}</td>
+                                <td>{{ .Time }}</td>
+                                <td><span class="badge badge-present">{{ .Status }}</span></td>
+                            </tr>
+                            {{ end }}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
