@@ -250,6 +250,12 @@
                     style="background: var(--warning); color: #000; font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; margin-left: 5px;">{{
                     len .permission_requests }}</span>{{ end }}
             </button>
+            <button class="tab-btn" onclick="switchTab('pending-registrations')" id="pendingRegBtn"
+                style="position: relative;">
+                Pending Registrations
+                <span id="pendingRegCount"
+                    style="background: var(--danger); color: #fff; font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; margin-left: 5px; display: none;"></span>
+            </button>
             <button class="tab-btn" onclick="switchTab('history')">History</button>
         </div>
 
@@ -385,6 +391,16 @@
             </div>
         </div>
 
+        <!-- Tab 5: Pending Registrations -->
+        <div id="pending-registrations" class="tab-content">
+            <div class="card">
+                <h3>Pending Teacher Registrations</h3>
+                <div id="pendingRegContent">
+                    <div class="empty-state">Loading...</div>
+                </div>
+            </div>
+        </div>
+
         <!-- Tab 4: History -->
         <div id="history" class="tab-content">
             <div class="card">
@@ -424,12 +440,113 @@
             // Show target
             document.getElementById(tabId).classList.add('active');
 
-            // Activate btn - Need logic to find correct button, simple hack:
+            // Activate btn
             const btns = document.querySelectorAll('.tab-btn');
             if (tabId === 'daily') btns[0].classList.add('active');
             if (tabId === 'issues') btns[1].classList.add('active');
             if (tabId === 'permissions') btns[2].classList.add('active');
-            if (tabId === 'history') btns[3].classList.add('active');
+            if (tabId === 'pending-registrations') {
+                btns[3].classList.add('active');
+                loadPendingRegistrations();
+            }
+            if (tabId === 'history') btns[4].classList.add('active');
+        }
+
+        async function loadPendingRegistrations() {
+            const container = document.getElementById('pendingRegContent');
+            try {
+                const response = await fetch('/admin/pending-teachers');
+                const result = await response.json();
+
+                if (result.success && result.pending && result.pending.length > 0) {
+                    let html = `<div style="overflow-x: auto;"><table>
+                        <thead>
+                            <tr>
+                                <th>Teacher ID</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Submitted</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+
+                    result.pending.forEach(reg => {
+                        const date = reg.created_at ? new Date(reg.created_at._seconds * 1000).toLocaleDateString() : 'N/A';
+                        html += `
+                            <tr id="pending-reg-${reg.id}">
+                                <td>${reg.teacher_id}</td>
+                                <td>${reg.full_name}</td>
+                                <td>${reg.email || '-'}</td>
+                                <td>${reg.phone || '-'}</td>
+                                <td>${date}</td>
+                                <td>
+                                    <button class="action-btn btn-approve" onclick="approveTeacher('${reg.id}')">Approve</button>
+                                    <button class="action-btn btn-reject" onclick="rejectTeacher('${reg.id}')">Reject</button>
+                                </td>
+                            </tr>`;
+                    });
+
+                    html += '</tbody></table></div>';
+                    container.innerHTML = html;
+
+                    // Update badge count
+                    const countBadge = document.getElementById('pendingRegCount');
+                    countBadge.textContent = result.pending.length;
+                    countBadge.style.display = 'inline';
+                } else {
+                    container.innerHTML = '<div class="empty-state">No pending teacher registrations.</div>';
+                    document.getElementById('pendingRegCount').style.display = 'none';
+                }
+            } catch (e) {
+                container.innerHTML = '<div class="empty-state">Error loading pending registrations.</div>';
+            }
+        }
+
+        async function approveTeacher(id) {
+            if (!confirm('Are you sure you want to APPROVE this teacher registration?')) return;
+
+            try {
+                const response = await fetch('/admin/approve-teacher', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ registration_id: id })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    document.getElementById('pending-reg-' + id).remove();
+                    alert('✅ Teacher registration approved! They can now login.');
+                    loadPendingRegistrations();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (e) {
+                alert('Network Error');
+            }
+        }
+
+        async function rejectTeacher(id) {
+            const remarks = prompt('Enter rejection reason (optional):');
+            if (remarks === null) return; // Cancelled
+
+            try {
+                const response = await fetch('/admin/reject-teacher', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ registration_id: id, remarks: remarks })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    document.getElementById('pending-reg-' + id).remove();
+                    alert('❌ Teacher registration rejected.');
+                    loadPendingRegistrations();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (e) {
+                alert('Network Error');
+            }
         }
 
         async function handleIssue(id, action) {
@@ -447,9 +564,7 @@
                 });
                 const result = await response.json();
                 if (result.success) {
-                    // Remove row
                     document.getElementById('issue-' + id).remove();
-                    // Update counter (optional, requires reload or dom manip)
                 } else {
                     alert('Error: ' + result.message);
                 }
@@ -482,6 +597,20 @@
                 alert('Network Error');
             }
         }
+
+        // Load pending registrations count on page load
+        document.addEventListener('DOMContentLoaded', function () {
+            fetch('/admin/pending-teachers')
+                .then(r => r.json())
+                .then(result => {
+                    if (result.success && result.pending && result.pending.length > 0) {
+                        const countBadge = document.getElementById('pendingRegCount');
+                        countBadge.textContent = result.pending.length;
+                        countBadge.style.display = 'inline';
+                    }
+                })
+                .catch(() => { });
+        });
     </script>
 </body>
 

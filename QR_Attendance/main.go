@@ -295,6 +295,20 @@ type PermissionRequest struct {
 	UpdatedAt    time.Time `json:"updated_at" firestore:"updated_at"`
 }
 
+// PendingTeacherRegistration represents a teacher registration awaiting admin approval
+type PendingTeacherRegistration struct {
+	ID           string    `json:"id" firestore:"id,omitempty"`
+	TeacherID    string    `json:"teacher_id" firestore:"teacher_id"`
+	FullName     string    `json:"full_name" firestore:"full_name"`
+	Email        string    `json:"email" firestore:"email"`
+	Phone        string    `json:"phone" firestore:"phone"`
+	Password     string    `json:"password" firestore:"password"` // Hashed
+	Status       string    `json:"status" firestore:"status"`     // PENDING, APPROVED, REJECTED
+	CreatedAt    time.Time `json:"created_at" firestore:"created_at"`
+	ReviewedAt   time.Time `json:"reviewed_at" firestore:"reviewed_at,omitempty"`
+	AdminRemarks string    `json:"admin_remarks" firestore:"admin_remarks,omitempty"`
+}
+
 // ==================== GLOBAL CLIENTS ====================
 
 var firestoreClient *firestore.Client
@@ -436,8 +450,7 @@ func registerHandler(c *gin.Context) {
 		session.Set("csrf_token", csrfToken)
 		session.Save()
 		c.HTML(http.StatusOK, "register.html", gin.H{"csrf_token": csrfToken})
-		return // Changed to render register.html specific template if desired, or login with is_register
-		// User previously asked for register.html conversion, so let's use it
+		return
 	}
 
 	// Rate limiting check
@@ -447,8 +460,7 @@ func registerHandler(c *gin.Context) {
 		return
 	}
 
-	// Logic similar to loginHandler...
-	username := c.PostForm("username") // Register matches login logic now
+	username := c.PostForm("username")
 	password := c.PostForm("password")
 	role := c.PostForm("role")
 	email := c.PostForm("email") // Teacher email
@@ -458,18 +470,62 @@ func registerHandler(c *gin.Context) {
 	studentEmail := c.PostForm("student_email")
 	studentBranch := c.PostForm("student_branch")
 
+	// Check if user already exists in users collection
 	_, err := firestoreClient.Collection("users").Doc(username).Get(context.Background())
 	if err == nil {
 		c.HTML(http.StatusOK, "register.html", gin.H{"error": "User already exists"})
 		return
 	}
-	hashed, _ := hashPassword(password)
 
-	// Use appropriate email based on role
-	userEmail := email
-	if role == "student" {
-		userEmail = studentEmail
+	// For teachers, also check if they have a pending registration
+	if role == "teacher" {
+		// Check pending_teacher_registrations for existing pending request
+		iter := firestoreClient.Collection("pending_teacher_registrations").Where("teacher_id", "==", username).Documents(context.Background())
+		doc, err := iter.Next()
+		if err == nil && doc.Exists() {
+			var pending PendingTeacherRegistration
+			doc.DataTo(&pending)
+			if pending.Status == "PENDING" {
+				c.HTML(http.StatusOK, "register.html", gin.H{"error": "You already have a pending registration. Please wait for admin approval."})
+				return
+			} else if pending.Status == "REJECTED" {
+				c.HTML(http.StatusOK, "register.html", gin.H{"error": "Your previous registration was rejected. Please contact the admin."})
+				return
+			}
+		}
+
+		// Create pending teacher registration
+		fullName := c.PostForm("full_name")
+		phone := c.PostForm("phone")
+		hashed, _ := hashPassword(password)
+
+		pendingReg := PendingTeacherRegistration{
+			TeacherID: username,
+			FullName:  fullName,
+			Email:     email,
+			Phone:     phone,
+			Password:  hashed,
+			Status:    "PENDING",
+			CreatedAt: time.Now(),
+		}
+
+		_, _, err = firestoreClient.Collection("pending_teacher_registrations").Add(context.Background(), pendingReg)
+		if err != nil {
+			c.HTML(http.StatusOK, "register.html", gin.H{"error": "Failed to submit registration: " + err.Error()})
+			return
+		}
+
+		log.Printf("[REGISTER] Teacher registration submitted for approval: %s (%s)", username, fullName)
+		c.HTML(http.StatusOK, "registration_pending.html", gin.H{
+			"teacher_id": username,
+			"full_name":  fullName,
+		})
+		return
 	}
+
+	// For students, register directly (existing behavior)
+	hashed, _ := hashPassword(password)
+	userEmail := studentEmail
 
 	user := User{Username: username, Password: hashed, Role: role, Email: userEmail, CreatedAt: time.Now()}
 	_, err = firestoreClient.Collection("users").Doc(username).Set(context.Background(), user)
@@ -478,35 +534,17 @@ func registerHandler(c *gin.Context) {
 		return
 	}
 
-	// If student, also create entry in students collection
-	if role == "student" {
-		studentData := map[string]interface{}{
-			"roll":       username,
-			"name":       studentName,
-			"email":      studentEmail,
-			"branch":     studentBranch,
-			"created_at": time.Now(),
-		}
-		_, err = firestoreClient.Collection("students").Doc(username).Set(context.Background(), studentData)
-		if err != nil {
-			log.Printf("Error creating student record: %v", err)
-		}
+	// Create student entry
+	studentData := map[string]interface{}{
+		"roll":       username,
+		"name":       studentName,
+		"email":      studentEmail,
+		"branch":     studentBranch,
+		"created_at": time.Now(),
 	}
-
-	// If teacher, also create entry in teachers collection
-	if role == "teacher" {
-		fullName := c.PostForm("full_name")
-		phone := c.PostForm("phone")
-		teacherData := map[string]interface{}{
-			"name":       fullName,
-			"email":      email,
-			"phone":      phone,
-			"created_at": time.Now(),
-		}
-		_, err = firestoreClient.Collection("teachers").Doc(username).Set(context.Background(), teacherData)
-		if err != nil {
-			log.Printf("Error creating teacher record: %v", err)
-		}
+	_, err = firestoreClient.Collection("students").Doc(username).Set(context.Background(), studentData)
+	if err != nil {
+		log.Printf("Error creating student record: %v", err)
 	}
 
 	c.Redirect(http.StatusFound, "/login")
@@ -1680,6 +1718,156 @@ func main() {
 		}
 
 		c.JSON(http.StatusOK, gin.H{"success": true, "history": history})
+	})
+
+	// Admin - Get pending teacher registrations
+	r.GET("/admin/pending-teachers", func(c *gin.Context) {
+		session := sessions.Default(c)
+		if session.Get("role") != "admin" {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Not authorized"})
+			return
+		}
+
+		// Get all pending teacher registrations
+		iter := firestoreClient.Collection("pending_teacher_registrations").Where("status", "==", "PENDING").Documents(context.Background())
+		var pending []map[string]interface{}
+
+		for {
+			doc, err := iter.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				continue
+			}
+
+			data := doc.Data()
+			pending = append(pending, map[string]interface{}{
+				"id":         doc.Ref.ID,
+				"teacher_id": data["teacher_id"],
+				"full_name":  data["full_name"],
+				"email":      data["email"],
+				"phone":      data["phone"],
+				"created_at": data["created_at"],
+			})
+		}
+
+		if pending == nil {
+			pending = []map[string]interface{}{}
+		}
+
+		c.JSON(http.StatusOK, gin.H{"success": true, "pending": pending})
+	})
+
+	// Admin - Approve teacher registration
+	r.POST("/admin/approve-teacher", func(c *gin.Context) {
+		session := sessions.Default(c)
+		if session.Get("role") != "admin" {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Not authorized"})
+			return
+		}
+
+		var data struct {
+			RegistrationID string `json:"registration_id"`
+		}
+		if err := c.BindJSON(&data); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Invalid request"})
+			return
+		}
+
+		// Get pending registration
+		doc, err := firestoreClient.Collection("pending_teacher_registrations").Doc(data.RegistrationID).Get(context.Background())
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"success": false, "message": "Registration not found"})
+			return
+		}
+
+		var pending PendingTeacherRegistration
+		doc.DataTo(&pending)
+
+		// Check if already processed
+		if pending.Status != "PENDING" {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Registration already processed"})
+			return
+		}
+
+		// Create user account
+		user := User{
+			Username:  pending.TeacherID,
+			Password:  pending.Password,
+			Role:      "teacher",
+			Email:     pending.Email,
+			CreatedAt: time.Now(),
+		}
+		_, err = firestoreClient.Collection("users").Doc(pending.TeacherID).Set(context.Background(), user)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to create user: " + err.Error()})
+			return
+		}
+
+		// Create teacher record
+		teacherData := map[string]interface{}{
+			"name":       pending.FullName,
+			"email":      pending.Email,
+			"phone":      pending.Phone,
+			"created_at": time.Now(),
+		}
+		_, err = firestoreClient.Collection("teachers").Doc(pending.TeacherID).Set(context.Background(), teacherData)
+		if err != nil {
+			log.Printf("Error creating teacher record: %v", err)
+		}
+
+		// Update pending registration status
+		firestoreClient.Collection("pending_teacher_registrations").Doc(data.RegistrationID).Update(context.Background(), []firestore.Update{
+			{Path: "status", Value: "APPROVED"},
+			{Path: "reviewed_at", Value: time.Now()},
+		})
+
+		log.Printf("[ADMIN] Teacher registration approved: %s (%s)", pending.TeacherID, pending.FullName)
+		c.JSON(http.StatusOK, gin.H{"success": true, "message": "Teacher registration approved"})
+	})
+
+	// Admin - Reject teacher registration
+	r.POST("/admin/reject-teacher", func(c *gin.Context) {
+		session := sessions.Default(c)
+		if session.Get("role") != "admin" {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Not authorized"})
+			return
+		}
+
+		var data struct {
+			RegistrationID string `json:"registration_id"`
+			Remarks        string `json:"remarks"`
+		}
+		if err := c.BindJSON(&data); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Invalid request"})
+			return
+		}
+
+		// Get pending registration
+		doc, err := firestoreClient.Collection("pending_teacher_registrations").Doc(data.RegistrationID).Get(context.Background())
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"success": false, "message": "Registration not found"})
+			return
+		}
+
+		var pending PendingTeacherRegistration
+		doc.DataTo(&pending)
+
+		if pending.Status != "PENDING" {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Registration already processed"})
+			return
+		}
+
+		// Update pending registration status to rejected
+		firestoreClient.Collection("pending_teacher_registrations").Doc(data.RegistrationID).Update(context.Background(), []firestore.Update{
+			{Path: "status", Value: "REJECTED"},
+			{Path: "reviewed_at", Value: time.Now()},
+			{Path: "admin_remarks", Value: data.Remarks},
+		})
+
+		log.Printf("[ADMIN] Teacher registration rejected: %s (%s)", pending.TeacherID, pending.FullName)
+		c.JSON(http.StatusOK, gin.H{"success": true, "message": "Teacher registration rejected"})
 	})
 
 	// Student
