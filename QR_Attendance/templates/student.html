@@ -324,58 +324,234 @@
         }
 
         /* Mobile Responsive */
-        @media (max-width: 576px) {
-            .tab-btn {
-                padding: 10px 16px;
-                font-size: 0.85rem;
-            }
+        @media (max-width: 768px) {
 
-            .tab-btn span {
-                display: none;
-            }
-
-            .calendar-day {
-                font-size: 0.75rem;
-            }
-
-            .safe-zone-card {
-                padding: 1.5rem;
-            }
-
-            .calc-stat-card .stat-value {
-                font-size: 1.8rem;
-            }
-
+            /* Navbar Mobile Optimization */
             .navbar {
                 flex-direction: column;
                 gap: 12px;
-                padding: 10px 0;
+                padding: 12px 0;
             }
 
             .nav-links {
+                display: flex;
                 flex-wrap: wrap;
                 justify-content: center;
-                gap: 8px !important;
+                gap: 10px !important;
                 width: 100%;
             }
 
             .profile-btn .profile-name {
                 display: block !important;
-                font-size: 0.75rem !important;
-                max-width: 100px;
+                font-size: 0.8rem !important;
+                max-width: 120px;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
+            }
+
+            /* Stats Container Mobile */
+            .stats-container {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 12px !important;
+            }
+
+            .stat-card {
+                min-width: auto !important;
+                max-width: none !important;
+                padding: 0.8rem !important;
+            }
+
+            .stat-card h3 {
+                font-size: 0.75rem !important;
+            }
+
+            .stat-card .stat-num {
+                font-size: 1.4rem !important;
+            }
+
+            /* Semester Info Mobile */
+            .semester-info {
+                flex-direction: column !important;
+                gap: 10px !important;
+                padding: 1rem !important;
+                font-size: 0.85rem;
+            }
+
+            /* Filter Bar Mobile */
+            .filter-bar {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .filter-group {
+                min-width: 100% !important;
+            }
+
+            /* Records Grid Mobile */
+            #records-grid {
+                grid-template-columns: 1fr !important;
+                gap: 12px !important;
+            }
+
+            .record-card {
+                padding: 1rem !important;
+            }
+
+            /* Calculator Stats Grid Mobile */
+            .calc-stats-grid {
+                grid-template-columns: 1fr !important;
+            }
+
+            .calc-stat-card .stat-value {
+                font-size: 1.6rem;
+            }
+
+            /* Safe Zone Card Mobile */
+            .safe-zone-card {
+                padding: 1.25rem;
+            }
+
+            /* Calendar Mobile */
+            .calendar-day {
+                font-size: 0.7rem;
+            }
+
+            .calendar-day-header {
+                font-size: 0.7rem;
+                padding: 6px 2px;
+            }
+
+            .calendar-legend {
+                gap: 1rem;
+            }
+
+            .legend-item {
+                font-size: 0.75rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+
+            /* Tab Buttons - Keep icon + first word or short label */
+            .tab-btn {
+                padding: 10px 14px;
+                font-size: 0.8rem;
+                flex: 1;
+                justify-content: center;
+            }
+
+            .tab-btn span {
+                font-size: 0.75rem;
+                max-width: 60px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            .tab-buttons {
+                flex-wrap: nowrap;
+                gap: 6px;
+            }
+
+            #refresh-btn {
+                padding: 10px !important;
+                margin-left: 0 !important;
+                width: 100%;
+                margin-top: 8px;
+            }
+
+            /* Stats 2x2 Grid on small screens */
+            .stats-container {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+
+            .stat-card h3 {
+                font-size: 0.7rem !important;
+                line-height: 1.2;
+            }
+
+            .stat-card .stat-num {
+                font-size: 1.2rem !important;
             }
 
             .report-btn .btn-text {
                 display: none;
             }
 
-            .semester-info {
-                flex-direction: column;
-                gap: 8px;
-                padding: 0.75rem;
+            .profile-btn .profile-name {
+                max-width: 80px !important;
+                font-size: 0.7rem !important;
+            }
+
+            /* Brand text shorter */
+            .brand-text {
+                font-size: 0.9rem;
+            }
+        }
+
+        /* Mobile Feature Access Menu */
+        .mobile-feature-menu {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 12px 16px;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+            z-index: 999;
+            border-top: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .mobile-feature-menu .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .mobile-feature-menu .feature-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 4px;
+            border-radius: 12px;
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .mobile-feature-menu .feature-item:hover,
+        .mobile-feature-menu .feature-item.active {
+            background: rgba(102, 126, 234, 0.15);
+            color: #667eea;
+        }
+
+        .mobile-feature-menu .feature-item i {
+            font-size: 1.2rem;
+        }
+
+        .mobile-feature-menu .feature-item span {
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        body.dark-mode .mobile-feature-menu {
+            background: rgba(15, 12, 41, 0.95);
+        }
+
+        @media (max-width: 576px) {
+            .mobile-feature-menu {
+                display: block;
+            }
+
+            .container-wide {
+                padding-bottom: 80px !important;
             }
         }
     </style>
@@ -837,6 +1013,28 @@
         </div>
     </div>
 
+    <!-- Mobile Bottom Navigation Menu -->
+    <div class="mobile-feature-menu">
+        <div class="feature-grid">
+            <button class="feature-item active" onclick="showTab('records'); updateMobileNav(this);">
+                <i class="fas fa-list-alt"></i>
+                <span>Records</span>
+            </button>
+            <button class="feature-item" onclick="showTab('calculator'); updateMobileNav(this);">
+                <i class="fas fa-calculator"></i>
+                <span>Calculator</span>
+            </button>
+            <button class="feature-item" onclick="openGeneralCorrectionModal();">
+                <i class="fas fa-flag"></i>
+                <span>Report</span>
+            </button>
+            <button class="feature-item" onclick="openProfileModal();">
+                <i class="fas fa-user"></i>
+                <span>Profile</span>
+            </button>
+        </div>
+    </div>
+
     <script src="/static/backjs.js" defer></script>
     <script src="/static/performance.js" defer></script>
     <script>
@@ -862,6 +1060,27 @@
                 calculateAttendance();
                 renderCalendar();
             }
+
+            // Update mobile nav active state
+            updateMobileNavByTab(tabId);
+        }
+
+        // ==================== MOBILE NAV ====================
+        function updateMobileNav(clickedBtn) {
+            document.querySelectorAll('.mobile-feature-menu .feature-item').forEach(function (btn) {
+                btn.classList.remove('active');
+            });
+            clickedBtn.classList.add('active');
+        }
+
+        function updateMobileNavByTab(tabId) {
+            var mobileButtons = document.querySelectorAll('.mobile-feature-menu .feature-item');
+            mobileButtons.forEach(function (btn, index) {
+                btn.classList.remove('active');
+                if ((index === 0 && tabId === 'records') || (index === 1 && tabId === 'calculator')) {
+                    btn.classList.add('active');
+                }
+            });
         }
 
         // ==================== ATTENDANCE CALCULATOR ====================
