@@ -39,8 +39,15 @@
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
         }
 
         .session-badge i {
@@ -48,8 +55,15 @@
         }
 
         @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
         }
 
         .subject-title {
@@ -70,7 +84,7 @@
             padding: 20px;
             border-radius: 20px;
             display: inline-block;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
             margin-bottom: 1.5rem;
         }
 
@@ -107,8 +121,15 @@
         }
 
         @keyframes flash {
-            0%, 100% { color: #e74c3c; }
-            50% { color: #c0392b; }
+
+            0%,
+            100% {
+                color: #e74c3c;
+            }
+
+            50% {
+                color: #c0392b;
+            }
         }
 
         .info-row {
@@ -157,7 +178,8 @@
             flex-wrap: wrap;
         }
 
-        .action-buttons a, .action-buttons button {
+        .action-buttons a,
+        .action-buttons button {
             padding: 12px 24px;
             border-radius: 12px;
             font-weight: 600;
@@ -251,18 +273,58 @@
             cursor: pointer;
         }
 
-        @media (max-width: 480px) {
+        @media (max-width: 576px) {
+            body {
+                padding: 0;
+                align-items: flex-start;
+            }
+
+            .glass-container {
+                min-height: 100vh;
+                border-radius: 0;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                padding: 1.5rem;
+                margin: 0;
+            }
+
             .qr-wrapper img {
-                width: 200px;
-                height: 200px;
+                width: 220px;
+                height: 220px;
             }
 
             .subject-title {
-                font-size: 1.3rem;
+                font-size: 1.4rem;
             }
 
             .timer-value {
-                font-size: 1.5rem;
+                font-size: 1.6rem;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+                width: 100%;
+                gap: 10px;
+            }
+
+            .action-buttons button,
+            .action-buttons a {
+                width: 100%;
+                justify-content: center;
+                padding: 14px;
+            }
+
+            .info-row {
+                gap: 10px;
+                justify-content: space-between;
+            }
+
+            .info-item {
+                font-size: 0.8rem;
+                background: rgba(255, 255, 255, 0.3);
+                padding: 6px 10px;
+                border-radius: 8px;
             }
         }
     </style>
@@ -333,30 +395,30 @@
     <script>
         // Countdown timer
         const endTime = {{ .end_time }};
-        
+
         function updateCountdown() {
             const now = Math.floor(Date.now() / 1000);
             const remaining = endTime - now;
-            
+
             if (remaining <= 0) {
                 document.getElementById('countdown').textContent = 'EXPIRED';
                 document.getElementById('countdown').classList.add('warning');
                 return;
             }
-            
+
             const hours = Math.floor(remaining / 3600);
             const minutes = Math.floor((remaining % 3600) / 60);
             const seconds = remaining % 60;
-            
+
             const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
             document.getElementById('countdown').textContent = timeStr;
-            
+
             // Warning when less than 5 minutes
             if (remaining < 300) {
                 document.getElementById('countdown').classList.add('warning');
             }
         }
-        
+
         updateCountdown();
         setInterval(updateCountdown, 1000);
 
@@ -364,19 +426,19 @@
         function toggleFullscreen() {
             const fullscreenView = document.getElementById('fullscreenView');
             const qrCard = document.getElementById('qrCard');
-            
+
             if (fullscreenView.style.display === 'none') {
                 fullscreenView.style.display = 'flex';
                 qrCard.style.display = 'none';
                 // Try native fullscreen
                 if (document.documentElement.requestFullscreen) {
-                    document.documentElement.requestFullscreen().catch(() => {});
+                    document.documentElement.requestFullscreen().catch(() => { });
                 }
             } else {
                 fullscreenView.style.display = 'none';
                 qrCard.style.display = 'block';
                 if (document.exitFullscreen) {
-                    document.exitFullscreen().catch(() => {});
+                    document.exitFullscreen().catch(() => { });
                 }
             }
         }

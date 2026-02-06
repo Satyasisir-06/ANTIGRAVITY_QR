@@ -610,8 +610,15 @@
 
             .nav-links button,
             .nav-links a {
-                padding: 8px 12px !important;
-                font-size: 0.8rem !important;
+                padding: 10px 14px !important;
+                font-size: 0.9rem !important;
+                border-radius: 12px;
+                flex: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-width: 40px;
+                max-width: 60px;
             }
 
             /* Profile section */
@@ -680,8 +687,8 @@
             /* Session cards */
             .session-card {
                 flex-direction: column !important;
-                gap: 10px;
-                padding: 12px !important;
+                gap: 12px;
+                padding: 14px !important;
             }
 
             .session-card>div {
@@ -689,18 +696,22 @@
             }
 
             .session-card>div:last-child {
-                flex-direction: row !important;
-                flex-wrap: wrap;
-                justify-content: center;
+                flex-direction: column !important;
+                gap: 10px;
+                width: 100%;
             }
 
             .session-card>div:last-child a,
             .session-card>div:last-child button {
-                flex: 1;
-                min-width: 80px;
+                width: 100%;
                 text-align: center;
-                padding: 10px 8px !important;
-                font-size: 0.75rem !important;
+                padding: 14px !important;
+                font-size: 0.95rem !important;
+                border-radius: 12px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
             }
 
             /* Countdown timer */

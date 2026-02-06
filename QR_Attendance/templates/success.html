@@ -3,26 +3,280 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Success!</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="theme-color" content="#28a745">
+    <title>Success! | QR Attendance</title>
     <link rel="stylesheet" href="/static/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            overflow: hidden;
+        }
+
+        .success-container {
+            text-align: center;
+            padding: 2.5rem 2rem;
+            max-width: 400px;
+            width: 100%;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .success-icon {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            animation: scaleIn 0.5s ease-out 0.2s both, pulse 2s ease-in-out infinite 0.7s;
+            box-shadow: 0 10px 40px rgba(40, 167, 69, 0.4);
+        }
+
+        @keyframes scaleIn {
+            from {
+                transform: scale(0);
+            }
+
+            to {
+                transform: scale(1);
+            }
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 10px 40px rgba(40, 167, 69, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 10px 60px rgba(40, 167, 69, 0.6);
+            }
+        }
+
+        .success-icon i {
+            font-size: 3rem;
+            color: white;
+            animation: checkIn 0.3s ease-out 0.5s both;
+        }
+
+        @keyframes checkIn {
+            from {
+                opacity: 0;
+                transform: scale(0.5);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .success-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #28a745;
+            margin: 0 0 0.5rem;
+            animation: fadeIn 0.5s ease-out 0.4s both;
+        }
+
+        .success-message {
+            font-size: 1.1rem;
+            color: var(--text-color);
+            margin: 0 0 0.5rem;
+            animation: fadeIn 0.5s ease-out 0.5s both;
+        }
+
+        .success-submessage {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin: 0 0 1.5rem;
+            animation: fadeIn 0.5s ease-out 0.6s both;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .success-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(40, 167, 69, 0.15);
+            border: 1px solid rgba(40, 167, 69, 0.3);
+            padding: 10px 20px;
+            border-radius: 25px;
+            color: #28a745;
+            font-weight: 600;
+            font-size: 0.9rem;
+            animation: fadeIn 0.5s ease-out 0.7s both;
+        }
+
+        .success-badge i {
+            animation: bounce 1s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-3px);
+            }
+        }
+
+        /* Confetti */
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: #f0f;
+            top: -10px;
+            animation: confettiFall 3s linear forwards;
+        }
+
+        @keyframes confettiFall {
+            0% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 576px) {
+            body {
+                padding: 1rem;
+            }
+
+            .success-container {
+                padding: 2rem 1.5rem;
+            }
+
+            .success-icon {
+                width: 80px;
+                height: 80px;
+            }
+
+            .success-icon i {
+                font-size: 2.5rem;
+            }
+
+            .success-title {
+                font-size: 1.6rem;
+            }
+
+            .success-message {
+                font-size: 1rem;
+            }
+
+            .success-badge {
+                padding: 8px 16px;
+                font-size: 0.85rem;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .success-container {
+                padding: 1.5rem 1rem;
+            }
+
+            .success-icon {
+                width: 70px;
+                height: 70px;
+            }
+
+            .success-icon i {
+                font-size: 2rem;
+            }
+
+            .success-title {
+                font-size: 1.4rem;
+            }
+        }
+    </style>
 </head>
 
 <body>
-    <div class="glass-container animate-pop" style="text-align: center;">
-        <div class="checkmark"></div>
-        <h1 style="color: var(--success-color);">Success!</h1>
-        <p>Your attendance has been marked.</p>
-        <p style="font-size: 0.9rem;">You can close this tab now.</p>
-
-        <script>
-            // Confetti effect (simple version using CSS/JS)
-            // For brevity, we trust the CSS nice checkmark animation acts as the main visual
-            setTimeout(() => {
-                // Auto close logic if supported or just message
-            }, 3000);
-        </script>
+    <div class="glass-container success-container">
+        <div class="success-icon">
+            <i class="fas fa-check"></i>
+        </div>
+        <h1 class="success-title">Success!</h1>
+        <p class="success-message">Your attendance has been marked.</p>
+        <p class="success-submessage">You can close this tab now.</p>
+        <div class="success-badge">
+            <i class="fas fa-clock"></i>
+            <span id="timestamp"></span>
+        </div>
     </div>
+
+    <script>
+        // Display current time
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        });
+        document.getElementById('timestamp').textContent = 'Marked at ' + timeStr;
+
+        // Confetti effect
+        function createConfetti() {
+            const colors = ['#667eea', '#764ba2', '#28a745', '#ffc107', '#f093fb', '#00d2d3'];
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * 100 + 'vw';
+                    confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.width = (Math.random() * 10 + 5) + 'px';
+                    confetti.style.height = (Math.random() * 10 + 5) + 'px';
+                    confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+                    confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                    document.body.appendChild(confetti);
+
+                    setTimeout(() => confetti.remove(), 4000);
+                }, i * 50);
+            }
+        }
+
+        // Trigger confetti after page load
+        setTimeout(createConfetti, 300);
+    </script>
 </body>
 
 </html>

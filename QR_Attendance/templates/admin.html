@@ -40,6 +40,181 @@
         #active-sessions-grid::-webkit-scrollbar-thumb:hover {
             background: linear-gradient(135deg, #8e7cc3 0%, #e9a8d2 100%);
         }
+
+        /* Mobile Responsive Styles for Admin */
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                gap: 12px;
+                padding: 12px 0;
+            }
+
+            .navbar .brand {
+                font-size: 1rem;
+            }
+
+            .nav-links {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 8px !important;
+                width: 100%;
+            }
+
+            .nav-links a,
+            .nav-links button {
+                width: 40px !important;
+                height: 40px !important;
+                padding: 0 !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                border-radius: 10px !important;
+                font-size: 1rem !important;
+            }
+
+            /* Stats container 3-column on tablet */
+            .stats-container {
+                justify-content: center !important;
+            }
+
+            .stat-card {
+                min-width: 100px !important;
+                padding: 10px !important;
+            }
+
+            .stat-card h3 {
+                font-size: 0.75rem !important;
+            }
+
+            .stat-num {
+                font-size: 1.1rem !important;
+            }
+        }
+
+        @media (max-width: 576px) {
+            body {
+                padding: 10px !important;
+            }
+
+            .glass-container {
+                padding: 1rem !important;
+            }
+
+            /* Stats 2-column grid */
+            .stats-container {
+                display: grid !important;
+                grid-template-columns: repeat(3, 1fr) !important;
+                gap: 8px !important;
+            }
+
+            .stat-card {
+                min-width: 0 !important;
+                padding: 8px !important;
+            }
+
+            .stat-card i {
+                font-size: 1.2rem !important;
+                margin-bottom: 5px !important;
+            }
+
+            .stat-card h3 {
+                font-size: 0.65rem !important;
+                line-height: 1.2;
+            }
+
+            .stat-num {
+                font-size: 1rem !important;
+            }
+
+            .live-badge {
+                font-size: 0.5rem !important;
+                padding: 1px 4px !important;
+            }
+
+            /* Glass card sections */
+            .glass-card {
+                padding: 1rem !important;
+            }
+
+            .glass-card h2 {
+                font-size: 1rem !important;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            /* Running class cards */
+            .running-class-card {
+                padding: 0.75rem !important;
+            }
+
+            .running-class-card h3 {
+                font-size: 0.95rem !important;
+            }
+
+            /* Teacher Management Table */
+            table {
+                font-size: 0.8rem !important;
+            }
+
+            table th,
+            table td {
+                padding: 8px 6px !important;
+            }
+
+            /* Form inputs */
+            input[type="text"],
+            input[type="email"],
+            input[type="password"] {
+                font-size: 16px !important;
+                /* Prevent iOS zoom */
+                padding: 12px !important;
+            }
+
+            /* Responsive grid */
+            .responsive-grid {
+                grid-template-columns: 1fr !important;
+                gap: 10px !important;
+            }
+
+            /* Action buttons */
+            button.secondary {
+                padding: 8px 12px !important;
+                font-size: 0.75rem !important;
+            }
+
+            /* Session timer */
+            #active-sessions-grid [id^="timer-"] {
+                font-size: 1rem !important;
+            }
+
+            /* Form section */
+            #createTeacherForm {
+                padding: 1rem !important;
+            }
+
+            #createTeacherForm h2 {
+                font-size: 1.1rem !important;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .stats-container {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+
+            .stat-card h3 {
+                font-size: 0.6rem !important;
+            }
+
+            .stat-num {
+                font-size: 0.9rem !important;
+            }
+
+            .navbar .brand {
+                font-size: 0.9rem;
+            }
+        }
     </style>
 </head>
 

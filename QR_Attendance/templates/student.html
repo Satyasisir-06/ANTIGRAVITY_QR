@@ -435,18 +435,27 @@
 
             /* Tab Buttons - Keep icon + first word or short label */
             .tab-btn {
-                padding: 10px 14px;
+                padding: 12px 6px;
                 font-size: 0.8rem;
                 flex: 1;
                 justify-content: center;
+                flex-direction: column;
+                gap: 4px;
+                height: auto;
+            }
+
+            .tab-btn i {
+                font-size: 1.1rem;
+                margin: 0 !important;
             }
 
             .tab-btn span {
-                font-size: 0.75rem;
-                max-width: 60px;
+                font-size: 0.7rem;
+                max-width: 100%;
                 overflow: hidden;
                 text-overflow: ellipsis;
                 white-space: nowrap;
+                line-height: 1;
             }
 
             .tab-buttons {
