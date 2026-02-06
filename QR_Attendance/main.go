@@ -309,6 +309,19 @@ type PendingTeacherRegistration struct {
 	AdminRemarks string    `json:"admin_remarks" firestore:"admin_remarks,omitempty"`
 }
 
+// TimetableEntry represents a scheduled class for auto-session creation
+type TimetableEntry struct {
+	ID        string `json:"id" firestore:"id,omitempty"`
+	TeacherID string `json:"teacher_id" firestore:"teacher_id"`
+	Subject   string `json:"subject" firestore:"subject"`
+	Branch    string `json:"branch" firestore:"branch"`
+	DayOfWeek string `json:"day_of_week" firestore:"day_of_week"` // Monday, Tuesday, etc.
+	StartTime string `json:"start_time" firestore:"start_time"`   // "09:00"
+	EndTime   string `json:"end_time" firestore:"end_time"`       // "10:00"
+	ClassType string `json:"class_type" firestore:"class_type"`   // Theory/Lab
+	IsActive  bool   `json:"is_active" firestore:"is_active"`
+}
+
 // ==================== GLOBAL CLIENTS ====================
 
 var firestoreClient *firestore.Client
@@ -383,6 +396,249 @@ func getConfig() SemesterConfig {
 		doc.DataTo(&config)
 	}
 	return config
+}
+
+// ==================== EMAIL & NOTIFICATIONS ====================
+
+// sendEmail sends an email using SMTP configuration from settings
+func sendEmail(to, subject, body string) error {
+	config := getConfig()
+	if !config.EmailEnabled || config.SMTPServer == "" {
+		log.Printf("[EMAIL] Email is disabled or SMTP not configured")
+		return fmt.Errorf("email not configured")
+	}
+
+	from := config.EmailFrom
+	password := config.EmailPassword
+	smtpHost := config.SMTPServer
+	smtpPort := config.SMTPPort
+
+	// Email message format
+	message := fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/html; charset=\"UTF-8\"\r\n\r\n%s",
+		from, to, subject, body)
+
+	auth := smtp.PlainAuth("", from, password, smtpHost)
+	addr := fmt.Sprintf("%s:%d", smtpHost, smtpPort)
+
+	err := smtp.SendMail(addr, auth, from, []string{to}, []byte(message))
+	if err != nil {
+		log.Printf("[EMAIL] Failed to send email to %s: %v", to, err)
+		return err
+	}
+
+	log.Printf("[EMAIL] Successfully sent email to %s: %s", to, subject)
+	return nil
+}
+
+// sendTeacherApprovalEmail sends welcome email to newly approved teacher
+func sendTeacherApprovalEmail(teacherEmail, teacherName, teacherID string) {
+	subject := "✅ Your Teacher Registration is Approved - QR Attendance"
+	body := fmt.Sprintf(`
+		<html>
+		<body style="font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px;">
+			<div style="max-width: 500px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+				<h2 style="color: #10b981;">🎉 Welcome, %s!</h2>
+				<p>Your teacher registration has been <strong>approved</strong> by the administrator.</p>
+				<p><strong>Teacher ID:</strong> %s</p>
+				<p>You can now login to the QR Attendance system and start managing your classes.</p>
+				<a href="http://localhost:8080/login" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; margin-top: 15px;">Login Now</a>
+			</div>
+		</body>
+		</html>
+	`, teacherName, teacherID)
+
+	go sendEmail(teacherEmail, subject, body)
+}
+
+// sendTeacherRejectionEmail sends rejection notification to teacher
+func sendTeacherRejectionEmail(teacherEmail, teacherName, remarks string) {
+	subject := "❌ Teacher Registration Status - QR Attendance"
+	body := fmt.Sprintf(`
+		<html>
+		<body style="font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px;">
+			<div style="max-width: 500px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+				<h2 style="color: #ef4444;">Registration Not Approved</h2>
+				<p>Hi %s,</p>
+				<p>Unfortunately, your teacher registration was not approved.</p>
+				%s
+				<p>Please contact the administrator for more information.</p>
+			</div>
+		</body>
+		</html>
+	`, teacherName, func() string {
+		if remarks != "" {
+			return fmt.Sprintf("<p><strong>Reason:</strong> %s</p>", remarks)
+		}
+		return ""
+	}())
+
+	go sendEmail(teacherEmail, subject, body)
+}
+
+// ==================== BACKGROUND SCHEDULERS ====================
+
+// startReminderScheduler runs in background and sends reminders at 11 AM
+func startReminderScheduler() {
+	log.Println("[SCHEDULER] Teacher attendance reminder scheduler started")
+	lastRunDate := ""
+
+	for {
+		now := time.Now()
+		today := now.Format("2006-01-02")
+
+		// Run at 11:00 AM, only once per day
+		if now.Hour() == 11 && now.Minute() == 0 && lastRunDate != today {
+			log.Println("[SCHEDULER] Running 11 AM teacher attendance reminder check...")
+			checkTeacherAttendanceAndRemind()
+			lastRunDate = today
+		}
+
+		time.Sleep(30 * time.Second) // Check every 30 seconds
+	}
+}
+
+// checkTeacherAttendanceAndRemind checks which teachers haven't marked attendance and sends reminders
+func checkTeacherAttendanceAndRemind() {
+	today := time.Now().Format("2006-01-02")
+	ctx := context.Background()
+
+	// Get all teachers
+	teacherIter := firestoreClient.Collection("users").Where("role", "==", "teacher").Documents(ctx)
+
+	for {
+		teacherDoc, err := teacherIter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			continue
+		}
+
+		teacherID := teacherDoc.Ref.ID
+
+		// Check if teacher has attendance for today
+		attIter := firestoreClient.Collection("teacher_attendance").Where("teacher_id", "==", teacherID).Where("date", "==", today).Documents(ctx)
+		attDoc, err := attIter.Next()
+
+		if err == iterator.Done || attDoc == nil {
+			// No attendance found - send reminder
+			teacherInfoDoc, err := firestoreClient.Collection("teachers").Doc(teacherID).Get(ctx)
+			if err != nil {
+				continue
+			}
+
+			email := ""
+			name := teacherID
+			if teacherInfoDoc.Exists() {
+				if v := teacherInfoDoc.Data()["email"]; v != nil {
+					email = fmt.Sprint(v)
+				}
+				if v := teacherInfoDoc.Data()["name"]; v != nil {
+					name = fmt.Sprint(v)
+				}
+			}
+
+			if email != "" {
+				sendAttendanceReminderEmail(email, name)
+			}
+		}
+	}
+}
+
+// sendAttendanceReminderEmail sends reminder to teacher to mark attendance
+func sendAttendanceReminderEmail(email, name string) {
+	subject := "⏰ Reminder: Mark Your Attendance - QR Attendance"
+	body := fmt.Sprintf(`
+		<html>
+		<body style="font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px;">
+			<div style="max-width: 500px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+				<h2 style="color: #f59e0b;">⏰ Attendance Reminder</h2>
+				<p>Hi %s,</p>
+				<p>This is a friendly reminder that you haven't marked your attendance today.</p>
+				<p>Please scan the QR code or visit the teacher panel to mark your attendance.</p>
+				<p style="color: #6b7280; font-size: 0.9rem;">This is an automated reminder sent at 11:00 AM.</p>
+			</div>
+		</body>
+		</html>
+	`, name)
+
+	go sendEmail(email, subject, body)
+	log.Printf("[REMINDER] Sent attendance reminder to %s (%s)", name, email)
+}
+
+// startTimetableScheduler auto-creates sessions based on timetable
+func startTimetableScheduler() {
+	log.Println("[SCHEDULER] Timetable auto-session scheduler started")
+
+	for {
+		now := time.Now()
+		dayOfWeek := now.Weekday().String()
+		currentTime := now.Format("15:04")
+		today := now.Format("2006-01-02")
+		ctx := context.Background()
+
+		// Query timetable entries for current day and time
+		iter := firestoreClient.Collection("timetable").Where("day_of_week", "==", dayOfWeek).Where("start_time", "==", currentTime).Where("is_active", "==", true).Documents(ctx)
+
+		for {
+			doc, err := iter.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				continue
+			}
+
+			data := doc.Data()
+			teacherID := fmt.Sprint(data["teacher_id"])
+			subject := fmt.Sprint(data["subject"])
+			branch := fmt.Sprint(data["branch"])
+			classType := fmt.Sprint(data["class_type"])
+			endTimeStr := fmt.Sprint(data["end_time"])
+
+			// Check if session already exists for this teacher/subject today
+			existingIter := firestoreClient.Collection("sessions").Where("teacher_id", "==", teacherID).Where("subject", "==", subject).Where("date", "==", today).Documents(ctx)
+			existingDoc, _ := existingIter.Next()
+			if existingDoc != nil {
+				continue // Session already exists
+			}
+
+			// Parse end time
+			endTimeParts := strings.Split(endTimeStr, ":")
+			endHour, _ := strconv.Atoi(endTimeParts[0])
+			endMin := 0
+			if len(endTimeParts) > 1 {
+				endMin, _ = strconv.Atoi(endTimeParts[1])
+			}
+			endTime := time.Date(now.Year(), now.Month(), now.Day(), endHour, endMin, 0, 0, now.Location())
+
+			// Create auto session
+			qrToken := fmt.Sprintf("%d-%s-auto", now.UnixNano(), teacherID)
+			newSession := Session{
+				TeacherID:   teacherID,
+				TeacherName: teacherID,
+				Subject:     subject,
+				Branch:      branch,
+				ClassType:   classType,
+				StartTime:   float64(now.Unix()),
+				EndTime:     float64(endTime.Unix()),
+				IsFinalized: false,
+				QRToken:     qrToken,
+				Date:        today,
+				Time:        currentTime,
+			}
+
+			_, _, err = firestoreClient.Collection("sessions").Add(ctx, newSession)
+			if err != nil {
+				log.Printf("[TIMETABLE] Error creating auto session: %v", err)
+				continue
+			}
+
+			log.Printf("[TIMETABLE] Auto-created session for %s - %s (%s)", teacherID, subject, branch)
+		}
+
+		time.Sleep(1 * time.Minute) // Check every minute
+	}
 }
 
 // ==================== HANDLERS ====================
@@ -1321,6 +1577,11 @@ func main() {
 	}
 
 	initFirebase()
+
+	// Start background schedulers
+	go startReminderScheduler()  // 11 AM teacher attendance reminder
+	go startTimetableScheduler() // Auto-create sessions from timetable
+
 	r := gin.Default()
 	r.LoadHTMLGlob("templates/*")
 	r.Static("/static", "./static")
@@ -1590,6 +1851,14 @@ func main() {
 
 	// Admin
 	r.GET("/admin", adminDashboard)
+	r.GET("/admin/timetable-page", func(c *gin.Context) {
+		session := sessions.Default(c)
+		if session.Get("role") != "admin" {
+			c.Redirect(http.StatusFound, "/login")
+			return
+		}
+		c.HTML(http.StatusOK, "admin_timetable.html", nil)
+	})
 	r.GET("/view_attendance", viewAttendanceHandler)
 	r.GET("/class_records", classRecordsHandler)
 	r.GET("/settings", settingsHandler)
@@ -1823,6 +2092,11 @@ func main() {
 			{Path: "reviewed_at", Value: time.Now()},
 		})
 
+		// Send approval email
+		if pending.Email != "" {
+			sendTeacherApprovalEmail(pending.Email, pending.FullName, pending.TeacherID)
+		}
+
 		log.Printf("[ADMIN] Teacher registration approved: %s (%s)", pending.TeacherID, pending.FullName)
 		c.JSON(http.StatusOK, gin.H{"success": true, "message": "Teacher registration approved"})
 	})
@@ -1866,8 +2140,125 @@ func main() {
 			{Path: "admin_remarks", Value: data.Remarks},
 		})
 
+		// Send rejection email
+		if pending.Email != "" {
+			sendTeacherRejectionEmail(pending.Email, pending.FullName, data.Remarks)
+		}
+
 		log.Printf("[ADMIN] Teacher registration rejected: %s (%s)", pending.TeacherID, pending.FullName)
 		c.JSON(http.StatusOK, gin.H{"success": true, "message": "Teacher registration rejected"})
+	})
+
+	// Admin - Get timetable entries
+	r.GET("/admin/timetable", func(c *gin.Context) {
+		session := sessions.Default(c)
+		if session.Get("role") != "admin" {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Not authorized"})
+			return
+		}
+
+		iter := firestoreClient.Collection("timetable").Documents(context.Background())
+		var entries []map[string]interface{}
+
+		for {
+			doc, err := iter.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				continue
+			}
+
+			data := doc.Data()
+			entries = append(entries, map[string]interface{}{
+				"id":          doc.Ref.ID,
+				"teacher_id":  data["teacher_id"],
+				"subject":     data["subject"],
+				"branch":      data["branch"],
+				"day_of_week": data["day_of_week"],
+				"start_time":  data["start_time"],
+				"end_time":    data["end_time"],
+				"class_type":  data["class_type"],
+				"is_active":   data["is_active"],
+			})
+		}
+
+		if entries == nil {
+			entries = []map[string]interface{}{}
+		}
+
+		c.JSON(http.StatusOK, gin.H{"success": true, "timetable": entries})
+	})
+
+	// Admin - Add timetable entry
+	r.POST("/admin/timetable", func(c *gin.Context) {
+		session := sessions.Default(c)
+		if session.Get("role") != "admin" {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Not authorized"})
+			return
+		}
+
+		var entry TimetableEntry
+		if err := c.BindJSON(&entry); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Invalid request"})
+			return
+		}
+
+		entry.IsActive = true
+		_, _, err := firestoreClient.Collection("timetable").Add(context.Background(), entry)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to add timetable entry"})
+			return
+		}
+
+		log.Printf("[TIMETABLE] Added entry: %s - %s (%s, %s)", entry.TeacherID, entry.Subject, entry.DayOfWeek, entry.StartTime)
+		c.JSON(http.StatusOK, gin.H{"success": true, "message": "Timetable entry added"})
+	})
+
+	// Admin - Delete timetable entry
+	r.DELETE("/admin/timetable/:id", func(c *gin.Context) {
+		session := sessions.Default(c)
+		if session.Get("role") != "admin" {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Not authorized"})
+			return
+		}
+
+		entryID := c.Param("id")
+		_, err := firestoreClient.Collection("timetable").Doc(entryID).Delete(context.Background())
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to delete entry"})
+			return
+		}
+
+		log.Printf("[TIMETABLE] Deleted entry: %s", entryID)
+		c.JSON(http.StatusOK, gin.H{"success": true, "message": "Timetable entry deleted"})
+	})
+
+	// Admin - Toggle timetable entry active status
+	r.POST("/admin/timetable/:id/toggle", func(c *gin.Context) {
+		session := sessions.Default(c)
+		if session.Get("role") != "admin" {
+			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Not authorized"})
+			return
+		}
+
+		entryID := c.Param("id")
+		doc, err := firestoreClient.Collection("timetable").Doc(entryID).Get(context.Background())
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"success": false, "message": "Entry not found"})
+			return
+		}
+
+		isActive := true
+		if v := doc.Data()["is_active"]; v != nil {
+			isActive = !v.(bool)
+		}
+
+		firestoreClient.Collection("timetable").Doc(entryID).Update(context.Background(), []firestore.Update{
+			{Path: "is_active", Value: isActive},
+		})
+
+		c.JSON(http.StatusOK, gin.H{"success": true, "is_active": isActive})
 	})
 
 	// Student

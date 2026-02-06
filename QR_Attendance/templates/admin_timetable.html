@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timetable Manager | QR Attendance</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .timetable-grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .entry-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .entry-info {
+            flex: 1;
+        }
+
+        .entry-title {
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--text-color);
+            margin-bottom: 4px;
+        }
+
+        .entry-meta {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .entry-time {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-right: 10px;
+        }
+
+        .entry-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .toggle-btn {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .toggle-btn.active {
+            background: #10b981;
+            color: white;
+        }
+
+        .toggle-btn.inactive {
+            background: #6b7280;
+            color: white;
+        }
+
+        .delete-btn {
+            background: #ef4444;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .add-form {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            font-size: 0.95rem;
+        }
+
+        .add-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 1rem;
+        }
+
+        .day-filter {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .day-btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid #e5e7eb;
+            background: white;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .day-btn.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-color: transparent;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="glass-container animate-pop" style="max-width: 900px;">
+        <div class="header-row">
+            <a href="/admin" class="back-link"><i class="fas fa-arrow-left"></i> Back</a>
+            <h1><i class="fas fa-calendar-alt"></i> Timetable Manager</h1>
+        </div>
+
+        <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+            <i class="fas fa-magic"></i> Classes scheduled here will auto-start sessions at the specified time.
+        </p>
+
+        <!-- Add New Entry Form -->
+        <div class="add-form">
+            <h3 style="margin-bottom: 1rem;"><i class="fas fa-plus-circle"></i> Add Timetable Entry</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Teacher ID</label>
+                    <input type="text" id="teacherId" placeholder="e.g. teacher1">
+                </div>
+                <div class="form-group">
+                    <label>Subject</label>
+                    <input type="text" id="subject" placeholder="e.g. Mathematics">
+                </div>
+                <div class="form-group">
+                    <label>Branch</label>
+                    <input type="text" id="branch" placeholder="e.g. CSE-A">
+                </div>
+                <div class="form-group">
+                    <label>Day of Week</label>
+                    <select id="dayOfWeek">
+                        <option value="Monday">Monday</option>
+                        <option value="Tuesday">Tuesday</option>
+                        <option value="Wednesday">Wednesday</option>
+                        <option value="Thursday">Thursday</option>
+                        <option value="Friday">Friday</option>
+                        <option value="Saturday">Saturday</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Start Time</label>
+                    <input type="time" id="startTime" value="09:00">
+                </div>
+                <div class="form-group">
+                    <label>End Time</label>
+                    <input type="time" id="endTime" value="10:00">
+                </div>
+                <div class="form-group">
+                    <label>Class Type</label>
+                    <select id="classType">
+                        <option value="Theory">Theory</option>
+                        <option value="Lab">Lab</option>
+                    </select>
+                </div>
+            </div>
+            <button class="add-btn" onclick="addEntry()">
+                <i class="fas fa-plus"></i> Add Entry
+            </button>
+        </div>
+
+        <!-- Day Filter -->
+        <div class="day-filter">
+            <button class="day-btn active" onclick="filterDay('all')">All</button>
+            <button class="day-btn" onclick="filterDay('Monday')">Mon</button>
+            <button class="day-btn" onclick="filterDay('Tuesday')">Tue</button>
+            <button class="day-btn" onclick="filterDay('Wednesday')">Wed</button>
+            <button class="day-btn" onclick="filterDay('Thursday')">Thu</button>
+            <button class="day-btn" onclick="filterDay('Friday')">Fri</button>
+            <button class="day-btn" onclick="filterDay('Saturday')">Sat</button>
+        </div>
+
+        <!-- Timetable Entries -->
+        <div id="timetableContent" class="timetable-grid">
+            <div class="empty-state">Loading...</div>
+        </div>
+    </div>
+
+    <script src="/static/backjs.js"></script>
+    <script>
+        let allEntries = [];
+        let currentFilter = 'all';
+
+        async function loadTimetable() {
+            try {
+                const response = await fetch('/admin/timetable');
+                const result = await response.json();
+
+                if (result.success) {
+                    allEntries = result.timetable || [];
+                    renderEntries();
+                }
+            } catch (e) {
+                document.getElementById('timetableContent').innerHTML =
+                    '<div class="empty-state">Error loading timetable</div>';
+            }
+        }
+
+        function renderEntries() {
+            const container = document.getElementById('timetableContent');
+            let filtered = allEntries;
+
+            if (currentFilter !== 'all') {
+                filtered = allEntries.filter(e => e.day_of_week === currentFilter);
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="empty-state">No timetable entries found</div>';
+                return;
+            }
+
+            // Sort by day then time
+            const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            filtered.sort((a, b) => {
+                const dayDiff = dayOrder.indexOf(a.day_of_week) - dayOrder.indexOf(b.day_of_week);
+                if (dayDiff !== 0) return dayDiff;
+                return a.start_time.localeCompare(b.start_time);
+            });
+
+            container.innerHTML = filtered.map(entry => `
+                <div class="entry-card" id="entry-${entry.id}">
+                    <div class="entry-info">
+                        <div class="entry-title">${entry.subject} - ${entry.branch}</div>
+                        <div class="entry-meta">
+                            <i class="fas fa-user"></i> ${entry.teacher_id} &nbsp;|&nbsp;
+                            <i class="fas fa-calendar"></i> ${entry.day_of_week} &nbsp;|&nbsp;
+                            <i class="fas fa-book"></i> ${entry.class_type}
+                        </div>
+                    </div>
+                    <span class="entry-time">${entry.start_time} - ${entry.end_time}</span>
+                    <div class="entry-actions">
+                        <button class="toggle-btn ${entry.is_active ? 'active' : 'inactive'}" 
+                                onclick="toggleEntry('${entry.id}')">
+                            ${entry.is_active ? 'Active' : 'Inactive'}
+                        </button>
+                        <button class="delete-btn" onclick="deleteEntry('${entry.id}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterDay(day) {
+            currentFilter = day;
+            document.querySelectorAll('.day-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            renderEntries();
+        }
+
+        async function addEntry() {
+            const entry = {
+                teacher_id: document.getElementById('teacherId').value,
+                subject: document.getElementById('subject').value,
+                branch: document.getElementById('branch').value,
+                day_of_week: document.getElementById('dayOfWeek').value,
+                start_time: document.getElementById('startTime').value,
+                end_time: document.getElementById('endTime').value,
+                class_type: document.getElementById('classType').value
+            };
+
+            if (!entry.teacher_id || !entry.subject || !entry.branch) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            try {
+                const response = await fetch('/admin/timetable', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(entry)
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('✅ Timetable entry added!');
+                    // Clear form
+                    document.getElementById('teacherId').value = '';
+                    document.getElementById('subject').value = '';
+                    document.getElementById('branch').value = '';
+                    loadTimetable();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (e) {
+                alert('Network error');
+            }
+        }
+
+        async function toggleEntry(id) {
+            try {
+                const response = await fetch(`/admin/timetable/${id}/toggle`, {
+                    method: 'POST'
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    loadTimetable();
+                }
+            } catch (e) {
+                alert('Error toggling entry');
+            }
+        }
+
+        async function deleteEntry(id) {
+            if (!confirm('Delete this timetable entry?')) return;
+
+            try {
+                const response = await fetch(`/admin/timetable/${id}`, {
+                    method: 'DELETE'
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('entry-' + id).remove();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (e) {
+                alert('Network error');
+            }
+        }
+
+        // Load on page load
+        loadTimetable();
+    </script>
+</body>
+
+</html>

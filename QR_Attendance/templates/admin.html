@@ -7,19 +7,19 @@
     <meta name="theme-color" content="#a18cd1">
     <meta name="description" content="Admin Dashboard - QR Attendance System">
     <title>Admin Dashboard | QR Attendance</title>
-    
+
     <!-- Critical CSS first -->
     <link rel="stylesheet" href="/static/style.css?v=3">
     <link rel="stylesheet" href="/static/performance.css">
-    
+
     <!-- Defer non-critical CSS -->
     <link rel="preconnect" href="https://cdnjs.cloudflare.com">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    
+
     <!-- Preload critical resources -->
     <link rel="preload" href="/static/backjs.js" as="script">
     <link rel="preload" href="/static/performance.js" as="script">
-    
+
     <link rel="manifest" href="/static/manifest.json">
     <style>
         /* Custom scrollbar for running classes */
@@ -180,7 +180,7 @@
                                             In</span>
                                         <div id="timer-{{ $s.ID }}"
                                             style="font-size: 1.2rem; font-weight: 700; font-family: monospace; color: #e74c3c;"
-                                            data-end="{{ printf "%.0f" $s.EndTime }}">--:--:--</div>
+                                            data-end="{{ printf " %.0f" $s.EndTime }}">--:--:--</div>
                                     </div>
                                     <form method="POST" action="/teacher/finalize_session" style="margin: 0;">
                                         <input type="hidden" name="session_id" value="{{ $s.ID }}">
@@ -211,16 +211,28 @@
             <div style="grid-column: 1 / -1; margin: 2rem auto 0; max-width: 1200px; width: 100%;">
                 <div class="glass-card">
                     <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px;">
                         <h2 style="margin: 0;"><i class="fas fa-chalkboard-teacher"></i> Teacher Management</h2>
-                        <button onclick="loadTeachers()" class="secondary"
-                            style="width: auto; padding: 5px 15px; font-size: 0.8rem;">
-                            <i class="fas fa-sync"></i> Refresh
-                        </button>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <a href="/admin/timetable-page" class="secondary"
+                                style="width: auto; padding: 5px 15px; font-size: 0.8rem; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;">
+                                <i class="fas fa-calendar-alt"></i> Timetable
+                            </a>
+                            <a href="/admin/teacher-attendance" class="secondary" id="pendingRegLink"
+                                style="width: auto; padding: 5px 15px; font-size: 0.8rem; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; background: rgba(243, 156, 18, 0.2); border-color: #f39c12;">
+                                <i class="fas fa-user-clock"></i> Pending Registrations
+                                <span id="pendingRegBadge"
+                                    style="background: #f39c12; color: white; border-radius: 10px; padding: 2px 8px; font-size: 0.7rem; display: none;"></span>
+                            </a>
+                            <button onclick="loadTeachers()" class="secondary"
+                                style="width: auto; padding: 5px 15px; font-size: 0.8rem;">
+                                <i class="fas fa-sync"></i> Refresh
+                            </button>
+                        </div>
                     </div>
 
-                    <div style="margin-top: 1rem;">
-                        <table style="width: 100%; border-collapse: collapse;">
+                    <div style="margin-top: 1rem; max-height: 400px; overflow-y: auto; overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; min-width: 600px;">
                             <thead>
                                 <tr
                                     style="background: rgba(161, 140, 209, 0.1); border-bottom: 2px solid var(--border-color);">
@@ -255,8 +267,8 @@
                         </button>
                     </div>
 
-                    <div style="margin-top: 1rem; overflow-x: auto;">
-                        <table style="width: 100%; border-collapse: collapse;">
+                    <div style="margin-top: 1rem; max-height: 400px; overflow-y: auto; overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; min-width: 700px;">
                             <thead>
                                 <tr
                                     style="background: rgba(161, 140, 209, 0.1); border-bottom: 2px solid var(--border-color);">
@@ -427,7 +439,23 @@
             // Load teachers and history on page load
             loadTeachers();
             loadTeacherHistory();
+            loadPendingCount();
         });
+
+        // Load pending registrations count
+        async function loadPendingCount() {
+            try {
+                const res = await fetch('/admin/pending-teachers');
+                const data = await res.json();
+                if (data.success && data.pending && data.pending.length > 0) {
+                    const badge = document.getElementById('pendingRegBadge');
+                    if (badge) {
+                        badge.textContent = data.pending.length;
+                        badge.style.display = 'inline';
+                    }
+                }
+            } catch (e) { }
+        }
 
         // Load Teachers List
         async function loadTeachers() {
@@ -562,7 +590,7 @@
             // Use server clock offset for accurate timing
             const offset = window.serverClockOffset || 0;
             const now = Math.floor((Date.now() + offset) / 1000);
-            
+
             document.querySelectorAll('[id^="timer-"]').forEach(el => {
                 const endTime = parseInt(el.dataset.end, 10);
                 if (!endTime || isNaN(endTime)) {
